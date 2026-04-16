@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 import {
   DollarSign,
   MessageCircle,
@@ -79,6 +81,7 @@ const FAQS = [
 export default function ListYourPropertyPage() {
   return (
     <main className="min-h-screen bg-white">
+      <Navbar />
       {/* Hero */}
       <section className="bg-[#0f2044] text-white py-24 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -243,6 +246,7 @@ export default function ListYourPropertyPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

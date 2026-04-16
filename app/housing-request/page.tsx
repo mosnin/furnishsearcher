@@ -23,6 +23,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Home, MapPin, DollarSign, Calendar, BedDouble } from "lucide-react";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 const BUDGET_RANGES = [
   { label: "Under $1,500 / mo", value: "1500" },
@@ -149,6 +151,7 @@ export default function HousingRequestPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <Navbar />
       {/* Hero */}
       <section className="bg-[#0f2044] text-white py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
@@ -378,6 +381,7 @@ export default function HousingRequestPage() {
           )}
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

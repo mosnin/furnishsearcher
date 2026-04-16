@@ -394,7 +394,8 @@ export default function NewListingPage() {
                     <Input
                       id="price"
                       type="number"
-                      min={0}
+                      min={1}
+                      step={1}
                       placeholder="2500"
                       className="pl-7"
                       value={form.price || ""}

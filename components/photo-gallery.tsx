@@ -94,7 +94,7 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
 
             return (
               <button
-                key={photo}
+                key={`${photoIndex}-${photo}`}
                 className="relative group cursor-pointer overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => openLightbox(photoIndex)}
                 aria-label={`View photo ${photoIndex + 1} of ${totalPhotos}`}
