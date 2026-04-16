@@ -7,6 +7,22 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatPrice, formatDate } from "@/lib/utils";
+
+type ManagedListing = {
+  _id: string;
+  title: string;
+  status: "active" | "inactive" | "pending";
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  views: number;
+  photos: string[];
+  city: string;
+  state: string;
+  zip: string;
+  propertyType: string;
+  createdAt: number;
+};
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +78,7 @@ export default function LandlordListingsPage() {
   const listings = useQuery(
     api.listings.getByLandlord,
     convexUser?._id ? { landlordId: convexUser._id } : "skip"
-  );
+  ) as ManagedListing[] | undefined;
 
   const publishMutation = useMutation(api.listings.publish);
   const unpublishMutation = useMutation(api.listings.unpublish);

@@ -6,6 +6,31 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatPrice, formatDate } from "@/lib/utils";
+
+type LandlordListing = {
+  _id: string;
+  title: string;
+  status: "active" | "inactive" | "pending";
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  views: number;
+  photos: string[];
+  createdAt: number;
+};
+
+type LandlordConversation = {
+  _id: string;
+  tenantId: string;
+  landlordId: string;
+  listingId: string;
+  lastMessage: string;
+  lastMessageAt: number;
+  tenantRead: boolean;
+  landlordRead: boolean;
+  listing: { title: string } | null;
+  otherUser: { name: string } | null;
+};
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,12 +108,12 @@ export default function LandlordDashboardPage() {
   const listings = useQuery(
     api.listings.getByLandlord,
     convexUser?._id ? { landlordId: convexUser._id } : "skip"
-  );
+  ) as LandlordListing[] | undefined;
 
   const conversations = useQuery(
     api.messages.getConversations,
     convexUser?._id ? { userId: convexUser._id } : "skip"
-  );
+  ) as LandlordConversation[] | undefined;
 
   const publishMutation = useMutation(api.listings.publish);
   const unpublishMutation = useMutation(api.listings.unpublish);

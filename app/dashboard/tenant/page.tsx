@@ -6,6 +6,44 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
+
+type ConvDoc<T> = T & { _id: string };
+
+type ConvUser = {
+  _id: string;
+  name: string;
+  email: string;
+  role: "tenant" | "landlord" | "admin";
+};
+
+type ConvListing = {
+  _id: string;
+  landlordId: string;
+  title: string;
+  city: string;
+  state: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  photos: string[];
+};
+
+type SavedEntry = {
+  _id: string;
+  listing: ConvListing | null;
+};
+
+type ConvConversation = {
+  _id: string;
+  tenantId: string;
+  landlordId: string;
+  lastMessage: string;
+  lastMessageAt: number;
+  tenantRead: boolean;
+  landlordRead: boolean;
+  listing: { title: string } | null;
+  otherUser: { name: string } | null;
+};
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -137,14 +175,14 @@ export default function TenantDashboardPage() {
   const savedListings = useQuery(
     api.saved.getSaved,
     convexUser?._id ? { tenantId: convexUser._id } : "skip"
-  );
+  ) as SavedEntry[] | undefined;
 
   const conversations = useQuery(
     api.messages.getConversations,
     convexUser?._id ? { userId: convexUser._id } : "skip"
-  );
+  ) as ConvConversation[] | undefined;
 
-  const featuredListings = useQuery(api.listings.getFeatured, {});
+  const featuredListings = useQuery(api.listings.getFeatured, {}) as ConvListing[] | undefined;
 
   const isLoading = !isLoaded || convexUser === undefined;
   const firstName = convexUser?.name?.split(" ")[0] ?? "there";
@@ -259,7 +297,7 @@ export default function TenantDashboardPage() {
               entry.listing ? (
                 <ListingCard
                   key={entry._id}
-                  listing={entry.listing as any}
+                  listing={entry.listing!}
                   userId={convexUser?._id ?? ""}
                 />
               ) : null
@@ -389,7 +427,7 @@ export default function TenantDashboardPage() {
             {featuredListings.slice(0, 3).map((listing) => (
               <ListingCard
                 key={listing._id}
-                listing={listing as any}
+                listing={listing}
                 userId={convexUser?._id ?? ""}
               />
             ))}

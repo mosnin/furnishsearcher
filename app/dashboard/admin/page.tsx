@@ -5,6 +5,21 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatDate, formatPrice } from "@/lib/utils";
+
+type AdminListing = {
+  _id: string;
+  title: string;
+  status: "active" | "inactive" | "pending";
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  views: number;
+  photos: string[];
+  city: string;
+  state: string;
+  propertyType: string;
+  createdAt: number;
+};
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +86,7 @@ export default function AdminDashboardPage() {
     userId ? { clerkId: userId } : "skip"
   );
 
-  const allListings = useQuery(api.listings.getAll, {});
+  const allListings = useQuery(api.listings.getAll, {}) as AdminListing[] | undefined;
 
   const publishMutation = useMutation(api.listings.publish);
   const deleteMutation = useMutation(api.listings.deleteListing);
