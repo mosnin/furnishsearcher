@@ -599,6 +599,116 @@ export default function TenantDashboardPage() {
           </div>
         )}
       </section>
+
+      {/* My Housing Requests */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-[#0f2044]" />
+            My Housing Requests
+          </h2>
+          <Button asChild size="sm" className="bg-[#0f2044] hover:bg-[#1a3360] text-white gap-1">
+            <Link href="/housing-request">
+              <PlusCircle className="h-4 w-4" />
+              New Request
+            </Link>
+          </Button>
+        </div>
+
+        {housingRequests === undefined ? (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3.5 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : housingRequests.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="h-12 w-12 text-slate-300 mb-4" />
+              <h3 className="text-base font-medium text-slate-900 mb-1">No housing requests yet</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Submit a request and let landlords come to you.
+              </p>
+              <Button asChild className="bg-[#0f2044] hover:bg-[#1a3360]">
+                <Link href="/housing-request">Submit a Request</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0 divide-y divide-slate-100">
+              {housingRequests.map((req) => (
+                <div
+                  key={req._id}
+                  className="flex items-start gap-4 p-4 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0">
+                    <MapPin className="h-5 w-5 text-[#0f2044]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-slate-900 text-sm">
+                        {req.city}, {req.state}
+                      </span>
+                      <Badge
+                        variant={req.status === "open" ? "default" : "secondary"}
+                        className={cn(
+                          "text-xs capitalize",
+                          req.status === "open"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {req.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        Up to ${req.maxBudget.toLocaleString()}/mo
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BedDouble className="h-3 w-3" />
+                        {req.bedrooms}+ bed
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3" />
+                        {new Date(req.moveInDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {req.duration} {req.duration === 1 ? "month" : "months"}
+                      </span>
+                    </div>
+                  </div>
+                  {req.status === "open" && (
+                    <button
+                      type="button"
+                      onClick={() => handleCloseHousingRequest(req._id)}
+                      className="text-xs text-slate-400 hover:text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-200 transition-colors shrink-0 font-medium"
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </section>
     </div>
   );
 }

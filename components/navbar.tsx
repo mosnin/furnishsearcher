@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Find Rentals", href: "/search" },
-  { label: "List Property", href: "/dashboard/listings/new" },
   { label: "Resources", href: "/resources" },
 ];
 
@@ -74,7 +73,7 @@ export default function Navbar() {
               {isSignedIn ? (
                 <>
                   <Link
-                    href="/dashboard/listings/new"
+                    href="/list-your-property"
                     className="text-sm font-medium text-gray-600 hover:text-[#0f2044] transition-colors"
                   >
                     List Your Property
@@ -88,7 +87,7 @@ export default function Navbar() {
                       Sign In
                     </button>
                   </SignInButton>
-                  <Link href="/dashboard/listings/new">
+                  <Link href="/list-your-property">
                     <Button size="sm" className="bg-[#0f2044] hover:bg-[#1a3360] text-white shadow-sm font-medium">
                       List Your Property
                     </Button>
