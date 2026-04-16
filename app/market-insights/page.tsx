@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cn, formatPrice } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { TOP_CITIES } from "@/lib/cities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,6 @@ import {
   Building2,
   MapPin,
   DollarSign,
-  Lightbulb,
   Search,
   Calendar,
   Star,
