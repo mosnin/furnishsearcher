@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import {
   Search,
@@ -63,7 +64,7 @@ function SearchPageInner() {
     bedrooms: minBeds > 0 ? minBeds : undefined,
     propertyType: selectedTypes.length === 1 ? selectedTypes[0] : undefined,
     petFriendly: petFriendly || undefined,
-  });
+  }) as Doc<"listings">[] | undefined;
 
   const listings = useMemo(() => {
     if (!rawListings) return [];

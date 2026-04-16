@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { cn, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,7 @@ function RoleBadge({ role }: { role: string }) {
 export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
 
-  const users = useQuery(api.users.getAll);
+  const users = useQuery(api.users.getAll) as Doc<"users">[] | undefined;
 
   const filtered =
     users?.filter((u) =>

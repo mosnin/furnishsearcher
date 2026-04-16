@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,9 +46,9 @@ function StatCard({
 }
 
 export default function AdminReportsPage() {
-  const listings = useQuery(api.listings.getAll);
+  const listings = useQuery(api.listings.getAll) as Doc<"listings">[] | undefined;
   const platformStats = useQuery(api.analytics.getPlatformStats);
-  const allUsers = useQuery(api.users.getAll);
+  const allUsers = useQuery(api.users.getAll) as Doc<"users">[] | undefined;
 
   const isLoading =
     listings === undefined ||

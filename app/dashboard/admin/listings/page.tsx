@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +53,7 @@ export default function AdminListingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Id<"listings"> | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const listings = useQuery(api.listings.getAll);
+  const listings = useQuery(api.listings.getAll) as Doc<"listings">[] | undefined;
   const deleteListing = useMutation(api.listings.deleteListing);
   const publishListing = useMutation(api.listings.publish);
 
