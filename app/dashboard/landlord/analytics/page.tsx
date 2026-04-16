@@ -371,12 +371,6 @@ export default function LandlordAnalyticsPage() {
                     data={viewsData}
                     margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
                   >
-                    <defs>
-                      <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#1e3a8a" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#1e3a8a" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
                       dataKey="date"

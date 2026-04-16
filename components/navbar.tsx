@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Find Rentals", href: "/search" },
+  { label: "Market Insights", href: "/market-insights", badge: "NEW" },
   { label: "Resources", href: "/resources" },
 ];
 
@@ -61,9 +62,14 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
                 >
                   {link.label}
+                  {"badge" in link && link.badge && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[#0f2044] text-white leading-none">
+                      {link.badge}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -120,9 +126,14 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={handleMobileClose}
-                className="block px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
               >
                 {link.label}
+                {"badge" in link && link.badge && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[#0f2044] text-white leading-none">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             ))}
             <div className="pt-3 border-t border-gray-100 mt-3 space-y-2">

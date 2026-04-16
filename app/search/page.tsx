@@ -313,7 +313,7 @@ function SearchPageInner() {
         ) : (
           <>
             {/* "Showing X–Y of N results" */}
-            {!rawListings === false && listings.length > 0 && (
+            {rawListings !== undefined && listings.length > 0 && (
               <p className="text-sm text-gray-500 mb-3">
                 Showing{" "}
                 <span className="font-medium text-gray-700">
