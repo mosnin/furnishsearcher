@@ -170,15 +170,12 @@ export default function CareersPage() {
               "Home office stipend ($1,500 on start)",
               "Flexible PTO — take what you need",
               "Annual team retreat",
-              "Learning &amp; development budget ($2,000/year)",
+              "Learning & development budget ($2,000/year)",
               "No-meeting Fridays (protected deep work time)",
             ].map((perk) => (
               <div key={perk} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 px-4 py-3">
                 <span className="text-green-600 font-bold text-lg leading-none">✓</span>
-                <span
-                  className="text-slate-700 text-sm"
-                  dangerouslySetInnerHTML={{ __html: perk }}
-                />
+                <span className="text-slate-700 text-sm">{perk}</span>
               </div>
             ))}
           </div>
