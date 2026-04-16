@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Home,
+  TrendingUp,
 } from "lucide-react";
 import MobileNav from "@/components/dashboard/mobile-nav";
 
@@ -29,13 +30,15 @@ type NavItem = {
   label: string;
   href: string;
   icon: React.ElementType;
+  badge?: string;
 };
 
 const tenantNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
   { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Profile", href: "/dashboard/tenant/profile", icon: User },
+  { label: "My Profile", href: "/dashboard/profile", icon: User },
+  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
 
 const landlordNav: NavItem[] = [
@@ -44,7 +47,8 @@ const landlordNav: NavItem[] = [
   { label: "Add Listing", href: "/dashboard/landlord/listings/new", icon: PlusSquare },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },
-  { label: "Profile", href: "/dashboard/landlord/profile", icon: User },
+  { label: "My Profile", href: "/dashboard/profile", icon: User },
+  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
 
 const adminNav: NavItem[] = [
@@ -53,6 +57,7 @@ const adminNav: NavItem[] = [
   { label: "All Users", href: "/dashboard/admin/users", icon: Users },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
 
 function NavLink({
@@ -77,7 +82,12 @@ function NavLink({
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      {item.label}
+      <span className="flex-1">{item.label}</span>
+      {item.badge && (
+        <span className="ml-auto inline-flex items-center rounded-full bg-[#1e3a8a] px-1.5 py-0.5 text-[10px] font-semibold text-white leading-none">
+          {item.badge}
+        </span>
+      )}
     </Link>
   );
 }

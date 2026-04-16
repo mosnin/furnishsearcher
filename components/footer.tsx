@@ -27,7 +27,7 @@ const FOOTER_LINKS = {
     { label: "About Us", href: "/about" },
     { label: "Press", href: "/press" },
     { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
+    { label: "Contact Us", href: "/contact" },
     { label: "Affiliates", href: "/affiliates" },
   ],
 };

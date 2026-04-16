@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Search, Home, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +62,7 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const getOrCreate = useMutation(api.users.getOrCreate);
   const updateRole = useMutation(api.users.updateRole);
+  const sendWelcome = useAction(api.emails.sendWelcomeEmail);
 
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +101,13 @@ export default function OnboardingPage() {
           role: selectedRole,
         });
       }
+
+      // Fire welcome email (non-blocking — errors are logged server-side)
+      await sendWelcome({
+        toEmail: primaryEmail,
+        toName: fullName,
+        role: selectedRole,
+      });
 
       // Redirect to the appropriate dashboard
       router.push(

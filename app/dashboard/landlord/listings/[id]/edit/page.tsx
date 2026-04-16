@@ -27,8 +27,6 @@ import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
-  Plus,
-  X,
   Check,
   Home,
   MapPin,
@@ -36,6 +34,7 @@ import {
   Star,
   ImageIcon,
 } from "lucide-react";
+import { PhotoUpload } from "@/components/photo-upload";
 
 interface FormData {
   title: string;
@@ -180,27 +179,6 @@ export default function EditListingPage() {
           : [...prev.amenities, amenity],
       };
     });
-  }
-
-  function updatePhoto(index: number, value: string) {
-    setForm((prev) => {
-      if (!prev) return prev;
-      const photos = [...prev.photos];
-      photos[index] = value;
-      return { ...prev, photos };
-    });
-  }
-
-  function addPhoto() {
-    if (form && form.photos.length < 10) {
-      setForm((prev) => prev ? { ...prev, photos: [...prev.photos, ""] } : prev);
-    }
-  }
-
-  function removePhoto(index: number) {
-    setForm((prev) =>
-      prev ? { ...prev, photos: prev.photos.filter((_, i) => i !== index) } : prev
-    );
   }
 
   function validateStep(): boolean {
@@ -563,52 +541,26 @@ export default function EditListingPage() {
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Photos</CardTitle>
               </CardHeader>
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                Photo upload coming soon — paste image URLs below to add photos.
-              </div>
-              <div className="space-y-3">
-                {form.photos.map((photo, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="h-10 w-10 rounded border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                      {photo ? (
-                        <img
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <ImageIcon className="h-4 w-4 text-slate-400" />
-                      )}
-                    </div>
-                    <Input
-                      placeholder={`Photo ${index + 1} URL`}
-                      value={photo}
-                      onChange={(e) => updatePhoto(index, e.target.value)}
-                      className="flex-1"
-                    />
-                    {form.photos.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePhoto(index)}
-                        className="text-slate-400 hover:text-red-500 shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <PhotoUpload
+                    key={index}
+                    variant="listing"
+                    currentUrl={form.photos[index] || undefined}
+                    label={index === 0 ? "Cover photo" : `Photo ${index + 1}`}
+                    onUpload={(url) => {
+                      setForm((prev) => {
+                        if (!prev) return prev;
+                        const photos = [...prev.photos];
+                        // Grow array if needed
+                        while (photos.length <= index) photos.push("");
+                        photos[index] = url;
+                        return { ...prev, photos };
+                      });
+                    }}
+                  />
                 ))}
               </div>
-              {form.photos.length < 10 && (
-                <Button type="button" variant="outline" size="sm" onClick={addPhoto}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Photo URL
-                </Button>
-              )}
               <p className="text-xs text-slate-400">
                 Up to 10 photos. The first photo will be used as the cover image.
               </p>

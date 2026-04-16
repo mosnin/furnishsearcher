@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "convex/server";
+import { internal } from "convex/_generated/api";
 
 /**
  * Derives a stable, order-independent conversation ID from two user IDs and
@@ -94,6 +95,24 @@ export const sendMessage = mutation({
         tenantRead: senderIsLandlord ? false : true,
         landlordRead: senderIsLandlord ? true : false,
       });
+    }
+
+    // Notify the receiver about the new message via email.
+    // Only send when the sender is the tenant messaging the landlord (or vice
+    // versa); we always notify the receiver regardless of direction.
+    if (receiver.email) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emails.sendNewMessageNotification,
+        {
+          toEmail: receiver.email,
+          toName: receiver.name,
+          fromName: sender.name,
+          listingTitle: listing.title,
+          messagePreview: args.content.slice(0, 200),
+          conversationId: conversationId,
+        }
+      );
     }
 
     return messageId;

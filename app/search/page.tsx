@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,6 +14,8 @@ import {
   Bed,
   Bath,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   X,
   MapPin,
 } from "lucide-react";
@@ -43,6 +45,9 @@ function SearchPageInner() {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [localSearch, setLocalSearch] = useState(locationParam);
+  const [page, setPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 12;
 
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -73,6 +78,20 @@ function SearchPageInner() {
     }
     return list;
   }, [rawListings, selectedTypes, utilitiesIncluded, sortBy]);
+
+  // Reset to page 1 whenever the filtered result set or sort changes
+  useEffect(() => {
+    setPage(1);
+  }, [listings.length, sortBy]);
+
+  // Paginated slice — only used in list view; map/split views show all for accuracy
+  const paginated = listings.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(listings.length / ITEMS_PER_PAGE));
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const mapListings: MapListing[] = useMemo(() =>
     listings
@@ -292,7 +311,30 @@ function SearchPageInner() {
             <LeafletMap listings={mapListings} selectedId={selectedListingId} onSelectListing={setSelectedListingId} />
           </div>
         ) : (
-          <ListingsGrid listings={listings} loading={rawListings === undefined} selectedId={selectedListingId} onSelect={setSelectedListingId} />
+          <>
+            {/* "Showing X–Y of N results" */}
+            {!rawListings === false && listings.length > 0 && (
+              <p className="text-sm text-gray-500 mb-3">
+                Showing{" "}
+                <span className="font-medium text-gray-700">
+                  {(page - 1) * ITEMS_PER_PAGE + 1}–
+                  {Math.min(page * ITEMS_PER_PAGE, listings.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-gray-700">{listings.length}</span>{" "}
+                results
+              </p>
+            )}
+            <ListingsGrid listings={paginated} loading={rawListings === undefined} selectedId={selectedListingId} onSelect={setSelectedListingId} />
+            {/* Pagination bar — list view only */}
+            {listings.length > ITEMS_PER_PAGE && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
@@ -346,6 +388,112 @@ function ListingsGrid({ listings, loading, selectedId, onSelect }: { listings: L
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {listings.map((l) => <SearchListingCard key={l._id} listing={l} isSelected={selectedId === l._id} onSelect={() => onSelect(selectedId === l._id ? null : l._id)} />)}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pagination component
+// ---------------------------------------------------------------------------
+
+function getPageNumbers(page: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages: (number | "...")[] = [];
+  // Always show first page
+  pages.push(1);
+  // Ellipsis after first if current is far from start
+  if (page > 4) pages.push("...");
+  // 3 pages around current
+  for (let p = Math.max(2, page - 1); p <= Math.min(totalPages - 1, page + 1); p++) {
+    pages.push(p);
+  }
+  // Ellipsis before last if current is far from end
+  if (page < totalPages - 3) pages.push("...");
+  // Always show last page
+  pages.push(totalPages);
+  return pages;
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+}) {
+  const pageNumbers = getPageNumbers(page, totalPages);
+
+  return (
+    <div className="flex flex-col items-center gap-3 mt-8">
+      <div className="flex items-center gap-1">
+        {/* Prev */}
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page === 1}
+          className={cn(
+            "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
+            page === 1
+              ? "border-gray-200 text-gray-300 cursor-not-allowed"
+              : "border-gray-300 text-gray-700 hover:border-[#1e3a8a] hover:text-[#1e3a8a]"
+          )}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Prev
+        </button>
+
+        {/* Page numbers */}
+        <div className="flex items-center gap-1 mx-1">
+          {pageNumbers.map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPageChange(p as number)}
+                aria-label={`Page ${p}`}
+                aria-current={page === p ? "page" : undefined}
+                className={cn(
+                  "w-9 h-9 text-sm font-medium rounded-lg border transition-colors",
+                  page === p
+                    ? "border-[#1e3a8a] bg-[#1e3a8a] text-white"
+                    : "border-gray-200 text-gray-700 hover:border-[#1e3a8a] hover:text-[#1e3a8a]"
+                )}
+              >
+                {p}
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page === totalPages}
+          className={cn(
+            "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
+            page === totalPages
+              ? "border-gray-200 text-gray-300 cursor-not-allowed"
+              : "border-gray-300 text-gray-700 hover:border-[#1e3a8a] hover:text-[#1e3a8a]"
+          )}
+          aria-label="Next page"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Page X of N */}
+      <p className="text-xs text-gray-400">
+        Page <span className="font-medium text-gray-600">{page}</span> of{" "}
+        <span className="font-medium text-gray-600">{totalPages}</span>
+      </p>
     </div>
   );
 }
