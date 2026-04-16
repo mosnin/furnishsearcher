@@ -22,11 +22,14 @@ type ManagedListing = {
   zip: string;
   propertyType: string;
   createdAt: number;
+  featured?: boolean;
+  featuredUntil?: number;
 };
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeatureListingButton } from "@/components/checkout-button";
 import {
   Dialog,
   DialogContent,
@@ -249,6 +252,13 @@ export default function LandlordListingsPage() {
                             {listing.title}
                           </h3>
                           <StatusBadge status={listing.status} />
+                          {listing.featured &&
+                            listing.featuredUntil &&
+                            listing.featuredUntil > Date.now() && (
+                              <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-semibold">
+                                ★ Featured
+                              </Badge>
+                            )}
                         </div>
                         <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
                           <MapPin className="h-3.5 w-3.5" />
@@ -292,6 +302,16 @@ export default function LandlordListingsPage() {
                             Edit
                           </Link>
                         </Button>
+                        {!(
+                          listing.featured &&
+                          listing.featuredUntil &&
+                          listing.featuredUntil > Date.now()
+                        ) && (
+                          <FeatureListingButton
+                            listingId={listing._id as Id<"listings">}
+                            className="h-8 px-3 text-xs"
+                          />
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

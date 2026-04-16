@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
+import { Id } from "@/convex/_generated/dataModel";
 
 type Role = "tenant" | "landlord" | "admin";
 
@@ -51,24 +52,35 @@ function getNavItems(role: Role): NavItem[] {
     },
     {
       label: "Profile",
-      href:
-        role === "landlord"
-          ? "/dashboard/landlord/profile"
-          : "/dashboard/tenant/profile",
+      href: "/dashboard/profile",
       icon: User,
     },
   ];
 }
 
+type ConversationSummary = {
+  tenantId: Id<"users">;
+  landlordId: Id<"users">;
+  tenantRead: boolean;
+  landlordRead: boolean;
+};
+
 function UnreadBadge() {
-  const { userId } = useAuth();
+  const { userId: clerkId } = useAuth();
+  const convexUser = useQuery(
+    api.users.getByClerkId,
+    clerkId ? { clerkId } : "skip"
+  ) as { _id: Id<"users"> } | null | undefined;
+
   const conversations = useQuery(
     api.messages.getConversations,
-    userId ? undefined : "skip"
-  );
+    convexUser?._id ? { userId: convexUser._id } : "skip"
+  ) as ConversationSummary[] | undefined;
 
   const unreadCount =
-    conversations?.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0) ?? 0;
+    conversations?.filter((c) =>
+      c.tenantId === convexUser?._id ? !c.tenantRead : !c.landlordRead
+    ).length ?? 0;
 
   if (unreadCount === 0) return null;
 

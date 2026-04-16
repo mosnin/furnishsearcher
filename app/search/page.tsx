@@ -91,7 +91,9 @@ function SearchPageInner() {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const mapListings: MapListing[] = useMemo(() =>
@@ -101,12 +103,19 @@ function SearchPageInner() {
           (c) => c.name.toLowerCase() === l.city.toLowerCase()
         );
         if (!cityData) return null;
+        // Deterministic jitter derived from listing id — prevents pin drift on re-renders
+        let seed = 0;
+        for (let i = 0; i < l._id.length; i++) {
+          seed = (seed * 31 + l._id.charCodeAt(i)) | 0;
+        }
+        const jitterLat = ((seed % 1000) / 1000 - 0.5) * 0.04;
+        const jitterLng = (((seed >> 8) % 1000) / 1000 - 0.5) * 0.04;
         return {
           id: l._id,
           title: l.title,
           price: l.price,
-          lat: cityData.lat + (Math.random() - 0.5) * 0.04,
-          lng: cityData.lng + (Math.random() - 0.5) * 0.04,
+          lat: cityData.lat + jitterLat,
+          lng: cityData.lng + jitterLng,
           city: l.city,
           state: l.state,
           bedrooms: l.bedrooms,
@@ -115,7 +124,6 @@ function SearchPageInner() {
         } satisfies MapListing;
       })
       .filter(Boolean) as MapListing[],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [listings]
   );
 

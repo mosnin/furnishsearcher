@@ -23,6 +23,7 @@ import {
   X,
   Home,
   TrendingUp,
+  CreditCard,
 } from "lucide-react";
 import MobileNav from "@/components/dashboard/mobile-nav";
 
@@ -47,6 +48,7 @@ const landlordNav: NavItem[] = [
   { label: "Add Listing", href: "/dashboard/landlord/listings/new", icon: PlusSquare },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },
+  { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];

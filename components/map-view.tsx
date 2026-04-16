@@ -44,7 +44,7 @@ export default function MapView({
 }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const bounds = useCallback(() => {
+  const bounds = useMemo(() => {
     if (!listings.length) {
       return { minLat: 25, maxLat: 48, minLng: -125, maxLng: -66 };
     }
@@ -57,7 +57,7 @@ export default function MapView({
       minLng: Math.min(...lngs) - pad,
       maxLng: Math.max(...lngs) + pad,
     };
-  }, [listings])();
+  }, [listings]);
 
   const selected = listings.find((l) => l.id === selectedId);
 

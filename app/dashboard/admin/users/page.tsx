@@ -134,17 +134,21 @@ export default function AdminUsersPage() {
                     {formatDate(user.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-slate-500 hover:text-slate-700"
-                      title="View profile"
-                    >
-                      <Link href={`/landlords/${user._id}`}>
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
+                    {user.role === "landlord" ? (
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-slate-700"
+                        title="View landlord profile"
+                      >
+                        <Link href={`/landlords/${user._id}`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <span className="text-slate-300 text-xs">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

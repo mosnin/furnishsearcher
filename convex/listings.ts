@@ -231,8 +231,17 @@ export const search = query({
       listings = listings.filter((l) => l.petFriendly === args.petFriendly);
     }
 
-    // Newest first
-    listings.sort((a, b) => b.createdAt - a.createdAt);
+    // Featured listings surface first (while their featuredUntil is in the future),
+    // then newest first within each group.
+    const now = Date.now();
+    listings.sort((a, b) => {
+      const aFeat =
+        a.featured && a.featuredUntil && a.featuredUntil > now ? 1 : 0;
+      const bFeat =
+        b.featured && b.featuredUntil && b.featuredUntil > now ? 1 : 0;
+      if (aFeat !== bFeat) return bFeat - aFeat;
+      return b.createdAt - a.createdAt;
+    });
 
     return listings;
   },

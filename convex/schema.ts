@@ -50,11 +50,15 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending")),
     createdAt: v.number(),
     views: v.number(),
+    // Featured listing (paid boost via Creem.io)
+    featured: v.optional(v.boolean()),
+    featuredUntil: v.optional(v.number()),
   })
     .index("by_landlord", ["landlordId"])
     .index("by_status", ["status"])
     .index("by_city_state", ["city", "state"])
-    .index("by_status_city", ["status", "city"]),
+    .index("by_status_city", ["status", "city"])
+    .index("by_featured", ["featured", "featuredUntil"]),
 
   savedListings: defineTable({
     tenantId: v.id("users"),
@@ -114,6 +118,74 @@ export default defineSchema({
     petFriendly: v.optional(v.boolean()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Creem.io subscription plans (landlord pro, premium, etc.)
+  subscriptions: defineTable({
+    userId: v.id("users"),
+    creemCustomerId: v.optional(v.string()),
+    creemSubscriptionId: v.string(),
+    creemProductId: v.string(),
+    plan: v.union(
+      v.literal("landlord_pro"),
+      v.literal("landlord_premium"),
+      v.literal("tenant_plus")
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("trialing"),
+      v.literal("paused"),
+      v.literal("canceled"),
+      v.literal("expired")
+    ),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_creem_subscription", ["creemSubscriptionId"])
+    .index("by_status", ["status"]),
+
+  // Creem.io one-time payment records (featured listing boosts, etc.)
+  payments: defineTable({
+    userId: v.id("users"),
+    creemCustomerId: v.optional(v.string()),
+    creemCheckoutId: v.string(),
+    creemTransactionId: v.optional(v.string()),
+    productId: v.string(),
+    purpose: v.union(
+      v.literal("feature_listing"),
+      v.literal("subscription"),
+      v.literal("other")
+    ),
+    listingId: v.optional(v.id("listings")),
+    amountCents: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("refunded")
+    ),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_creem_checkout", ["creemCheckoutId"])
+    .index("by_listing", ["listingId"])
+    .index("by_status", ["status"]),
+
+  // Raw webhook events for audit/replay protection
+  webhookEvents: defineTable({
+    source: v.string(),
+    eventId: v.string(),
+    eventType: v.string(),
+    payload: v.string(),
+    processedAt: v.number(),
+  })
+    .index("by_source_event", ["source", "eventId"]),
 
   housingRequests: defineTable({
     userId: v.id("users"),
