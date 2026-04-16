@@ -129,6 +129,19 @@ export const updateProfile = mutation({
 });
 
 /**
+ * Returns all users sorted by createdAt descending.
+ * Intended for admin dashboards only.
+ */
+export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    users.sort((a, b) => b.createdAt - a.createdAt);
+    return users;
+  },
+});
+
+/**
  * Returns public profile information for a user — safe to expose to other users.
  * Does NOT include email or phone.
  */

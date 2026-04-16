@@ -69,7 +69,7 @@ export default function FeaturedListings() {
               Be the first to list your furnished property.
             </p>
             <Link
-              href="/dashboard/listings/new"
+              href="/list-your-property"
               className="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors"
             >
               List a Property

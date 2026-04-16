@@ -183,7 +183,7 @@ export default function AboutPage() {
               variant="outline"
               className="border-white text-white hover:bg-white/10 bg-transparent px-8"
             >
-              <Link href="/listings">Browse Listings</Link>
+              <Link href="/search">Browse Listings</Link>
             </Button>
           </div>
         </div>

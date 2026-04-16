@@ -138,7 +138,7 @@ export default function HousingRequestPage() {
                 variant="outline"
                 className="flex-1"
               >
-                <Link href="/listings">Browse Listings</Link>
+                <Link href="/search">Browse Listings</Link>
               </Button>
             </div>
           </CardContent>

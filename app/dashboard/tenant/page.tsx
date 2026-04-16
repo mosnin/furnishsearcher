@@ -289,7 +289,7 @@ export default function TenantDashboardPage() {
           )}
         </div>
         <Button asChild>
-          <Link href="/listings">
+          <Link href="/search">
             <Search className="h-4 w-4 mr-2" />
             Browse Listings
           </Link>
@@ -357,7 +357,7 @@ export default function TenantDashboardPage() {
                 Browse listings and save your favorites to compare them later.
               </p>
               <Button asChild>
-                <Link href="/listings">Browse Listings</Link>
+                <Link href="/search">Browse Listings</Link>
               </Button>
             </CardContent>
           </Card>
@@ -411,7 +411,7 @@ export default function TenantDashboardPage() {
                 Find a listing you love and reach out to the landlord.
               </p>
               <Button asChild>
-                <Link href="/listings">Browse Listings</Link>
+                <Link href="/search">Browse Listings</Link>
               </Button>
             </CardContent>
           </Card>
@@ -465,7 +465,7 @@ export default function TenantDashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">My Saved Searches</h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/listings">
+            <Link href="/search">
               Browse Listings <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Link>
           </Button>
@@ -486,7 +486,7 @@ export default function TenantDashboardPage() {
                 Save a search to get notified when matching listings are posted.
               </p>
               <Button asChild>
-                <Link href="/listings">Browse Listings</Link>
+                <Link href="/search">Browse Listings</Link>
               </Button>
             </CardContent>
           </Card>
@@ -505,7 +505,7 @@ export default function TenantDashboardPage() {
                   if (search.bedrooms) params.set("bedrooms", String(search.bedrooms));
                   if (search.propertyType) params.set("propertyType", search.propertyType);
                   if (search.petFriendly) params.set("petFriendly", "true");
-                  router.push(`/listings?${params.toString()}`);
+                  router.push(`/search?${params.toString()}`);
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -560,7 +560,7 @@ export default function TenantDashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Recommended for You</h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/listings">
+            <Link href="/search">
               See all <ArrowRight className="h-3.5 w-3.5 ml-1" />
             </Link>
           </Button>

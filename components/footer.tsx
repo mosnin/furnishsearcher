@@ -5,15 +5,15 @@ const FOOTER_LINKS = {
   "For Renters": [
     { label: "Search Listings", href: "/search" },
     { label: "How It Works", href: "/#how-it-works" },
-    { label: "Saved Listings", href: "/dashboard/saved" },
-    { label: "Renter Resources", href: "/resources/renters" },
-    { label: "FAQ", href: "/faq" },
+    { label: "Saved Listings", href: "/dashboard/tenant" },
+    { label: "Renter Resources", href: "/resources" },
+    { label: "FAQ", href: "/resources" },
   ],
   "For Landlords": [
-    { label: "List Your Property", href: "/dashboard/listings/new" },
+    { label: "List Your Property", href: "/list-your-property" },
     { label: "Landlord Dashboard", href: "/dashboard" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Landlord Resources", href: "/resources/landlords" },
+    { label: "Landlord Resources", href: "/resources" },
     { label: "Success Stories", href: "/success-stories" },
   ],
   Resources: [

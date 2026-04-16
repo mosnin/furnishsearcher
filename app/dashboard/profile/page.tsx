@@ -11,7 +11,7 @@ import {
   Home, MapPin, DollarSign, BedDouble, User, ExternalLink,
 } from "lucide-react";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
-import ReviewCard from "@/components/review-card";
+import { ReviewCard } from "@/components/review-card";
 import { STATES } from "@/lib/cities";
 
 const TABS = ["Personal Info", "Reviews", "Saved Searches", "Housing Requests"] as const;
@@ -183,7 +183,7 @@ function PersonalInfoTab({ convexUser, clerkUser }: { convexUser: NonNullable<Re
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateProfile({ id: convexUser._id, ...form });
+      await updateProfile({ userId: convexUser._id, ...form });
       toast.success("Profile updated!");
     } catch {
       toast.error("Failed to save profile.");
