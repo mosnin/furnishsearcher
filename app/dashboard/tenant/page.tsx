@@ -59,6 +59,22 @@ type SavedSearch = {
   petFriendly?: boolean;
   createdAt: number;
 };
+
+type HousingRequest = {
+  _id: string;
+  userId: string;
+  city: string;
+  state: string;
+  moveInDate: number;
+  duration: number;
+  maxBudget: number;
+  bedrooms: number;
+  petFriendly: boolean;
+  description: string;
+  status: "open" | "fulfilled" | "closed";
+  createdAt: number;
+};
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +94,8 @@ import {
   Bookmark,
   X,
   DollarSign,
+  FileText,
+  PlusCircle,
 } from "lucide-react";
 
 function StatCard({
@@ -209,6 +227,13 @@ export default function TenantDashboardPage() {
 
   const removeSavedSearch = useMutation(api.savedSearches.remove);
 
+  const housingRequests = useQuery(
+    api.housingRequests.getByUser,
+    convexUser?._id ? { userId: convexUser._id } : "skip"
+  ) as HousingRequest[] | undefined;
+
+  const closeHousingRequest = useMutation(api.housingRequests.close);
+
   const isLoading = !isLoaded || convexUser === undefined;
   const firstName = convexUser?.name?.split(" ")[0] ?? "there";
   const today = new Date().toLocaleDateString("en-US", {
@@ -231,6 +256,16 @@ export default function TenantDashboardPage() {
     } catch (err) {
       console.error("Failed to remove saved search:", err);
       toast.error("Failed to remove saved search.");
+    }
+  };
+
+  const handleCloseHousingRequest = async (id: string) => {
+    try {
+      await closeHousingRequest({ id: id as HousingRequest["_id"] });
+      toast.success("Housing request closed.");
+    } catch (err) {
+      console.error("Failed to close housing request:", err);
+      toast.error("Failed to close housing request.");
     }
   };
 
