@@ -141,7 +141,7 @@ export default function Navbar() {
                       Sign In
                     </button>
                   </SignInButton>
-                  <Link href="/dashboard/listings/new" onClick={handleMobileClose}>
+                  <Link href="/list-your-property" onClick={handleMobileClose}>
                     <Button className="w-full bg-[#0f2044] hover:bg-[#1a3360] text-white">
                       List Your Property
                     </Button>
