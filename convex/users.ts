@@ -86,3 +86,72 @@ export const getById = query({
     return await ctx.db.get(args.id);
   },
 });
+
+/**
+ * Updates optional profile fields for a user. Patches only provided fields.
+ * Returns the updated user document.
+ */
+export const updateProfile = mutation({
+  args: {
+    userId: v.id("users"),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    zip: v.optional(v.string()),
+    hometown: v.optional(v.string()),
+    occupation: v.optional(v.string()),
+    company: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    petInfo: v.optional(v.string()),
+    petPhoto: v.optional(v.string()),
+    linkedinVerified: v.optional(v.boolean()),
+    profilePhoto: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { userId, ...fields } = args;
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    // Only patch fields that were explicitly passed (not undefined)
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) {
+        patch[key] = value;
+      }
+    }
+    await ctx.db.patch(userId, patch);
+    return await ctx.db.get(userId);
+  },
+});
+
+/**
+ * Returns public profile information for a user — safe to expose to other users.
+ * Does NOT include email or phone.
+ */
+export const getPublicProfile = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    return {
+      _id: user._id,
+      name: user.name,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      profilePhoto: user.profilePhoto,
+      city: user.city,
+      state: user.state,
+      occupation: user.occupation,
+      bio: user.bio,
+      linkedinVerified: user.linkedinVerified,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
+  },
+});

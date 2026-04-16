@@ -18,7 +18,8 @@ import {
   MapPin,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
-import MapView, { type MapListing } from "@/components/map-view";
+import LeafletMap from "@/components/leaflet-map";
+import { type MapListing } from "@/components/map-view";
 import { TOP_CITIES } from "@/lib/cities";
 
 type SortOption = "price_asc" | "price_desc" | "newest" | "most_viewed";
@@ -283,12 +284,12 @@ function SearchPageInner() {
               <ListingsGrid listings={listings} loading={rawListings === undefined} selectedId={selectedListingId} onSelect={setSelectedListingId} />
             </div>
             <div className="flex-1">
-              <MapView listings={mapListings} selectedId={selectedListingId} onSelectListing={setSelectedListingId} />
+              <LeafletMap listings={mapListings} selectedId={selectedListingId} onSelectListing={setSelectedListingId} />
             </div>
           </div>
         ) : viewMode === "map" ? (
           <div style={{ height: "calc(100vh - 220px)" }}>
-            <MapView listings={mapListings} selectedId={selectedListingId} onSelectListing={setSelectedListingId} />
+            <LeafletMap listings={mapListings} selectedId={selectedListingId} onSelectListing={setSelectedListingId} />
           </div>
         ) : (
           <ListingsGrid listings={listings} loading={rawListings === undefined} selectedId={selectedListingId} onSelect={setSelectedListingId} />

@@ -9,6 +9,23 @@ export default defineSchema({
     avatar: v.optional(v.string()),
     role: v.union(v.literal("tenant"), v.literal("landlord"), v.literal("admin")),
     createdAt: v.number(),
+    // Extended profile fields
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    phoneVerified: v.optional(v.boolean()),
+    profilePhoto: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    zip: v.optional(v.string()),
+    hometown: v.optional(v.string()),
+    occupation: v.optional(v.string()),
+    company: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    petInfo: v.optional(v.string()),
+    petPhoto: v.optional(v.string()),
+    linkedinVerified: v.optional(v.boolean()),
   }).index("by_clerk_id", ["clerkId"]),
 
   listings: defineTable({
@@ -72,4 +89,46 @@ export default defineSchema({
     .index("by_tenant", ["tenantId"])
     .index("by_landlord", ["landlordId"])
     .index("by_listing_tenant", ["listingId", "tenantId"]),
+
+  reviews: defineTable({
+    listingId: v.id("listings"),
+    landlordId: v.id("users"),
+    reviewerId: v.id("users"),
+    rating: v.number(),
+    comment: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_listing", ["listingId"])
+    .index("by_landlord", ["landlordId"])
+    .index("by_reviewer", ["reviewerId"]),
+
+  savedSearches: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    location: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    maxPrice: v.optional(v.number()),
+    bedrooms: v.optional(v.number()),
+    propertyType: v.optional(v.string()),
+    petFriendly: v.optional(v.boolean()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  housingRequests: defineTable({
+    userId: v.id("users"),
+    city: v.string(),
+    state: v.string(),
+    moveInDate: v.number(),
+    duration: v.number(),
+    maxBudget: v.number(),
+    bedrooms: v.number(),
+    petFriendly: v.boolean(),
+    description: v.string(),
+    status: v.union(v.literal("open"), v.literal("fulfilled"), v.literal("closed")),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_city_state", ["city", "state"])
+    .index("by_status", ["status"]),
 });

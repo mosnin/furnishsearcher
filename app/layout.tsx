@@ -4,21 +4,32 @@ import "./globals.css";
 import { ConvexClientProvider } from "./providers";
 
 export const metadata: Metadata = {
-  title: "FurnishFinder | Monthly Furnished Rentals",
+  title: {
+    default: "FurnishFinder | Monthly Furnished Rentals",
+    template: "%s | FurnishFinder",
+  },
   description:
-    "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families, and digital nomads. Browse 300,000+ listings with no booking fees.",
+    "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
   keywords: [
     "furnished rentals",
     "monthly rentals",
-    "corporate housing",
     "travel nurse housing",
+    "corporate housing",
     "furnished apartments",
   ],
   openGraph: {
+    siteName: "FurnishFinder",
     title: "FurnishFinder | Monthly Furnished Rentals",
     description:
-      "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families, and digital nomads.",
+      "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
     type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FurnishFinder | Monthly Furnished Rentals",
+    description:
+      "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
   },
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   Shield,
+  PenLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
+import { StarRating } from "@/components/star-rating";
+import { ReviewCard } from "@/components/review-card";
+import { ReviewForm } from "@/components/review-form";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 
 // Amenity icon mapping
@@ -61,6 +65,7 @@ export default function ListingDetailPage({ params }: PageProps) {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 
   const [contactOpen, setContactOpen] = useState(false);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saveOptimistic, setSaveOptimistic] = useState<boolean | null>(null);
 
@@ -88,6 +93,16 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   // Featured listings for "Similar" section
   const featuredListings = useQuery(api.listings.getFeatured);
+
+  // Reviews for this listing
+  const listingReviews = useQuery(
+    api.reviews.getByListing,
+    listing?._id ? { listingId: listing._id } : "skip"
+  );
+  const ratingStats = useQuery(
+    api.reviews.getAverageRating,
+    listing?.landlordId ? { landlordId: listing.landlordId } : "skip"
+  );
 
   // Sync saved status
   useEffect(() => {
@@ -463,6 +478,85 @@ export default function ListingDetailPage({ params }: PageProps) {
             </div>
           </section>
         )}
+
+        {/* Reviews section */}
+        <section className="mt-14">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-bold text-foreground">Reviews</h2>
+              {ratingStats && ratingStats.count > 0 && (
+                <div className="flex items-center gap-2">
+                  <StarRating rating={ratingStats.average} size="sm" />
+                  <span className="text-sm text-muted-foreground">
+                    {ratingStats.count} {ratingStats.count === 1 ? "review" : "reviews"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {clerkUser && convexUser?.role === "tenant" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setReviewFormOpen(true)}
+                >
+                  <PenLine className="h-3.5 w-3.5" />
+                  Write a Review
+                </Button>
+              )}
+              <Button variant="link" asChild className="text-[#0f2044] p-0 h-auto text-sm">
+                <Link href={`/landlords/${landlordId}`}>
+                  See all reviews
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {listingReviews === undefined ? (
+            <div className="flex flex-col gap-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </div>
+          ) : listingReviews.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 rounded-xl border border-dashed border-border bg-muted/20">
+              <p className="text-muted-foreground text-sm">
+                No reviews yet for this listing.
+              </p>
+              {clerkUser && convexUser?.role === "tenant" && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-[#0f2044] p-0 h-auto"
+                  onClick={() => setReviewFormOpen(true)}
+                >
+                  Be the first to leave a review
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {listingReviews.slice(0, 3).map((review) => (
+                <ReviewCard
+                  key={review._id}
+                  rating={review.rating}
+                  comment={review.comment}
+                  reviewerName={review.reviewerName}
+                  reviewerAvatar={review.reviewerAvatar}
+                  createdAt={review.createdAt}
+                />
+              ))}
+              {listingReviews.length > 3 && (
+                <Button variant="outline" asChild className="self-center">
+                  <Link href={`/landlords/${landlordId}`}>
+                    See all {listingReviews.length} reviews
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Contact modal */}
@@ -473,6 +567,18 @@ export default function ListingDetailPage({ params }: PageProps) {
           landlordName={landlordName}
           isOpen={contactOpen}
           onClose={() => setContactOpen(false)}
+        />
+      )}
+
+      {/* Review form dialog */}
+      {convexUser && listing && (
+        <ReviewForm
+          listingId={listing._id}
+          landlordId={landlordId}
+          landlordName={landlordName}
+          reviewerId={convexUser._id}
+          isOpen={reviewFormOpen}
+          onClose={() => setReviewFormOpen(false)}
         />
       )}
     </div>

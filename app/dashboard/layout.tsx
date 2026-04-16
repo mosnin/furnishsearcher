@@ -23,6 +23,7 @@ import {
   X,
   Home,
 } from "lucide-react";
+import MobileNav from "@/components/dashboard/mobile-nav";
 
 type NavItem = {
   label: string;
@@ -255,9 +256,11 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
           {children}
         </main>
+
+        <MobileNav role={convexUser?.role ?? "tenant"} />
       </div>
     </div>
   );

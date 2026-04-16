@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MapPin, Calendar, DollarSign, Search, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUDGET_OPTIONS } from "@/lib/utils";
+import { TOP_CITIES } from "@/lib/cities";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -44,8 +45,72 @@ export default function SearchBar({
   const [date, setDate] = React.useState(defaultDate);
   const [budget, setBudget] = React.useState(defaultBudget);
 
+  // Autocomplete state
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const [activeIndex, setActiveIndex] = React.useState(-1);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const filteredCities = React.useMemo(() => {
+    const q = location.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return TOP_CITIES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.stateCode.toLowerCase().includes(q) ||
+        c.state.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [location]);
+
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocation(e.target.value);
+    setActiveIndex(-1);
+    setShowDropdown(true);
+  };
+
+  const selectCity = (cityName: string, stateCode: string) => {
+    setLocation(`${cityName}, ${stateCode}`);
+    setShowDropdown(false);
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || filteredCities.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((prev) =>
+        prev < filteredCities.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredCities.length - 1
+      );
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      const city = filteredCities[activeIndex];
+      selectCity(city.name, city.stateCode);
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Delay so click on dropdown item fires first
+    setTimeout(() => {
+      if (!dropdownRef.current?.contains(document.activeElement)) {
+        setShowDropdown(false);
+        setActiveIndex(-1);
+      }
+    }, 150);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowDropdown(false);
     const params = new URLSearchParams();
     if (location.trim()) params.set("location", location.trim());
     if (date) params.set("date", date);
@@ -53,26 +118,74 @@ export default function SearchBar({
     router.push(`/search?${params.toString()}`);
   };
 
+  const dropdownVisible = showDropdown && filteredCities.length > 0;
+
   return (
     <div className={cn("w-full", className)}>
       <form onSubmit={handleSearch}>
-        <div className="bg-white rounded-2xl shadow-2xl shadow-black/20 border border-white/80 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-black/20 border border-white/80 overflow-visible">
           <div className="flex flex-col md:flex-row">
             {/* Location Field */}
-            <div className="flex-1 flex items-center gap-3 px-5 py-4 md:border-r border-b md:border-b-0 border-gray-100 group focus-within:bg-gray-50/50 transition-colors">
+            <div className="flex-1 relative flex items-center gap-3 px-5 py-4 md:border-r border-b md:border-b-0 border-gray-100 group focus-within:bg-gray-50/50 transition-colors rounded-tl-2xl rounded-bl-2xl">
               <MapPin className="w-5 h-5 text-[#0f2044] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
                   Location
                 </label>
                 <input
+                  ref={inputRef}
                   type="text"
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  onChange={handleLocationChange}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleBlur}
+                  onFocus={() => {
+                    if (filteredCities.length > 0) setShowDropdown(true);
+                  }}
                   placeholder="City, zip, or neighborhood"
+                  autoComplete="off"
                   className="w-full text-sm text-gray-900 placeholder:text-gray-400 bg-transparent outline-none font-medium"
                 />
               </div>
+
+              {/* Autocomplete Dropdown */}
+              {dropdownVisible && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  {filteredCities.map((city, idx) => (
+                    <button
+                      key={`${city.name}-${city.stateCode}`}
+                      type="button"
+                      onMouseDown={() => selectCity(city.name, city.stateCode)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors",
+                        idx === activeIndex
+                          ? "bg-[#0f2044] text-white"
+                          : "text-gray-700 hover:bg-[#0f2044] hover:text-white"
+                      )}
+                    >
+                      <MapPin
+                        className={cn(
+                          "w-4 h-4 flex-shrink-0",
+                          idx === activeIndex ? "text-white" : "text-[#0f2044]"
+                        )}
+                      />
+                      <span className="font-medium">{city.name}</span>
+                      <span
+                        className={cn(
+                          "ml-auto text-xs",
+                          idx === activeIndex ? "text-white/70" : "text-gray-400"
+                        )}
+                      >
+                        {city.stateCode}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Date Field */}
