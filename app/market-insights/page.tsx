@@ -385,7 +385,7 @@ export default function MarketInsightsPage() {
                             cy="50%"
                             outerRadius={90}
                             labelLine={false}
-                            label={(props) => (
+                            label={(props: { cx: number; cy: number; midAngle: number; outerRadius: number; percent: number; name: string }) => (
                               <PieLabel
                                 cx={props.cx}
                                 cy={props.cy}
@@ -396,7 +396,7 @@ export default function MarketInsightsPage() {
                               />
                             )}
                           >
-                            {propertyTypes.map((_, idx) => (
+                            {propertyTypes.map((_entry: { type: string; count: number }, idx: number) => (
                               <Cell
                                 key={idx}
                                 fill={PIE_COLORS[idx % PIE_COLORS.length]}
@@ -413,7 +413,7 @@ export default function MarketInsightsPage() {
                       </ResponsiveContainer>
                       {/* Legend */}
                       <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 justify-center">
-                        {propertyTypes.map((pt, idx) => (
+                        {propertyTypes.map((pt: { type: string; count: number }, idx: number) => (
                           <div key={pt.type} className="flex items-center gap-1.5 text-xs text-slate-600">
                             <span
                               className="h-2.5 w-2.5 rounded-sm shrink-0"

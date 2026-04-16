@@ -7,7 +7,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { cn, formatPrice } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
@@ -375,7 +374,7 @@ export default function LandlordAnalyticsPage() {
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 11, fill: "#94a3b8" }}
-                      tickFormatter={xAxisTick ? (val, idx) => (xAxisTick as (v: string, i: number) => string)(val, idx) : undefined}
+                      tickFormatter={xAxisTick ? (val: string, idx: number) => (xAxisTick as (v: string, i: number) => string)(val, idx) : undefined}
                       interval={xAxisTick ? 0 : "preserveStartEnd"}
                     />
                     <YAxis
