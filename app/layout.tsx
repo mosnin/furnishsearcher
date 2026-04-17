@@ -3,6 +3,8 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { ConvexClientProvider } from "./providers";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: {
     default: "FurnishFinder | Monthly Furnished Rentals",
