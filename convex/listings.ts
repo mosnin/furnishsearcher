@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 export const create = mutation({
@@ -293,6 +293,65 @@ export const incrementViews = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
     await ctx.db.patch(args.id, { views: listing.views + 1 });
+  },
+});
+
+export const approveListing = mutation({
+  args: { id: v.id("listings") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") throw new Error("Not authorized");
+
+    const listing = await ctx.db.get(args.id);
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
+
+    const landlord = await ctx.db.get(listing.landlordId);
+    if (!landlord) throw new Error("Landlord not found");
+
+    await ctx.db.patch(args.id, { status: "active" });
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendListingApprovedEmail, {
+      toEmail: landlord.email,
+      toName: landlord.name ?? "there",
+      listingTitle: listing.title,
+      listingId: args.id,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendSavedSearchAlerts, {
+      listingId: args.id,
+      listingTitle: listing.title,
+      city: listing.city,
+      state: listing.state,
+      price: listing.price,
+      bedrooms: listing.bedrooms,
+      petFriendly: listing.petFriendly,
+      propertyType: listing.propertyType,
+    });
+  },
+});
+
+export const rejectListing = mutation({
+  args: { id: v.id("listings") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") throw new Error("Not authorized");
+
+    const listing = await ctx.db.get(args.id);
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
+
+    await ctx.db.patch(args.id, { status: "rejected" });
   },
 });
 

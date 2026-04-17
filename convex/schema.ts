@@ -50,7 +50,7 @@ export default defineSchema({
     parkingIncluded: v.boolean(),
     availableFrom: v.number(),
     minStay: v.number(),
-    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending")),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending"), v.literal("rejected")),
     createdAt: v.number(),
     views: v.number(),
     // Featured listing (paid boost via Creem.io)

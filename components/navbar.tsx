@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Find Rentals", href: "/search" },
+  { label: "Pricing", href: "/pricing" },
   { label: "Market Insights", href: "/market-insights", badge: "NEW" },
   { label: "Resources", href: "/resources" },
 ];

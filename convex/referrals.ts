@@ -79,6 +79,32 @@ export const applyReferralCode = mutation({
   },
 });
 
+export const markConverted = mutation({
+  args: { referredUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") throw new Error("Not authorized");
+
+    const referral = await ctx.db
+      .query("referrals")
+      .withIndex("by_referred_user", (q) => q.eq("referredUserId", args.referredUserId))
+      .first();
+    if (!referral) throw new Error("Referral not found");
+    if (referral.status === "converted") return;
+
+    await ctx.db.patch(referral._id, {
+      status: "converted",
+      convertedAt: Date.now(),
+    });
+  },
+});
+
 export const getReferralStats = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {

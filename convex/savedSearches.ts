@@ -63,6 +63,40 @@ export const remove = mutation({
   },
 });
 
+export const updateSavedSearch = mutation({
+  args: {
+    id: v.id("savedSearches"),
+    name: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    maxPrice: v.optional(v.number()),
+    bedrooms: v.optional(v.number()),
+    propertyType: v.optional(v.string()),
+    petFriendly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error(`Saved search ${args.id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || (caller.role !== "admin" && caller._id !== existing.userId)) {
+      throw new Error("Not authorized");
+    }
+
+    const { id, ...fields } = args;
+    const updates = Object.fromEntries(
+      Object.entries(fields).filter(([, val]) => val !== undefined)
+    );
+    await ctx.db.patch(args.id, updates);
+  },
+});
+
 export const toggleEmailAlerts = mutation({
   args: { id: v.id("savedSearches"), enabled: v.boolean() },
   handler: async (ctx, args) => {

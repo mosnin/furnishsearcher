@@ -1,5 +1,5 @@
 "use node";
-import { internalAction, action } from "convex/server";
+import { internalAction, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resend } from "resend";
@@ -62,9 +62,9 @@ export const sendWelcomeEmail = action({
 });
 
 // ---------------------------------------------------------------------------
-// Public action — called when an admin approves a listing.
+// Internal action — scheduled by approveListing mutation.
 // ---------------------------------------------------------------------------
-export const sendListingApprovedEmail = action({
+export const sendListingApprovedEmail = internalAction({
   args: {
     toEmail: v.string(),
     toName: v.string(),

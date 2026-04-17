@@ -51,6 +51,7 @@ export const recordPendingCheckout = mutation({
     purpose: v.union(
       v.literal("feature_listing"),
       v.literal("subscription"),
+      v.literal("security_deposit"),
       v.literal("other")
     ),
     listingId: v.optional(v.id("listings")),
