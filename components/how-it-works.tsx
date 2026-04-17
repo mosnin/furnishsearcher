@@ -42,13 +42,13 @@ export default function HowItWorks() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <span className="inline-block text-xs font-bold text-[#0f2044] uppercase tracking-widest mb-3 bg-blue-50 px-4 py-1.5 rounded-full">
+          <span className="inline-block text-[11px] font-bold text-slate-600 uppercase tracking-widest mb-3 bg-slate-100 px-4 py-1.5 rounded-full">
             Simple Process
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight mb-4">
             How FurnishFinder Works
           </h2>
-          <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-500 max-w-2xl mx-auto">
             From search to move-in in three straightforward steps — no hidden
             fees, no complicated booking process.
           </p>
@@ -57,7 +57,7 @@ export default function HowItWorks() {
         {/* Steps */}
         <div className="relative">
           {/* Connector line (desktop) */}
-          <div className="hidden lg:block absolute top-16 left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-0.5 bg-gradient-to-r from-blue-100 via-slate-200 to-emerald-100" />
+          <div className="hidden lg:block absolute top-16 left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {STEPS.map((step, idx) => {
@@ -70,22 +70,22 @@ export default function HowItWorks() {
                   {/* Number + Icon combined */}
                   <div className="relative mb-6">
                     {/* Large background number */}
-                    <span className="absolute -top-4 -left-4 text-7xl font-black text-gray-100 select-none leading-none z-0">
+                    <span className="absolute -top-4 -left-4 text-8xl font-black text-slate-100/80 select-none leading-none z-0">
                       {step.number}
                     </span>
                     {/* Icon circle */}
                     <div
-                      className={`relative z-10 w-16 h-16 rounded-2xl ${step.color} border ${step.borderColor} flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300`}
+                      className={`relative z-10 w-16 h-16 rounded-3xl ${step.color} ring-1 ring-black/5 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300`}
                     >
                       <Icon className={`w-7 h-7 ${step.iconColor}`} />
                     </div>
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  <h3 className="text-[18px] font-semibold text-slate-900 mb-3">
                     {step.title}
                   </h3>
-                  <p className="text-gray-500 leading-relaxed text-sm max-w-xs">
+                  <p className="text-slate-500 leading-relaxed text-[14px] max-w-xs">
                     {step.description}
                   </p>
                 </div>
@@ -98,7 +98,7 @@ export default function HowItWorks() {
         <div className="mt-16 text-center">
           <a
             href="/search"
-            className="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold rounded-xl px-8 py-3.5 transition-all duration-200 shadow-lg shadow-[#0f2044]/20 hover:shadow-xl hover:shadow-[#0f2044]/30 hover:-translate-y-0.5 text-sm"
+            className="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold rounded-2xl px-8 py-3 transition-all duration-200 shadow-lg shadow-[#0f2044]/20 hover:shadow-xl hover:shadow-[#0f2044]/30 hover:-translate-y-0.5 text-[15px]"
           >
             <Search className="w-4 h-4" />
             Start Searching Free

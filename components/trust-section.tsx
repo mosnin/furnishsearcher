@@ -47,17 +47,17 @@ const TRUST_BADGES = [
 
 export default function TrustSection() {
   return (
-    <section className="py-20 lg:py-28 bg-gray-50 overflow-hidden">
+    <section className="py-20 lg:py-28 bg-slate-50 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <span className="inline-block text-xs font-bold text-[#0f2044] uppercase tracking-widest mb-3 bg-blue-50 px-4 py-1.5 rounded-full">
+          <span className="inline-block text-[11px] font-bold text-slate-600 uppercase tracking-widest mb-3 bg-slate-100 px-4 py-1.5 rounded-full">
             Trusted by 1M+ Renters
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight mb-4">
             Real People, Real Homes
           </h2>
-          <p className="text-lg text-gray-500 max-w-xl mx-auto">
+          <p className="text-lg text-slate-500 max-w-xl mx-auto">
             Join over a million renters who found their perfect furnished home
             without a booking fee.
           </p>
@@ -68,7 +68,7 @@ export default function TrustSection() {
           {TESTIMONIALS.map((t, i) => (
             <div
               key={t.name}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col gap-4"
+              className="bg-white rounded-2xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.06] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col gap-4"
             >
               {/* Stars */}
               <div className="flex items-center gap-0.5">
@@ -81,18 +81,18 @@ export default function TrustSection() {
               </div>
 
               {/* Quote */}
-              <p className="text-gray-700 text-sm leading-relaxed flex-1">
+              <p className="text-slate-700 text-[14px] leading-[1.6] flex-1">
                 &ldquo;{t.quote}&rdquo;
               </p>
 
               {/* Reviewer */}
-              <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+              <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
                 <div className="w-9 h-9 rounded-full bg-[#0f2044] flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-xs font-bold">{t.avatar}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.role}</p>
+                  <p className="text-[14px] font-semibold text-slate-900">{t.name}</p>
+                  <p className="text-[12px] text-slate-500">{t.role}</p>
                 </div>
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function TrustSection() {
         </div>
 
         {/* Trust badges */}
-        <div className="bg-[#0f2044] rounded-2xl p-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="bg-[#0f2044] rounded-3xl p-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {TRUST_BADGES.map(({ icon: Icon, title, description }) => (
             <div key={title} className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
@@ -108,7 +108,7 @@ export default function TrustSection() {
               </div>
               <div>
                 <p className="text-white font-semibold text-sm mb-1">{title}</p>
-                <p className="text-blue-200/70 text-xs leading-relaxed">
+                <p className="text-blue-200/60 text-[13px] leading-relaxed">
                   {description}
                 </p>
               </div>

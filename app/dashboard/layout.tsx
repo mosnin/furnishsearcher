@@ -80,16 +80,16 @@ function NavLink({
       href={item.href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors duration-150",
         isActive
           ? "bg-[#0f2044] text-white"
-          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1">{item.label}</span>
       {item.badge && (
-        <span className="ml-auto inline-flex items-center rounded-full bg-[#1e3a8a] px-1.5 py-0.5 text-[10px] font-semibold text-white leading-none">
+        <span className="ml-auto inline-flex items-center rounded-full bg-[#0f2044] px-1.5 py-0.5 text-[10px] font-semibold text-white leading-none">
           {item.badge}
         </span>
       )}
@@ -111,15 +111,15 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       {/* Logo */}
-      <div className="flex h-16 items-center px-4 border-b border-slate-200">
+      <div className="flex h-16 items-center px-4 border-b border-slate-200/80">
         <Link href="/" className="flex items-center gap-2">
-          <Home className="h-6 w-6 text-[#0f2044]" />
-          <span className="text-lg font-bold text-[#0f2044]">FurnishFinder</span>
+          <Home className="h-6 w-6 shrink-0 text-[#0f2044]" />
+          <span className="font-semibold text-[16px] text-[#0f2044]">FurnishFinder</span>
         </Link>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
         {navItems.map((item) => (
           <NavLink
             key={item.href}
@@ -137,17 +137,19 @@ function SidebarContent({
       </nav>
 
       {/* User section */}
-      <div className="border-t border-slate-200 p-4">
-        <div className="flex items-center gap-3">
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "h-8 w-8",
-              },
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">{userName}</p>
+      <div className="border-t border-slate-200/80 p-4">
+        <div className="bg-slate-50/80 rounded-xl p-3">
+          <div className="flex items-center gap-3">
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-8 w-8",
+                },
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-900 truncate">{userName}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -206,7 +208,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 z-30">
+      <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 bg-white/90 border-r border-slate-200/80 z-30">
         <SidebarContent
           navItems={navItems}
           pathname={pathname}
@@ -217,7 +219,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -225,7 +227,7 @@ export default function DashboardLayout({
       {/* Mobile sidebar drawer */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-white/90 border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out md:hidden",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -249,7 +251,7 @@ export default function DashboardLayout({
       {/* Main content */}
       <div className="flex flex-1 flex-col md:pl-60 min-h-0">
         {/* Mobile top bar */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:hidden">
+        <header className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 backdrop-blur-xl px-4 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100"

@@ -32,25 +32,25 @@ export default function Hero() {
           {/* Eyebrow badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-white/90 text-xs font-semibold uppercase tracking-wider">
+            <span className="text-white/90 text-[12px] font-semibold uppercase tracking-widest">
               #1 Furnished Rental Marketplace
             </span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] tracking-tight mb-5">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-5">
             Find Your Perfect{" "}
             <span className="relative inline-block">
               <span className="relative z-10">Monthly Rental</span>
               <span
-                className="absolute bottom-1 left-0 right-0 h-3 bg-blue-400/30 -rotate-1 rounded"
+                className="absolute bottom-1 left-0 right-0 h-3 bg-white/20 -rotate-1 rounded"
                 aria-hidden="true"
               />
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-white/80 mb-10 max-w-xl leading-relaxed font-medium">
+          <p className="text-lg sm:text-xl text-white/75 mb-10 max-w-xl leading-relaxed font-[450]">
             Furnished homes for corporate travelers, travel nurses, relocating
             families &amp; digital nomads. Monthly terms, no short-term
             premiums.
@@ -64,7 +64,7 @@ export default function Hero() {
             {TRUST_ITEMS.map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/85 text-sm font-medium">{item}</span>
+                <span className="text-white/70 text-[14px] font-medium">{item}</span>
               </div>
             ))}
           </div>

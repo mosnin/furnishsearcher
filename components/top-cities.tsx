@@ -57,13 +57,13 @@ export default function TopCities() {
   const displayed = showAll ? filtered : filtered.slice(0, 100);
 
   return (
-    <section className="bg-white py-16 border-t border-gray-100">
+    <section className="bg-slate-50/50 py-16 border-t border-slate-100">
       <div className="container max-w-6xl mx-auto px-4">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-navy-900 mb-1">
+          <h2 className="text-[22px] font-semibold text-slate-900 mb-1">
             Top 100 cities for travel nurses, corporate travelers, and relocating families
           </h2>
-          <p className="text-gray-500 text-sm">
+          <p className="text-slate-500 text-[14px]">
             Click any city to browse available furnished monthly rentals
           </p>
         </div>
@@ -72,18 +72,18 @@ export default function TopCities() {
         <div className="flex flex-wrap gap-3 mb-8">
           {/* Search */}
           <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search cities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0f2044]/30 focus:border-[#0f2044]/50"
             />
           </div>
 
           {/* Sort */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-100/80 rounded-xl p-1">
             <span className="text-xs text-gray-500 px-2 font-medium">Sort:</span>
             {(
               [
@@ -98,8 +98,8 @@ export default function TopCities() {
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                   sortBy === opt.value
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "bg-white text-[#0f2044] shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
                 )}
               >
                 {opt.label}
@@ -112,7 +112,7 @@ export default function TopCities() {
             <select
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0f2044]/30 cursor-pointer"
             >
               <option value="all">All States</option>
               {STATES.map((s) => (
@@ -130,7 +130,7 @@ export default function TopCities() {
                 setSearch("");
                 setSelectedState("all");
               }}
-              className="text-xs text-blue-600 hover:text-blue-800 underline px-2"
+              className="text-xs text-[#0f2044]/70 hover:text-[#0f2044] underline px-2"
             >
               Clear filters
             </button>
@@ -154,7 +154,7 @@ export default function TopCities() {
         {filtered.length > 100 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="mt-6 text-blue-600 hover:text-blue-800 text-sm font-medium underline"
+            className="mt-6 text-[#0f2044]/70 hover:text-[#0f2044] text-sm font-medium underline"
           >
             Show all {filtered.length} cities
           </button>
@@ -200,7 +200,7 @@ function CityByState({ cities }: { cities: City[] }) {
     <div className="space-y-8">
       {byState.map(([stateCode, stateCities]) => (
         <div key={stateCode}>
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5" />
             {stateCities[0].state} ({stateCode})
           </h3>
@@ -220,13 +220,13 @@ function CityLink({ city }: { city: City }) {
     <Link
       href={`/search?location=${encodeURIComponent(`${city.name}, ${city.stateCode}`)}&city=${encodeURIComponent(city.name)}&state=${encodeURIComponent(city.stateCode)}`}
       className={cn(
-        "text-sm text-blue-700 hover:text-blue-900 hover:underline transition-colors",
+        "text-sm text-slate-700 hover:text-[#0f2044] hover:underline transition-colors",
         city.popular && "font-medium"
       )}
     >
       {city.name}
       {city.popular && (
-        <span className="ml-1 text-[10px] text-orange-500 font-semibold">★</span>
+        <span className="ml-1 text-[10px] text-amber-500 font-semibold">★</span>
       )}
     </Link>
   );

@@ -40,8 +40,8 @@ export default function StatsBar() {
         }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {STATS.map((stat) => {
             const Icon = stat.icon;
             return (
@@ -50,16 +50,16 @@ export default function StatsBar() {
                 className="flex flex-col items-center text-center gap-3 group"
               >
                 {/* Icon container */}
-                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors flex-shrink-0">
-                  <Icon className="w-6 h-6 text-blue-300" />
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors flex-shrink-0">
+                  <Icon className="w-6 h-6 text-blue-200" />
                 </div>
 
                 {/* Text */}
                 <div>
-                  <p className="text-white font-bold text-lg leading-tight mb-1">
+                  <p className="text-white font-semibold text-[17px] leading-tight mb-1">
                     {stat.title}
                   </p>
-                  <p className="text-blue-200/70 text-sm leading-snug">
+                  <p className="text-blue-200/60 text-[14px] leading-snug">
                     {stat.description}
                   </p>
                 </div>

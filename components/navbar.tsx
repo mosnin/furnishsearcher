@@ -33,10 +33,10 @@ export default function Navbar() {
     <>
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-xl",
           scrolled
-            ? "bg-white shadow-[0_2px_20px_rgba(0,0,0,0.08)] border-b border-gray-100"
-            : "bg-white/95 backdrop-blur-sm"
+            ? "border-b border-slate-300/60"
+            : "border-b border-slate-200/60"
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,10 +49,10 @@ export default function Navbar() {
               <div className="w-8 h-8 bg-[#0f2044] rounded-lg flex items-center justify-center shadow-sm group-hover:bg-[#1a3360] transition-colors">
                 <Home className="w-4 h-4 text-white" />
               </div>
-              <span className="text-[#0f2044] font-bold text-xl tracking-tight hidden sm:block">
+              <span className="text-[#0f2044] font-semibold text-[17px] tracking-tight hidden sm:block">
                 FurnishFinder
               </span>
-              <span className="text-[#0f2044] font-bold text-lg tracking-tight sm:hidden">
+              <span className="text-[#0f2044] font-semibold text-[17px] tracking-tight sm:hidden">
                 FF
               </span>
             </Link>
@@ -63,7 +63,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+                  className="relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[15px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/60 transition-colors"
                 >
                   {link.label}
                   {"badge" in link && link.badge && (
@@ -81,7 +81,7 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/list-your-property"
-                    className="text-sm font-medium text-gray-600 hover:text-[#0f2044] transition-colors"
+                    className="text-slate-600 hover:text-slate-900 text-[15px] font-medium transition-colors"
                   >
                     List Your Property
                   </Link>
@@ -90,12 +90,15 @@ export default function Navbar() {
               ) : (
                 <>
                   <SignInButton mode="modal">
-                    <button className="text-sm font-medium text-gray-600 hover:text-[#0f2044] transition-colors px-2 py-1">
+                    <button className="text-[15px] font-medium text-slate-700 hover:text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100/60 transition-colors">
                       Sign In
                     </button>
                   </SignInButton>
                   <Link href="/list-your-property">
-                    <Button size="sm" className="bg-[#0f2044] hover:bg-[#1a3360] text-white shadow-sm font-medium">
+                    <Button
+                      size="sm"
+                      className="bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-medium px-4 py-2 rounded-xl shadow-sm"
+                    >
                       List Your Property
                     </Button>
                   </Link>
@@ -105,7 +108,7 @@ export default function Navbar() {
 
             {/* Mobile Hamburger */}
             <button
-              className="md:hidden p-2 rounded-md text-gray-600 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+              className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100/60 transition-colors"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle menu"
             >
@@ -121,13 +124,13 @@ export default function Navbar() {
             mobileOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
           )}
         >
-          <div className="bg-white border-t border-gray-100 px-4 py-4 space-y-1 shadow-lg">
+          <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/60 px-4 py-4 space-y-1">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={handleMobileClose}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[15px] font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/60 transition-colors"
               >
                 {link.label}
                 {"badge" in link && link.badge && (
@@ -137,24 +140,24 @@ export default function Navbar() {
                 )}
               </Link>
             ))}
-            <div className="pt-3 border-t border-gray-100 mt-3 space-y-2">
+            <div className="pt-3 border-t border-slate-200/60 mt-3 space-y-2">
               {isSignedIn ? (
                 <div className="flex items-center gap-3 px-3 py-2">
                   <UserButton />
-                  <span className="text-sm text-gray-700">{user?.firstName}</span>
+                  <span className="text-[15px] font-medium text-slate-700">{user?.firstName}</span>
                 </div>
               ) : (
                 <>
                   <SignInButton mode="modal">
                     <button
-                      className="block w-full text-left px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 hover:text-[#0f2044] hover:bg-gray-50 transition-colors"
+                      className="block w-full text-left px-3.5 py-2 rounded-lg text-[15px] font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100/60 transition-colors"
                       onClick={handleMobileClose}
                     >
                       Sign In
                     </button>
                   </SignInButton>
                   <Link href="/list-your-property" onClick={handleMobileClose}>
-                    <Button className="w-full bg-[#0f2044] hover:bg-[#1a3360] text-white">
+                    <Button className="w-full bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-medium rounded-xl shadow-sm">
                       List Your Property
                     </Button>
                   </Link>
