@@ -10,6 +10,7 @@
 
 import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
 import type * as analytics from "../analytics.js";
+import type * as availability from "../availability.js";
 import type * as creem from "../creem.js";
 import type * as emails from "../emails.js";
 import type * as files from "../files.js";
@@ -18,6 +19,7 @@ import type * as http from "../http.js";
 import type * as listings from "../listings.js";
 import type * as messages from "../messages.js";
 import type * as payments from "../payments.js";
+import type * as referrals from "../referrals.js";
 import type * as reviews from "../reviews.js";
 import type * as saved from "../saved.js";
 import type * as savedSearches from "../savedSearches.js";
@@ -33,6 +35,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  availability: typeof availability;
   creem: typeof creem;
   emails: typeof emails;
   files: typeof files;
@@ -41,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   listings: typeof listings;
   messages: typeof messages;
   payments: typeof payments;
+  referrals: typeof referrals;
   reviews: typeof reviews;
   saved: typeof saved;
   savedSearches: typeof savedSearches;

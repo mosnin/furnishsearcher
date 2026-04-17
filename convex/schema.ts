@@ -26,7 +26,10 @@ export default defineSchema({
     petInfo: v.optional(v.string()),
     petPhoto: v.optional(v.string()),
     linkedinVerified: v.optional(v.boolean()),
-  }).index("by_clerk_id", ["clerkId"]),
+    // Referral system
+    referralCode: v.optional(v.string()),
+  }).index("by_clerk_id", ["clerkId"])
+    .index("by_referral_code", ["referralCode"]),
 
   listings: defineTable({
     landlordId: v.id("users"),
@@ -104,7 +107,8 @@ export default defineSchema({
   })
     .index("by_listing", ["listingId"])
     .index("by_landlord", ["landlordId"])
-    .index("by_reviewer", ["reviewerId"]),
+    .index("by_reviewer", ["reviewerId"])
+    .index("by_reviewer_listing", ["reviewerId", "listingId"]),
 
   savedSearches: defineTable({
     userId: v.id("users"),
@@ -116,10 +120,11 @@ export default defineSchema({
     bedrooms: v.optional(v.number()),
     propertyType: v.optional(v.string()),
     petFriendly: v.optional(v.boolean()),
+    emailAlerts: v.optional(v.boolean()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 
-  // Creem.io subscription plans (landlord pro, premium, etc.)
+  // Creem.io subscription plans
   subscriptions: defineTable({
     userId: v.id("users"),
     creemCustomerId: v.optional(v.string()),
@@ -147,7 +152,7 @@ export default defineSchema({
     .index("by_creem_subscription", ["creemSubscriptionId"])
     .index("by_status", ["status"]),
 
-  // Creem.io one-time payment records (featured listing boosts, etc.)
+  // One-time payments (featured listing boosts, security deposits, etc.)
   payments: defineTable({
     userId: v.id("users"),
     creemCustomerId: v.optional(v.string()),
@@ -157,6 +162,7 @@ export default defineSchema({
     purpose: v.union(
       v.literal("feature_listing"),
       v.literal("subscription"),
+      v.literal("security_deposit"),
       v.literal("other")
     ),
     listingId: v.optional(v.id("listings")),
@@ -184,8 +190,7 @@ export default defineSchema({
     eventType: v.string(),
     payload: v.string(),
     processedAt: v.number(),
-  })
-    .index("by_source_event", ["source", "eventId"]),
+  }).index("by_source_event", ["source", "eventId"]),
 
   housingRequests: defineTable({
     userId: v.id("users"),
@@ -203,4 +208,33 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_city_state", ["city", "state"])
     .index("by_status", ["status"]),
+
+  // Landlord availability calendar blocks
+  availabilityBlocks: defineTable({
+    listingId: v.id("listings"),
+    startDate: v.number(),
+    endDate: v.number(),
+    type: v.union(v.literal("unavailable"), v.literal("booked")),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_listing", ["listingId"])
+    .index("by_listing_start", ["listingId", "startDate"]),
+
+  // Referral program
+  referrals: defineTable({
+    referrerId: v.id("users"),
+    referralCode: v.string(),
+    referredUserId: v.optional(v.id("users")),
+    status: v.union(
+      v.literal("code_created"),
+      v.literal("signed_up"),
+      v.literal("converted")
+    ),
+    createdAt: v.number(),
+    convertedAt: v.optional(v.number()),
+  })
+    .index("by_referrer", ["referrerId"])
+    .index("by_code", ["referralCode"])
+    .index("by_referred_user", ["referredUserId"]),
 });

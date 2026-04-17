@@ -1,12 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "convex/server";
-import { internal } from "convex/_generated/api";
+import { internal } from "./_generated/api";
 
-/**
- * Derives a stable, order-independent conversation ID from two user IDs and
- * a listing ID. Sorting the user IDs ensures the same key is produced
- * regardless of which party initiates the conversation.
- */
 function buildConversationId(
   userIdA: string,
   userIdB: string,
@@ -16,16 +11,6 @@ function buildConversationId(
   return `${first}_${second}_${listingId}`;
 }
 
-/**
- * Sends a message between a tenant and a landlord about a specific listing.
- * On first contact this creates the conversation record; subsequent messages
- * update the conversation's lastMessage snapshot and unread flags.
- *
- * The tenant/landlord roles are inferred from the listing's landlordId so the
- * caller does not need to pass them explicitly.
- *
- * Returns the ID of the newly created message document.
- */
 export const sendMessage = mutation({
   args: {
     senderId: v.id("users"),
@@ -34,7 +19,16 @@ export const sendMessage = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    // Validate all referenced documents exist
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller._id !== args.senderId) throw new Error("Not authorized");
+
     const sender = await ctx.db.get(args.senderId);
     if (!sender) throw new Error(`Sender ${args.senderId} not found`);
 
@@ -52,7 +46,6 @@ export const sendMessage = mutation({
 
     const now = Date.now();
 
-    // Insert message
     const messageId = await ctx.db.insert("messages", {
       conversationId,
       senderId: args.senderId,
@@ -63,13 +56,10 @@ export const sendMessage = mutation({
       createdAt: now,
     });
 
-    // Determine canonical tenant / landlord for this conversation.
-    // The listing owner is the landlord; the other party is the tenant.
     const senderIsLandlord = args.senderId === listing.landlordId;
     const tenantId = senderIsLandlord ? args.receiverId : args.senderId;
     const landlordId = senderIsLandlord ? args.senderId : args.receiverId;
 
-    // Upsert the conversation snapshot
     const existing = await ctx.db
       .query("conversations")
       .withIndex("by_listing_tenant", (q) =>
@@ -81,7 +71,6 @@ export const sendMessage = mutation({
       await ctx.db.patch(existing._id, {
         lastMessage: args.content,
         lastMessageAt: now,
-        // The sender has read their own message; the receiver has not.
         tenantRead: senderIsLandlord ? false : true,
         landlordRead: senderIsLandlord ? true : false,
       });
@@ -97,9 +86,6 @@ export const sendMessage = mutation({
       });
     }
 
-    // Notify the receiver about the new message via email.
-    // Only send when the sender is the tenant messaging the landlord (or vice
-    // versa); we always notify the receiver regardless of direction.
     if (receiver.email) {
       await ctx.scheduler.runAfter(
         0,
@@ -110,7 +96,7 @@ export const sendMessage = mutation({
           fromName: sender.name,
           listingTitle: listing.title,
           messagePreview: args.content.slice(0, 200),
-          conversationId: conversationId,
+          conversationId,
         }
       );
     }
@@ -119,18 +105,18 @@ export const sendMessage = mutation({
   },
 });
 
-/**
- * Returns all conversations the given user participates in (as either tenant
- * or landlord), enriched with the listing summary and the other party's user
- * document. Results are sorted by most-recent message first.
- */
 export const getConversations = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) return [];
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    // Allow querying your own conversations only
+    if (!caller || caller._id !== args.userId) return [];
 
     const [asTenant, asLandlord] = await Promise.all([
       ctx.db
@@ -143,7 +129,6 @@ export const getConversations = query({
         .collect(),
     ]);
 
-    // Merge and deduplicate (a user should not appear on both sides, but be safe)
     const seenIds = new Set<string>();
     const unique = [...asTenant, ...asLandlord].filter((c) => {
       if (seenIds.has(c._id)) return false;
@@ -151,7 +136,6 @@ export const getConversations = query({
       return true;
     });
 
-    // Enrich each conversation with listing and other-party data
     const enriched = await Promise.all(
       unique.map(async (conv) => {
         const [listing, otherUser] = await Promise.all([
@@ -160,31 +144,30 @@ export const getConversations = query({
             conv.tenantId === args.userId ? conv.landlordId : conv.tenantId
           ),
         ]);
-
-        return {
-          ...conv,
-          listing: listing ?? null,
-          otherUser: otherUser ?? null,
-        };
+        return { ...conv, listing: listing ?? null, otherUser: otherUser ?? null };
       })
     );
 
-    // Sort most-recent first
     enriched.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-
     return enriched;
   },
 });
 
-/**
- * Returns all messages belonging to a conversation in ascending chronological
- * order (oldest first), ready for display in a chat UI.
- */
 export const getMessages = query({
-  args: {
-    conversationId: v.string(),
-  },
+  args: { conversationId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) return [];
+
+    // The conversationId encodes both participant IDs — verify caller is one of them
+    if (!args.conversationId.includes(caller._id)) return [];
+
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -193,23 +176,25 @@ export const getMessages = query({
       .collect();
 
     messages.sort((a, b) => a.createdAt - b.createdAt);
-
     return messages;
   },
 });
 
-/**
- * Marks all unread messages addressed to `userId` in the given conversation
- * as read, and updates the corresponding conversation's read flag for that
- * user's side (tenantRead or landlordRead).
- */
 export const markRead = mutation({
   args: {
     conversationId: v.string(),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // Mark every unread message where this user is the receiver
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller._id !== args.userId) throw new Error("Not authorized");
+
     const unread = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -225,9 +210,6 @@ export const markRead = mutation({
 
     await Promise.all(unread.map((msg) => ctx.db.patch(msg._id, { read: true })));
 
-    // Update the conversation-level read flag for this user.
-    // We look up the conversation through both tenant and landlord indexes
-    // because the conversationId is a derived string, not the document ID.
     const [asTenant, asLandlord] = await Promise.all([
       ctx.db
         .query("conversations")

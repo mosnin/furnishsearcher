@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "convex/server";
 
-/**
- * Creates a new housing request for a tenant. Returns the new request's ID.
- */
 export const create = mutation({
   args: {
     userId: v.id("users"),
@@ -17,12 +14,20 @@ export const create = mutation({
     description: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) {
-      throw new Error(`User ${args.userId} not found`);
-    }
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
-    const id = await ctx.db.insert("housingRequests", {
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller._id !== args.userId) throw new Error("Not authorized");
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error(`User ${args.userId} not found`);
+
+    return await ctx.db.insert("housingRequests", {
       userId: args.userId,
       city: args.city,
       state: args.state,
@@ -35,34 +40,21 @@ export const create = mutation({
       status: "open",
       createdAt: Date.now(),
     });
-
-    return id;
   },
 });
 
-/**
- * Returns all housing requests for a specific user, sorted newest first.
- */
 export const getByUser = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const requests = await ctx.db
       .query("housingRequests")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
-
     requests.sort((a, b) => b.createdAt - a.createdAt);
-
     return requests;
   },
 });
 
-/**
- * Returns all open housing requests, sorted newest first.
- * Intended for landlords browsing tenant requests.
- */
 export const getOpen = query({
   args: {},
   handler: async (ctx) => {
@@ -70,25 +62,29 @@ export const getOpen = query({
       .query("housingRequests")
       .withIndex("by_status", (q) => q.eq("status", "open"))
       .collect();
-
     requests.sort((a, b) => b.createdAt - a.createdAt);
-
     return requests;
   },
 });
 
-/**
- * Sets a housing request's status to "closed".
- */
 export const close = mutation({
-  args: {
-    id: v.id("housingRequests"),
-  },
+  args: { id: v.id("housingRequests") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     const request = await ctx.db.get(args.id);
-    if (!request) {
-      throw new Error(`Housing request ${args.id} not found`);
+    if (!request) throw new Error(`Housing request ${args.id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== request.userId) {
+      throw new Error("Not authorized");
     }
+
     await ctx.db.patch(args.id, { status: "closed" });
   },
 });

@@ -1,10 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "convex/server";
+import { internal } from "./_generated/api";
 
-/**
- * Creates a new listing in "pending" status. Landlord must exist.
- * Returns the new listing's ID.
- */
 export const create = mutation({
   args: {
     landlordId: v.id("users"),
@@ -27,12 +24,22 @@ export const create = mutation({
     minStay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const landlord = await ctx.db.get(args.landlordId);
-    if (!landlord) {
-      throw new Error(`Landlord ${args.landlordId} not found`);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== args.landlordId) {
+      throw new Error("Not authorized");
     }
 
-    const listingId = await ctx.db.insert("listings", {
+    const landlord = await ctx.db.get(args.landlordId);
+    if (!landlord) throw new Error(`Landlord ${args.landlordId} not found`);
+
+    return await ctx.db.insert("listings", {
       landlordId: args.landlordId,
       title: args.title,
       description: args.description,
@@ -55,15 +62,9 @@ export const create = mutation({
       createdAt: Date.now(),
       views: 0,
     });
-
-    return listingId;
   },
 });
 
-/**
- * Updates any subset of mutable fields on a listing. The listing must exist.
- * Returns the updated document.
- */
 export const update = mutation({
   args: {
     id: v.id("listings"),
@@ -88,12 +89,21 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
 
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     const listing = await ctx.db.get(id);
-    if (!listing) {
-      throw new Error(`Listing ${id} not found`);
+    if (!listing) throw new Error(`Listing ${id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== listing.landlordId) {
+      throw new Error("Not authorized to edit this listing");
     }
 
-    // Only patch fields that were explicitly provided
     const updates = Object.fromEntries(
       Object.entries(fields).filter(([, val]) => val !== undefined)
     );
@@ -103,91 +113,100 @@ export const update = mutation({
   },
 });
 
-/**
- * Sets listing status to "active", making it publicly visible in search.
- */
 export const publish = mutation({
-  args: {
-    id: v.id("listings"),
-  },
+  args: { id: v.id("listings") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     const listing = await ctx.db.get(args.id);
-    if (!listing) {
-      throw new Error(`Listing ${args.id} not found`);
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== listing.landlordId) {
+      throw new Error("Not authorized");
     }
+
     await ctx.db.patch(args.id, { status: "active" });
+
+    // Notify users whose saved searches match this listing
+    await ctx.scheduler.runAfter(0, internal.emails.sendSavedSearchAlerts, {
+      listingId: args.id,
+      listingTitle: listing.title,
+      city: listing.city,
+      state: listing.state,
+      price: listing.price,
+      bedrooms: listing.bedrooms,
+      petFriendly: listing.petFriendly,
+      propertyType: listing.propertyType,
+    });
   },
 });
 
-/**
- * Sets listing status to "inactive", hiding it from public search results.
- */
 export const unpublish = mutation({
-  args: {
-    id: v.id("listings"),
-  },
+  args: { id: v.id("listings") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     const listing = await ctx.db.get(args.id);
-    if (!listing) {
-      throw new Error(`Listing ${args.id} not found`);
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== listing.landlordId) {
+      throw new Error("Not authorized");
     }
+
     await ctx.db.patch(args.id, { status: "inactive" });
   },
 });
 
-/**
- * Permanently deletes a listing and all associated savedListings entries.
- * Messages and conversations are retained for record-keeping.
- */
 export const deleteListing = mutation({
-  args: {
-    id: v.id("listings"),
-  },
+  args: { id: v.id("listings") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     const listing = await ctx.db.get(args.id);
-    if (!listing) {
-      throw new Error(`Listing ${args.id} not found`);
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+    if (caller.role !== "admin" && caller._id !== listing.landlordId) {
+      throw new Error("Not authorized");
     }
 
-    // Remove all saves referencing this listing
     const savedEntries = await ctx.db
       .query("savedListings")
       .filter((q) => q.eq(q.field("listingId"), args.id))
       .collect();
 
     await Promise.all(savedEntries.map((s) => ctx.db.delete(s._id)));
-
     await ctx.db.delete(args.id);
   },
 });
 
-/**
- * Returns a single listing joined with the landlord's user record.
- * Returns null if the listing does not exist.
- */
 export const getById = query({
-  args: {
-    id: v.id("listings"),
-  },
+  args: { id: v.id("listings") },
   handler: async (ctx, args) => {
     const listing = await ctx.db.get(args.id);
-    if (!listing) {
-      return null;
-    }
-
+    if (!listing) return null;
     const landlord = await ctx.db.get(listing.landlordId);
-
-    return {
-      ...listing,
-      landlord: landlord ?? null,
-    };
+    return { ...listing, landlord: landlord ?? null };
   },
 });
 
-/**
- * Searches active listings with optional filters for city, state, maxPrice,
- * minimum bedrooms, propertyType, and petFriendly. Results are sorted newest-first.
- */
 export const search = query({
   args: {
     city: v.optional(v.string()),
@@ -198,7 +217,6 @@ export const search = query({
     petFriendly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Start from the status index so the DB only scans active rows
     let listings = await ctx.db
       .query("listings")
       .withIndex("by_status", (q) => q.eq("status", "active"))
@@ -208,37 +226,28 @@ export const search = query({
       const cityLower = args.city.toLowerCase();
       listings = listings.filter((l) => l.city.toLowerCase().includes(cityLower));
     }
-
     if (args.state) {
       const stateLower = args.state.toLowerCase();
       listings = listings.filter((l) => l.state.toLowerCase() === stateLower);
     }
-
     if (args.maxPrice !== undefined) {
       listings = listings.filter((l) => l.price <= args.maxPrice!);
     }
-
     if (args.bedrooms !== undefined) {
       listings = listings.filter((l) => l.bedrooms >= args.bedrooms!);
     }
-
     if (args.propertyType) {
       const typeLower = args.propertyType.toLowerCase();
       listings = listings.filter((l) => l.propertyType.toLowerCase() === typeLower);
     }
-
     if (args.petFriendly !== undefined) {
       listings = listings.filter((l) => l.petFriendly === args.petFriendly);
     }
 
-    // Featured listings surface first (while their featuredUntil is in the future),
-    // then newest first within each group.
     const now = Date.now();
     listings.sort((a, b) => {
-      const aFeat =
-        a.featured && a.featuredUntil && a.featuredUntil > now ? 1 : 0;
-      const bFeat =
-        b.featured && b.featuredUntil && b.featuredUntil > now ? 1 : 0;
+      const aFeat = a.featured && a.featuredUntil && a.featuredUntil > now ? 1 : 0;
+      const bFeat = b.featured && b.featuredUntil && b.featuredUntil > now ? 1 : 0;
       if (aFeat !== bFeat) return bFeat - aFeat;
       return b.createdAt - a.createdAt;
     });
@@ -247,30 +256,18 @@ export const search = query({
   },
 });
 
-/**
- * Returns all listings (any status) that belong to a specific landlord.
- */
 export const getByLandlord = query({
-  args: {
-    landlordId: v.id("users"),
-  },
+  args: { landlordId: v.id("users") },
   handler: async (ctx, args) => {
     const listings = await ctx.db
       .query("listings")
       .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
       .collect();
-
-    // Sort newest first
     listings.sort((a, b) => b.createdAt - a.createdAt);
-
     return listings;
   },
 });
 
-/**
- * Returns up to 6 active listings chosen at random via a Fisher-Yates shuffle.
- * Used to populate a "Featured" section on the home page.
- */
 export const getFeatured = query({
   args: {},
   handler: async (ctx) => {
@@ -279,45 +276,38 @@ export const getFeatured = query({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
-    if (activeListings.length <= 6) {
-      return activeListings;
-    }
+    if (activeListings.length <= 6) return activeListings;
 
-    // Fisher-Yates shuffle
     const shuffled = [...activeListings];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-
     return shuffled.slice(0, 6);
   },
 });
 
-/**
- * Atomically increments the view counter for a listing.
- * Call this whenever a tenant views a listing's detail page.
- */
 export const incrementViews = mutation({
-  args: {
-    id: v.id("listings"),
-  },
+  args: { id: v.id("listings") },
   handler: async (ctx, args) => {
     const listing = await ctx.db.get(args.id);
-    if (!listing) {
-      throw new Error(`Listing ${args.id} not found`);
-    }
+    if (!listing) throw new Error(`Listing ${args.id} not found`);
     await ctx.db.patch(args.id, { views: listing.views + 1 });
   },
 });
 
-/**
- * Returns every listing in the database regardless of status.
- * Intended for admin dashboards only — gate this behind auth in production.
- */
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") return [];
+
     const listings = await ctx.db.query("listings").collect();
     listings.sort((a, b) => b.createdAt - a.createdAt);
     return listings;

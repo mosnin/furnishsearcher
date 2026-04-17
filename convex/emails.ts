@@ -1,5 +1,6 @@
 "use node";
 import { internalAction, action } from "convex/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
@@ -313,6 +314,145 @@ function listingApprovedEmailHtml(args: ListingApprovedArgs): string {
 // ---------------------------------------------------------------------------
 // Utility
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Internal action — triggered when a new listing is published that may match
+// saved searches with email alerts enabled.
+// ---------------------------------------------------------------------------
+export const sendSavedSearchAlerts = internalAction({
+  args: {
+    listingId: v.string(),
+    listingTitle: v.string(),
+    city: v.string(),
+    state: v.string(),
+    price: v.number(),
+    bedrooms: v.number(),
+    petFriendly: v.boolean(),
+    propertyType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const matches = await ctx.runQuery(
+      internal.savedSearches.getAlertMatchesInternal,
+      {
+        city: args.city,
+        state: args.state,
+        price: args.price,
+        bedrooms: args.bedrooms,
+        petFriendly: args.petFriendly,
+        propertyType: args.propertyType,
+      }
+    );
+
+    for (const match of matches) {
+      if (!match) continue;
+      try {
+        await resend.emails.send({
+          from: FROM,
+          to: match.userEmail,
+          subject: `New listing matching "${match.name}" — FurnishFinder`,
+          html: savedSearchAlertHtml({
+            toName: match.userName,
+            searchName: match.name,
+            listingTitle: args.listingTitle,
+            listingId: args.listingId,
+            city: args.city,
+            state: args.state,
+            price: args.price,
+            bedrooms: args.bedrooms,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to send saved search alert:", e);
+      }
+    }
+  },
+});
+
+// ---------------------------------------------------------------------------
+// HTML template helpers
+// ---------------------------------------------------------------------------
+
+interface SavedSearchAlertArgs {
+  toName: string;
+  searchName: string;
+  listingTitle: string;
+  listingId: string;
+  city: string;
+  state: string;
+  price: number;
+  bedrooms: number;
+}
+
+function savedSearchAlertHtml(args: SavedSearchAlertArgs): string {
+  const formattedPrice = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(args.price);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Listing Match — FurnishFinder</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f6f9;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
+          <tr>
+            <td style="background:#0f2044;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
+              <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">FurnishFinder</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#ffffff;padding:40px 40px 32px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+              <div style="display:inline-block;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;margin-bottom:20px;letter-spacing:0.3px;">
+                NEW MATCH
+              </div>
+              <p style="margin:0 0 8px;font-size:16px;color:#111827;">Hi ${escapeHtml(args.toName)},</p>
+              <p style="margin:0 0 20px;font-size:16px;color:#374151;line-height:1.6;">
+                A new listing matching your saved search <strong>"${escapeHtml(args.searchName)}"</strong> just went live on FurnishFinder:
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:32px;">
+                <tr>
+                  <td style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px 24px;">
+                    <p style="margin:0 0 6px;font-size:17px;font-weight:700;color:#0f2044;">${escapeHtml(args.listingTitle)}</p>
+                    <p style="margin:0 0 4px;font-size:14px;color:#6b7280;">📍 ${escapeHtml(args.city)}, ${escapeHtml(args.state)}</p>
+                    <p style="margin:0 0 4px;font-size:14px;color:#6b7280;">🛏 ${args.bedrooms} bedroom${args.bedrooms === 1 ? "" : "s"}</p>
+                    <p style="margin:0;font-size:16px;font-weight:700;color:#059669;">${formattedPrice}/month</p>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td align="center">
+                    <a href="https://furnishfinder.com/listings/${escapeHtml(args.listingId)}"
+                       style="display:inline-block;background:#0f2044;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:0.2px;">
+                      View Listing
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+              <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.5;">
+                You're receiving this because you enabled email alerts for a saved search.<br />
+                &copy; ${new Date().getFullYear()} FurnishFinder. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
 
 function escapeHtml(str: string): string {
   return str

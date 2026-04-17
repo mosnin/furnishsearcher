@@ -1,11 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "convex/server";
 
-/**
- * Upserts a user by clerkId. If the user already exists, their name, email,
- * and avatar are refreshed from Clerk (they may have changed). Returns the
- * full user document.
- */
 export const getOrCreate = mutation({
   args: {
     clerkId: v.string(),
@@ -41,13 +36,8 @@ export const getOrCreate = mutation({
   },
 });
 
-/**
- * Looks up a user by their Clerk ID. Returns null if not found.
- */
 export const getByClerkId = query({
-  args: {
-    clerkId: v.string(),
-  },
+  args: { clerkId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")
@@ -56,41 +46,38 @@ export const getByClerkId = query({
   },
 });
 
-/**
- * Updates the role of a user. Only admins should call this in practice —
- * enforce that in application-level auth middleware.
- */
 export const updateRole = mutation({
   args: {
     userId: v.id("users"),
     role: v.union(v.literal("tenant"), v.literal("landlord"), v.literal("admin")),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) {
-      throw new Error(`User ${args.userId} not found`);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") {
+      throw new Error("Admin access required");
     }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error(`User ${args.userId} not found`);
+
     await ctx.db.patch(args.userId, { role: args.role });
     return await ctx.db.get(args.userId);
   },
 });
 
-/**
- * Returns a user by their Convex ID, or null if not found.
- */
 export const getById = query({
-  args: {
-    id: v.id("users"),
-  },
+  args: { id: v.id("users") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
   },
 });
 
-/**
- * Updates optional profile fields for a user. Patches only provided fields.
- * Returns the updated user document.
- */
 export const updateProfile = mutation({
   args: {
     userId: v.id("users"),
@@ -111,44 +98,53 @@ export const updateProfile = mutation({
     profilePhoto: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller) throw new Error("User not found");
+
+    // Only allow editing own profile (admins can edit any)
+    if (caller.role !== "admin" && caller._id !== args.userId) {
+      throw new Error("Not authorized to edit this profile");
+    }
+
     const { userId, ...fields } = args;
     const user = await ctx.db.get(userId);
-    if (!user) {
-      throw new Error(`User ${userId} not found`);
-    }
-    // Only patch fields that were explicitly passed (not undefined)
+    if (!user) throw new Error(`User ${userId} not found`);
+
     const patch: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
-      if (value !== undefined) {
-        patch[key] = value;
-      }
+      if (value !== undefined) patch[key] = value;
     }
     await ctx.db.patch(userId, patch);
     return await ctx.db.get(userId);
   },
 });
 
-/**
- * Returns all users sorted by createdAt descending.
- * Intended for admin dashboards only.
- */
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller.role !== "admin") return [];
+
     const users = await ctx.db.query("users").collect();
     users.sort((a, b) => b.createdAt - a.createdAt);
     return users;
   },
 });
 
-/**
- * Returns public profile information for a user — safe to expose to other users.
- * Does NOT include email or phone.
- */
 export const getPublicProfile = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
