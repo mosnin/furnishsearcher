@@ -2,6 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ export default function TenantRequestsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {requests.map((r) => (
+          {requests.map((r: Doc<"housingRequests">) => (
             <Card key={r._id} className="overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">

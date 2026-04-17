@@ -11,6 +11,7 @@ import {
   Home, MapPin, DollarSign, BedDouble, User, ExternalLink,
 } from "lucide-react";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
+import { Doc } from "@/convex/_generated/dataModel";
 import { ReviewCard } from "@/components/review-card";
 import { STATES } from "@/lib/cities";
 
@@ -135,7 +136,7 @@ function AvatarSection({ convexUser }: { convexUser: NonNullable<ReturnType<type
     toast.success("Photo updated! (Upload coming soon)");
   };
 
-  const initials = convexUser.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
+  const initials = convexUser.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
 
   return (
     <button
@@ -455,7 +456,7 @@ function HousingRequestsTab({ convexUser }: { convexUser: NonNullable<ReturnType
         </div>
       ) : (
         <div className="space-y-3">
-          {requests.map((r) => (
+          {requests.map((r: Doc<"housingRequests">) => (
             <div key={r._id} className="p-4 bg-white border border-gray-200 rounded-xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
