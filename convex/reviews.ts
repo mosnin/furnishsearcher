@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "convex/server";
+import { mutation, query } from "./_generated/server";
 
 export const create = mutation({
   args: {
@@ -19,6 +19,7 @@ export const create = mutation({
       .unique();
     if (!caller) throw new Error("User not found");
     if (caller._id !== args.reviewerId) throw new Error("Not authorized");
+    if (caller.role !== "tenant") throw new Error("Only tenants can write reviews.");
 
     if (args.rating < 1 || args.rating > 5 || !Number.isInteger(args.rating)) {
       throw new Error("Rating must be a whole number between 1 and 5.");

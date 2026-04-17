@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAction } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +36,7 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function ContactForm() {
+  const sendContact = useAction(api.emails.sendContactEmail);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -71,11 +74,20 @@ export default function ContactForm() {
     if (!validate()) return;
 
     setSubmitting(true);
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
-    setSubmitted(true);
-    toast.success("Message sent! We'll get back to you within 24 hours.");
+    try {
+      await sendContact({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject,
+        message: form.message.trim(),
+      });
+      setSubmitted(true);
+      toast.success("Message sent! We'll get back to you within 24 hours.");
+    } catch {
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {

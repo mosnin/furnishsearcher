@@ -9,7 +9,7 @@ import { formatDate, formatPrice } from "@/lib/utils";
 type AdminListing = {
   _id: string;
   title: string;
-  status: "active" | "inactive" | "pending";
+  status: "active" | "inactive" | "pending" | "rejected";
   price: number;
   bedrooms: number;
   bathrooms: number;
@@ -88,8 +88,8 @@ export default function AdminDashboardPage() {
 
   const allListings = useQuery(api.listings.getAll, {}) as AdminListing[] | undefined;
 
-  const publishMutation = useMutation(api.listings.publish);
-  const deleteMutation = useMutation(api.listings.deleteListing);
+  const approveMutation = useMutation(api.listings.approveListing);
+  const rejectMutation = useMutation(api.listings.rejectListing);
 
   const isLoading = convexUser === undefined || allListings === undefined;
 
@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
 
   const handleApprove = async (id: Id<"listings">, title: string) => {
     try {
-      await publishMutation({ id });
+      await approveMutation({ id });
       toast.success(`"${title}" is now live`);
     } catch {
       toast.error("Failed to approve listing");
@@ -107,8 +107,8 @@ export default function AdminDashboardPage() {
 
   const handleReject = async (id: Id<"listings">, title: string) => {
     try {
-      await deleteMutation({ id });
-      toast.success(`"${title}" rejected and removed`);
+      await rejectMutation({ id });
+      toast.success(`"${title}" rejected — landlord notified`);
     } catch {
       toast.error("Failed to reject listing");
     }

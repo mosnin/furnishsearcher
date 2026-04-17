@@ -62,10 +62,13 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const getOrCreate = useMutation(api.users.getOrCreate);
   const updateRole = useMutation(api.users.updateRole);
+  const applyReferral = useMutation(api.referrals.applyReferralCode);
   const sendWelcome = useAction(api.emails.sendWelcomeEmail);
 
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [showReferral, setShowReferral] = useState(false);
 
   async function handleRoleSelect(role: Role) {
     if (isLoading) return;
@@ -100,6 +103,15 @@ export default function OnboardingPage() {
           userId: convexUser._id,
           role: selectedRole,
         });
+      }
+
+      // Apply referral code if provided (silently ignore errors)
+      if (referralCode.trim()) {
+        try {
+          await applyReferral({ code: referralCode.trim().toUpperCase(), newUserId: convexUser._id });
+        } catch {
+          // Invalid or already-used code — not a fatal error
+        }
       }
 
       // Fire welcome email (non-blocking — errors are logged server-side)
@@ -226,6 +238,34 @@ export default function OnboardingPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Referral code */}
+        <div className="text-center mb-4">
+          {!showReferral ? (
+            <button
+              onClick={() => setShowReferral(true)}
+              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+            >
+              Have a referral code?
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 max-w-xs mx-auto">
+              <input
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="Enter code (e.g. ABC1234)"
+                maxLength={10}
+                className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-center tracking-widest font-mono uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                onClick={() => { setShowReferral(false); setReferralCode(""); }}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Continue button */}

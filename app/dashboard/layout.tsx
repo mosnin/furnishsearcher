@@ -48,6 +48,7 @@ const landlordNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/landlord", icon: LayoutDashboard },
   { label: "My Listings", href: "/dashboard/landlord/listings", icon: Building2 },
   { label: "Add Listing", href: "/dashboard/landlord/listings/new", icon: PlusSquare },
+  { label: "Tenant Requests", href: "/dashboard/landlord/requests", icon: Users },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },
   { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },

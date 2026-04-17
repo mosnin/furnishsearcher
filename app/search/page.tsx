@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
@@ -19,8 +20,10 @@ import {
   ChevronRight,
   X,
   MapPin,
+  BookmarkPlus,
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
+import { toast } from "sonner";
 import LeafletMap from "@/components/leaflet-map";
 import { type MapListing } from "@/components/map-view";
 import { TOP_CITIES } from "@/lib/cities";
@@ -34,6 +37,7 @@ const BED_OPTIONS = [1, 2, 3, 4];
 function SearchPageInner() {
   const params = useSearchParams();
   const router = useRouter();
+  const { userId } = useAuth();
 
   const locationParam = params.get("location") ?? "";
   const cityParam = params.get("city") ?? "";
@@ -48,6 +52,12 @@ function SearchPageInner() {
   const [localSearch, setLocalSearch] = useState(locationParam);
   const [page, setPage] = useState(1);
 
+  // Save search state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveEmailAlerts, setSaveEmailAlerts] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const ITEMS_PER_PAGE = 12;
 
   // Filter state
@@ -56,6 +66,9 @@ function SearchPageInner() {
   const [maxPrice, setMaxPrice] = useState(Number(budgetParam) || 0);
   const [petFriendly, setPetFriendly] = useState(false);
   const [utilitiesIncluded, setUtilitiesIncluded] = useState(false);
+
+  const convexUser = useQuery(api.users.getByClerkId, userId ? { clerkId: userId } : "skip");
+  const saveSearchMutation = useMutation(api.savedSearches.save);
 
   const rawListings = useQuery(api.listings.search, {
     city: cityParam || undefined,
@@ -150,6 +163,42 @@ function SearchPageInner() {
     selectedTypes.length + (minBeds > 0 ? 1 : 0) + (maxPrice > 0 ? 1 : 0) +
     (petFriendly ? 1 : 0) + (utilitiesIncluded ? 1 : 0);
 
+  const openSaveDialog = () => {
+    const parts: string[] = [];
+    if (cityParam) parts.push(cityParam);
+    if (stateParam && !cityParam) parts.push(stateParam);
+    if (minBeds > 0) parts.push(`${minBeds}+ beds`);
+    if (maxPrice > 0) parts.push(`≤$${maxPrice.toLocaleString()}`);
+    setSaveName(parts.length ? parts.join(", ") : "My Search");
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveSearch = async () => {
+    if (!convexUser || !saveName.trim()) return;
+    setSaving(true);
+    try {
+      await saveSearchMutation({
+        userId: convexUser._id,
+        name: saveName.trim(),
+        city: cityParam || undefined,
+        state: stateParam || undefined,
+        maxPrice: maxPrice > 0 ? maxPrice : undefined,
+        bedrooms: minBeds > 0 ? minBeds : undefined,
+        propertyType: selectedTypes.length === 1 ? selectedTypes[0] : undefined,
+        petFriendly: petFriendly || undefined,
+        emailAlerts: saveEmailAlerts,
+      });
+      toast.success("Search saved!");
+      setShowSaveDialog(false);
+      setSaveName("");
+      setSaveEmailAlerts(false);
+    } catch {
+      toast.error("Failed to save search");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top search bar */}
@@ -201,6 +250,17 @@ function SearchPageInner() {
               </span>
             )}
           </button>
+
+          {/* Save Search button — only shown to signed-in users */}
+          {convexUser && (
+            <button
+              onClick={openSaveDialog}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:border-[#1e3a8a] hover:text-[#1e3a8a] transition-colors shrink-0"
+            >
+              <BookmarkPlus className="w-4 h-4" />
+              <span className="hidden sm:block">Save Search</span>
+            </button>
+          )}
 
           {/* View toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-1 ml-auto shrink-0">
@@ -303,6 +363,53 @@ function SearchPageInner() {
           </div>
         </div>
       </div>
+
+      {/* Save Search dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Save this search</h3>
+            <p className="text-sm text-gray-500 mb-5">You&apos;ll find it in your dashboard. Enable alerts to get emailed about new matches.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Search name</label>
+                <input
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveSearch()}
+                  placeholder="e.g. Austin 2BR under $2,500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={saveEmailAlerts}
+                  onChange={(e) => setSaveEmailAlerts(e.target.checked)}
+                  className="accent-[#1e3a8a] w-4 h-4 rounded"
+                />
+                <span className="text-sm text-gray-700">Email me when new listings match</span>
+              </label>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSearch}
+                disabled={!saveName.trim() || saving}
+                className="flex-1 px-4 py-2.5 bg-[#1e3a8a] text-white rounded-lg text-sm font-medium hover:bg-blue-900 transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save Search"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex-1 max-w-screen-2xl mx-auto w-full px-4 pb-8">

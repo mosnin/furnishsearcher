@@ -62,6 +62,27 @@ export const sendWelcomeEmail = action({
 });
 
 // ---------------------------------------------------------------------------
+// Public action — called from the contact form.
+// ---------------------------------------------------------------------------
+export const sendContactEmail = action({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    subject: v.string(),
+    message: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    await resend.emails.send({
+      from: FROM,
+      to: FROM,
+      replyTo: args.email,
+      subject: `[FurnishFinder Contact] ${args.subject}`,
+      html: contactEmailHtml(args),
+    });
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Internal action — scheduled by approveListing mutation.
 // ---------------------------------------------------------------------------
 export const sendListingApprovedEmail = internalAction({
@@ -316,6 +337,29 @@ function listingApprovedEmailHtml(args: ListingApprovedArgs): string {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Internal action — scheduled by rejectListing mutation.
+// ---------------------------------------------------------------------------
+export const sendListingRejectedEmail = internalAction({
+  args: {
+    toEmail: v.string(),
+    toName: v.string(),
+    listingTitle: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    try {
+      await resend.emails.send({
+        from: FROM,
+        to: args.toEmail,
+        subject: `Update on your listing "${args.listingTitle}" — FurnishFinder`,
+        html: listingRejectedEmailHtml(args),
+      });
+    } catch (e) {
+      console.error("Failed to send listing rejected email:", e);
+    }
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Internal action — triggered when a new listing is published that may match
 // saved searches with email alerts enabled.
 // ---------------------------------------------------------------------------
@@ -449,6 +493,87 @@ function savedSearchAlertHtml(args: SavedSearchAlertArgs): string {
         </table>
       </td>
     </tr>
+  </table>
+</body>
+</html>`;
+}
+
+interface ContactEmailArgs {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+function contactEmailHtml(args: ContactEmailArgs): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Contact Form — FurnishFinder</title></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
+        <tr><td style="background:#0f2044;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
+          <span style="font-size:22px;font-weight:800;color:#ffffff;">FurnishFinder</span>
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:40px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#374151;">From: ${escapeHtml(args.name)} &lt;${escapeHtml(args.email)}&gt;</p>
+          <p style="margin:0 0 20px;font-size:15px;font-weight:600;color:#374151;">Subject: ${escapeHtml(args.subject)}</p>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px 24px;">
+            <p style="margin:0;font-size:15px;color:#374151;line-height:1.7;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
+          </div>
+        </td></tr>
+        <tr><td style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:16px 40px;text-align:center;">
+          <p style="margin:0;font-size:13px;color:#9ca3af;">&copy; ${new Date().getFullYear()} FurnishFinder. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+interface ListingRejectedArgs {
+  toName: string;
+  listingTitle: string;
+}
+
+function listingRejectedEmailHtml(args: ListingRejectedArgs): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><title>Listing Update — FurnishFinder</title></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
+        <tr><td style="background:#0f2044;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
+          <span style="font-size:22px;font-weight:800;color:#ffffff;">FurnishFinder</span>
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:40px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+          <div style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:700;padding:6px 14px;border-radius:999px;margin-bottom:20px;">
+            LISTING NOT APPROVED
+          </div>
+          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi ${escapeHtml(args.toName)},</p>
+          <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">
+            After review, your listing <strong>${escapeHtml(args.listingTitle)}</strong> did not meet our listing guidelines and has not been approved.
+          </p>
+          <p style="margin:0 0 32px;font-size:16px;color:#374151;line-height:1.6;">
+            Common reasons include incomplete information, photos that don't meet our quality standards, or pricing outside our accepted range. You're welcome to edit and resubmit your listing.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr><td align="center">
+              <a href="https://furnishfinder.com/dashboard/landlord/listings"
+                 style="display:inline-block;background:#0f2044;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:8px;">
+                Edit &amp; Resubmit
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:16px 40px;text-align:center;">
+          <p style="margin:0;font-size:13px;color:#9ca3af;">&copy; ${new Date().getFullYear()} FurnishFinder. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
   </table>
 </body>
 </html>`;

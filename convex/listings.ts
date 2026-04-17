@@ -351,7 +351,17 @@ export const rejectListing = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
 
+    const landlord = await ctx.db.get(listing.landlordId);
+
     await ctx.db.patch(args.id, { status: "rejected" });
+
+    if (landlord) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendListingRejectedEmail, {
+        toEmail: landlord.email,
+        toName: landlord.name ?? "there",
+        listingTitle: listing.title,
+      });
+    }
   },
 });
 
