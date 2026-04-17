@@ -20,14 +20,23 @@ import {
   Clock,
   Shield,
   PenLine,
+  Wifi,
+  WashingMachine,
+  AirVent,
+  Flame,
+  UtensilsCrossed,
+  Dumbbell,
+  Waves,
+  Tv,
+  Zap,
+  ArrowUpDown,
+  ShieldCheck,
+  Sun,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
@@ -38,23 +47,22 @@ import { LandlordBadges } from "@/components/landlord-badges";
 import { AvailabilityCalendar } from "@/components/availability-calendar";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 
-// Amenity icon mapping
-const AMENITY_ICONS: Record<string, string> = {
-  WiFi: "📶",
-  Parking: "🅿️",
-  "Washer/Dryer": "🧺",
-  "Air Conditioning": "❄️",
-  Heating: "🔥",
-  Kitchen: "🍳",
-  Gym: "🏋️",
-  Pool: "🏊",
-  "Pet Friendly": "🐾",
-  Dishwasher: "🍽️",
-  TV: "📺",
-  Balcony: "🌅",
-  "Utilities Included": "💡",
-  Elevator: "🛗",
-  Doorman: "🚪",
+const AMENITY_ICONS: Record<string, React.ElementType> = {
+  WiFi: Wifi,
+  Parking: Car,
+  "Washer/Dryer": WashingMachine,
+  "Air Conditioning": AirVent,
+  Heating: Flame,
+  Kitchen: UtensilsCrossed,
+  Gym: Dumbbell,
+  Pool: Waves,
+  "Pet Friendly": PawPrint,
+  Dishwasher: UtensilsCrossed,
+  TV: Tv,
+  Balcony: Sun,
+  "Utilities Included": Zap,
+  Elevator: ArrowUpDown,
+  Doorman: ShieldCheck,
 };
 
 interface PageProps {
@@ -233,23 +241,23 @@ export default function ListingDetailPage({ params }: PageProps) {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
 
         {/* Breadcrumb */}
-        <nav className="text-sm text-muted-foreground mb-4 flex items-center gap-1.5 flex-wrap">
-          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-          <span>/</span>
-          <Link href="/search" className="hover:text-foreground transition-colors">Rentals</Link>
-          <span>/</span>
+        <nav className="text-[13px] text-slate-500 mb-4 flex items-center gap-1.5 flex-wrap">
+          <Link href="/" className="hover:text-slate-800 transition-colors">Home</Link>
+          <span className="text-slate-300">/</span>
+          <Link href="/search" className="hover:text-slate-800 transition-colors">Rentals</Link>
+          <span className="text-slate-300">/</span>
           <Link
             href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`}
-            className="hover:text-foreground transition-colors"
+            className="hover:text-slate-800 transition-colors"
           >
             {city}, {state}
           </Link>
-          <span>/</span>
-          <span className="text-foreground font-medium truncate max-w-[200px]">{title}</span>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-800 font-medium truncate max-w-[200px]">{title}</span>
         </nav>
 
         {/* Photo gallery */}
@@ -264,18 +272,18 @@ export default function ListingDetailPage({ params }: PageProps) {
             {/* Title & location */}
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge variant="secondary" className="capitalize">{propertyType}</Badge>
-                {petFriendly && <Badge variant="success">Pet Friendly</Badge>}
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-[12px] font-medium capitalize">{propertyType}</span>
+                {petFriendly && <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-medium border border-emerald-100">Pet Friendly</span>}
                 {utilitiesIncluded && (
-                  <Badge variant="success">Utilities Included</Badge>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[12px] font-medium border border-blue-100">Utilities Included</span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-2">
+              <h1 className="text-[26px] sm:text-[30px] font-bold text-slate-900 leading-tight mb-2">
                 {title}
               </h1>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-slate-500">
                 <MapPin className="h-4 w-4 shrink-0" />
-                <span className="text-sm">
+                <span className="text-[14px]">
                   {city}, {state}
                 </span>
               </div>
@@ -283,9 +291,9 @@ export default function ListingDetailPage({ params }: PageProps) {
 
             {/* Price */}
             <div>
-              <p className="text-4xl font-bold text-[#0f2044]">
+              <p className="text-[36px] font-bold text-[#0f2044] leading-none">
                 {formatPrice(price)}
-                <span className="text-lg font-normal text-muted-foreground">/month</span>
+                <span className="text-[17px] font-normal text-slate-500 ml-1">/month</span>
               </p>
             </div>
 
@@ -334,8 +342,8 @@ export default function ListingDetailPage({ params }: PageProps) {
 
             {/* About */}
             <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">About this property</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
+              <h2 className="text-[17px] font-semibold text-slate-900 mb-3">About this property</h2>
+              <p className="text-slate-600 text-[14px] leading-relaxed whitespace-pre-line">
                 {description}
               </p>
             </section>
@@ -345,19 +353,20 @@ export default function ListingDetailPage({ params }: PageProps) {
               <>
                 <Separator />
                 <section>
-                  <h2 className="text-lg font-semibold text-foreground mb-3">Amenities</h2>
+                  <h2 className="text-[17px] font-semibold text-slate-900 mb-3">Amenities</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {amenities.map((amenity: string) => (
-                      <div
-                        key={amenity}
-                        className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground bg-background"
-                      >
-                        <span role="img" aria-label={amenity} className="text-base">
-                          {AMENITY_ICONS[amenity] ?? "✓"}
-                        </span>
-                        <span className="font-medium truncate">{amenity}</span>
-                      </div>
-                    ))}
+                    {amenities.map((amenity: string) => {
+                      const AmenityIcon = AMENITY_ICONS[amenity] ?? CheckCircle2;
+                      return (
+                        <div
+                          key={amenity}
+                          className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2.5 text-[13px] text-slate-700 bg-white"
+                        >
+                          <AmenityIcon className="h-4 w-4 text-slate-400 shrink-0" />
+                          <span className="font-medium truncate">{amenity}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               </>
@@ -366,14 +375,14 @@ export default function ListingDetailPage({ params }: PageProps) {
             {/* Availability */}
             <Separator />
             <section>
-              <h2 className="text-lg font-semibold text-foreground mb-3">Availability</h2>
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-emerald-50 px-4 py-3 mb-4">
+              <h2 className="text-[17px] font-semibold text-slate-900 mb-3">Availability</h2>
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 mb-4">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-[14px] font-medium text-slate-900">
                     Available from {formatDate(availableFrom)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[12px] text-slate-500">
                     Minimum stay: {minStay} month{minStay === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -392,16 +401,15 @@ export default function ListingDetailPage({ params }: PageProps) {
           {/* ── Right column (40%, sticky) ── */}
           <div className="lg:w-[380px] shrink-0">
             <div className="sticky top-6">
-              <Card className="shadow-lg border-border">
-                <CardContent className="p-6 flex flex-col gap-5">
+              <div className="bg-white rounded-2xl ring-1 ring-black/[0.06] shadow-sm p-6 flex flex-col gap-5">
 
                   {/* Price summary */}
-                  <div className="text-center pb-2 border-b border-border">
-                    <p className="text-2xl font-bold text-[#0f2044]">
+                  <div className="text-center pb-4 border-b border-slate-100">
+                    <p className="text-[26px] font-bold text-[#0f2044] leading-none">
                       {formatPrice(price)}
-                      <span className="text-sm font-normal text-muted-foreground">/month</span>
+                      <span className="text-[15px] font-normal text-slate-500 ml-1">/month</span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[12px] text-slate-500 mt-1">
                       {minStay}+ month minimum stay
                     </p>
                   </div>
@@ -412,13 +420,13 @@ export default function ListingDetailPage({ params }: PageProps) {
                       {landlordAvatar && (
                         <AvatarImage src={landlordAvatar} alt={landlordName} />
                       )}
-                      <AvatarFallback className="text-sm font-semibold bg-navy-100 text-[#0f2044]">
+                      <AvatarFallback className="text-[13px] font-semibold bg-slate-100 text-[#0f2044]">
                         {landlordInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold text-foreground text-sm truncate">{landlordName}</p>
-                      <p className="text-xs text-muted-foreground">Property Owner</p>
+                      <p className="font-semibold text-slate-900 text-[14px] truncate">{landlordName}</p>
+                      <p className="text-[12px] text-slate-500">Property Owner</p>
                       {ratingStats && ratingStats.count > 0 && landlord && (
                         <LandlordBadges
                           averageRating={ratingStats.average}
@@ -431,23 +439,23 @@ export default function ListingDetailPage({ params }: PageProps) {
                   </div>
 
                   {/* Contact button */}
-                  <Button
-                    size="lg"
-                    className="w-full text-base font-semibold"
+                  <button
                     onClick={handleContactClick}
+                    className="w-full h-11 bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-semibold rounded-xl transition-colors shadow-sm"
                   >
                     Contact Landlord
-                  </Button>
+                  </button>
 
                   {/* Save + Share */}
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "flex-1 gap-2",
-                        displaySaved && "border-rose-300 text-rose-600 hover:bg-rose-50"
-                      )}
+                    <button
                       onClick={handleSaveToggle}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-[14px] font-medium transition-colors",
+                        displaySaved
+                          ? "border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100"
+                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                      )}
                     >
                       <Heart
                         className={cn(
@@ -456,30 +464,28 @@ export default function ListingDetailPage({ params }: PageProps) {
                         )}
                       />
                       {displaySaved ? "Saved" : "Save"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 gap-2"
+                    </button>
+                    <button
                       onClick={handleShare}
+                      className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-slate-200 text-slate-700 text-[14px] font-medium hover:bg-slate-50 transition-colors"
                     >
                       <Share2 className="h-4 w-4" />
                       Share
-                    </Button>
+                    </button>
                   </div>
 
                   {/* Trust indicators */}
-                  <div className="rounded-lg bg-muted/50 px-4 py-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="rounded-xl bg-slate-50 px-4 py-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-[12px] text-slate-500">
                       <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                       <span>No booking fees — contact directly</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-[12px] text-slate-500">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                       <span>Verified listing on FurnishFinder</span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -488,12 +494,10 @@ export default function ListingDetailPage({ params }: PageProps) {
         {similarListings.length > 0 && (
           <section className="mt-14">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold text-foreground">Similar Listings</h2>
-              <Button variant="link" asChild className="text-[#0f2044] p-0 h-auto">
-                <Link href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`}>
-                  See all in {city}
-                </Link>
-              </Button>
+              <h2 className="text-[19px] font-semibold text-slate-900">Similar Listings</h2>
+              <Link href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`} className="text-[14px] text-[#0f2044] font-medium hover:underline">
+                See all in {city}
+              </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {similarListings.map((l) => (
@@ -507,11 +511,11 @@ export default function ListingDetailPage({ params }: PageProps) {
         <section className="mt-14">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div className="flex flex-col gap-1">
-              <h2 className="text-xl font-bold text-foreground">Reviews</h2>
+              <h2 className="text-[19px] font-semibold text-slate-900">Reviews</h2>
               {ratingStats && ratingStats.count > 0 && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={ratingStats.average} size="sm" />
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-[13px] text-slate-500">
                     {ratingStats.count} {ratingStats.count === 1 ? "review" : "reviews"}
                   </span>
                 </div>
@@ -519,21 +523,17 @@ export default function ListingDetailPage({ params }: PageProps) {
             </div>
             <div className="flex items-center gap-3">
               {clerkUser && convexUser?.role === "tenant" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
+                <button
                   onClick={() => setReviewFormOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <PenLine className="h-3.5 w-3.5" />
                   Write a Review
-                </Button>
+                </button>
               )}
-              <Button variant="link" asChild className="text-[#0f2044] p-0 h-auto text-sm">
-                <Link href={`/landlords/${landlordId}`}>
-                  See all reviews
-                </Link>
-              </Button>
+              <Link href={`/landlords/${landlordId}`} className="text-[13px] text-[#0f2044] font-medium hover:underline">
+                See all reviews
+              </Link>
             </div>
           </div>
 
@@ -544,19 +544,17 @@ export default function ListingDetailPage({ params }: PageProps) {
               ))}
             </div>
           ) : listingReviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 rounded-xl border border-dashed border-border bg-muted/20">
-              <p className="text-muted-foreground text-sm">
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
+              <p className="text-slate-500 text-[14px]">
                 No reviews yet for this listing.
               </p>
               {clerkUser && convexUser?.role === "tenant" && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="text-[#0f2044] p-0 h-auto"
+                <button
                   onClick={() => setReviewFormOpen(true)}
+                  className="text-[13px] text-[#0f2044] font-medium hover:underline"
                 >
                   Be the first to leave a review
-                </Button>
+                </button>
               )}
             </div>
           ) : (
@@ -572,11 +570,9 @@ export default function ListingDetailPage({ params }: PageProps) {
                 />
               ))}
               {listingReviews.length > 3 && (
-                <Button variant="outline" asChild className="self-center">
-                  <Link href={`/landlords/${landlordId}`}>
-                    See all {listingReviews.length} reviews
-                  </Link>
-                </Button>
+                <Link href={`/landlords/${landlordId}`} className="self-center px-5 py-2 rounded-xl border border-slate-200 text-[14px] font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                  See all {listingReviews.length} reviews
+                </Link>
               )}
             </div>
           )}
@@ -623,17 +619,17 @@ function KeyDetail({
   valueClass?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-muted/30 px-3 py-4 text-center">
-      <div className="text-muted-foreground">{icon}</div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-sm font-semibold text-foreground", valueClass)}>{value}</p>
+    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center">
+      <div className="text-slate-400">{icon}</div>
+      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className={cn("text-[13px] font-semibold text-slate-900", valueClass)}>{value}</p>
     </div>
   );
 }
 
 function ListingDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
         <Skeleton className="h-4 w-64 mb-4" />
         {/* Gallery */}
