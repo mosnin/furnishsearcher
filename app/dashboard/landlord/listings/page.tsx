@@ -50,6 +50,7 @@ import {
   Bath,
   MapPin,
   Building2,
+  CalendarDays,
 } from "lucide-react";
 
 type StatusFilter = "all" | "active" | "inactive" | "pending";
@@ -300,6 +301,11 @@ export default function LandlordListingsPage() {
                           <Link href={`/dashboard/landlord/listings/${listing._id}/edit`}>
                             <Pencil className="h-3.5 w-3.5 mr-1" />
                             Edit
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" title="Manage availability">
+                          <Link href={`/dashboard/landlord/listings/${listing._id}/availability`}>
+                            <CalendarDays className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
                         {!(

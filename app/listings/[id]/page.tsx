@@ -34,6 +34,8 @@ import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
 import { ReviewCard } from "@/components/review-card";
 import { ReviewForm } from "@/components/review-form";
+import { LandlordBadges } from "@/components/landlord-badges";
+import { AvailabilityCalendar } from "@/components/availability-calendar";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 
 // Amenity icon mapping
@@ -93,6 +95,12 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   // Featured listings for "Similar" section
   const featuredListings = useQuery(api.listings.getFeatured);
+
+  // Availability blocks for this listing
+  const availabilityBlocks = useQuery(
+    api.availability.getByListing,
+    listing?._id ? { listingId: listing._id } : "skip"
+  );
 
   // Reviews for this listing
   const listingReviews = useQuery(
@@ -359,7 +367,7 @@ export default function ListingDetailPage({ params }: PageProps) {
             <Separator />
             <section>
               <h2 className="text-lg font-semibold text-foreground mb-3">Availability</h2>
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-emerald-50 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-emerald-50 px-4 py-3 mb-4">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
@@ -370,6 +378,12 @@ export default function ListingDetailPage({ params }: PageProps) {
                   </p>
                 </div>
               </div>
+              {availabilityBlocks !== undefined && (
+                <AvailabilityCalendar
+                  blocks={availabilityBlocks ?? []}
+                  editable={false}
+                />
+              )}
             </section>
           </div>
 
@@ -403,6 +417,14 @@ export default function ListingDetailPage({ params }: PageProps) {
                     <div className="min-w-0">
                       <p className="font-semibold text-foreground text-sm truncate">{landlordName}</p>
                       <p className="text-xs text-muted-foreground">Property Owner</p>
+                      {ratingStats && ratingStats.count > 0 && landlord && (
+                        <LandlordBadges
+                          averageRating={ratingStats.average}
+                          reviewCount={ratingStats.count}
+                          memberSinceMs={landlord.createdAt}
+                          className="mt-1"
+                        />
+                      )}
                     </div>
                   </div>
 

@@ -24,6 +24,7 @@ import {
   Home,
   TrendingUp,
   CreditCard,
+  Search,
 } from "lucide-react";
 import MobileNav from "@/components/dashboard/mobile-nav";
 
@@ -37,6 +38,7 @@ type NavItem = {
 const tenantNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
   { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
+  { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
