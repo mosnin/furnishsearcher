@@ -165,8 +165,30 @@ export const getMessages = query({
       .unique();
     if (!caller) return [];
 
-    // The conversationId encodes both participant IDs — verify caller is one of them
-    if (!args.conversationId.includes(caller._id)) return [];
+    // Verify the caller is an actual participant by looking up their conversations
+    // and checking if any derives to the requested conversationId.
+    // This avoids substring-matching bugs (e.g. ID "abc" matching "abcdef").
+    const [asTenant, asLandlord] = await Promise.all([
+      ctx.db
+        .query("conversations")
+        .withIndex("by_tenant", (q) => q.eq("tenantId", caller._id))
+        .collect(),
+      ctx.db
+        .query("conversations")
+        .withIndex("by_landlord", (q) => q.eq("landlordId", caller._id))
+        .collect(),
+    ]);
+
+    const isParticipant = [...asTenant, ...asLandlord].some((conv) => {
+      const derived = buildConversationId(
+        conv.tenantId,
+        conv.landlordId,
+        conv.listingId
+      );
+      return derived === args.conversationId;
+    });
+
+    if (!isParticipant) return [];
 
     const messages = await ctx.db
       .query("messages")

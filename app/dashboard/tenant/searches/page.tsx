@@ -13,6 +13,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Search, Bell, BellOff, Trash2, ExternalLink, BookmarkX } from "lucide-react";
 
+interface SearchFilters {
+  city?: string;
+  state?: string;
+  maxPrice?: number;
+  bedrooms?: number;
+  propertyType?: string;
+  petFriendly?: boolean;
+}
+
+function buildSearchUrl(s: SearchFilters): string {
+  const params = new URLSearchParams();
+  if (s.city) params.set("city", s.city);
+  if (s.state) params.set("state", s.state);
+  if (s.maxPrice) params.set("maxPrice", String(s.maxPrice));
+  if (s.bedrooms) params.set("bedrooms", String(s.bedrooms));
+  if (s.propertyType) params.set("propertyType", s.propertyType);
+  if (s.petFriendly) params.set("petFriendly", "true");
+  return `/search?${params.toString()}`;
+}
+
 export default function SavedSearchesPage() {
   const { userId } = useAuth();
 
@@ -45,26 +65,6 @@ export default function SavedSearchesPage() {
     } catch {
       toast.error("Failed to remove search");
     }
-  };
-
-  interface SearchFilters {
-    city?: string;
-    state?: string;
-    maxPrice?: number;
-    bedrooms?: number;
-    propertyType?: string;
-    petFriendly?: boolean;
-  }
-
-  const buildSearchUrl = (s: SearchFilters) => {
-    const params = new URLSearchParams();
-    if (s.city) params.set("city", s.city);
-    if (s.state) params.set("state", s.state);
-    if (s.maxPrice) params.set("maxPrice", String(s.maxPrice));
-    if (s.bedrooms) params.set("bedrooms", String(s.bedrooms));
-    if (s.propertyType) params.set("propertyType", s.propertyType);
-    if (s.petFriendly) params.set("petFriendly", "true");
-    return `/search?${params.toString()}`;
   };
 
   const isLoading = convexUser === undefined || searches === undefined;

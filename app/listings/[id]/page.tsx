@@ -378,12 +378,14 @@ export default function ListingDetailPage({ params }: PageProps) {
                   </p>
                 </div>
               </div>
-              {availabilityBlocks !== undefined && (
+              {availabilityBlocks === undefined ? (
+                <Skeleton className="h-64 w-full rounded-xl" />
+              ) : availabilityBlocks.length > 0 ? (
                 <AvailabilityCalendar
-                  blocks={availabilityBlocks ?? []}
+                  blocks={availabilityBlocks}
                   editable={false}
                 />
-              )}
+              ) : null}
             </section>
           </div>
 

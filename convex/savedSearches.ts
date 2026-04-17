@@ -76,7 +76,9 @@ export const toggleEmailAlerts = mutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
-    if (!caller || caller._id !== existing.userId) throw new Error("Not authorized");
+    if (!caller || (caller.role !== "admin" && caller._id !== existing.userId)) {
+      throw new Error("Not authorized");
+    }
 
     await ctx.db.patch(args.id, { emailAlerts: args.enabled });
   },
@@ -110,7 +112,8 @@ export const getAlertMatchesInternal = internalQuery({
 
     const matches = all.filter((s) => {
       if (!s.emailAlerts) return false;
-      if (s.city && !cityLower.includes(s.city.toLowerCase())) return false;
+      // Exact city match (case-insensitive) — listing city must equal saved search city
+      if (s.city && cityLower !== s.city.toLowerCase()) return false;
       if (s.state && s.state.toLowerCase() !== stateLower) return false;
       if (s.maxPrice !== undefined && args.price > s.maxPrice) return false;
       if (s.bedrooms !== undefined && args.bedrooms < s.bedrooms) return false;

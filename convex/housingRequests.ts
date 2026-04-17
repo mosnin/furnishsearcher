@@ -46,6 +46,15 @@ export const create = mutation({
 export const getByUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || (caller.role !== "admin" && caller._id !== args.userId)) return [];
+
     const requests = await ctx.db
       .query("housingRequests")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

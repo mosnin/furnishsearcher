@@ -59,7 +59,7 @@ export default function AvailabilityPage({ params }: PageProps) {
     }
   };
 
-  if (listing === undefined || blocks === undefined) {
+  if (listing === undefined || blocks === undefined || convexUser === undefined) {
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-6">
         <Skeleton className="h-8 w-48" />

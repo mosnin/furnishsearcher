@@ -73,6 +73,15 @@ export const isSaved = query({
     listingId: v.id("listings"),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return false;
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller._id !== args.tenantId) return false;
+
     const existing = await ctx.db
       .query("savedListings")
       .withIndex("by_tenant_listing", (q) =>
@@ -86,6 +95,15 @@ export const isSaved = query({
 export const getSaved = query({
   args: { tenantId: v.id("users") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || caller._id !== args.tenantId) return [];
+
     const saved = await ctx.db
       .query("savedListings")
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId))
