@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "convex/server";
+import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 function buildConversationId(

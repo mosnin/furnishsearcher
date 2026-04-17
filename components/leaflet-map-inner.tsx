@@ -132,7 +132,7 @@ export default function LeafletMapInner({
               <Popup
                 autoPan
                 closeButton={true}
-                onClose={() => onSelectListing?.(null)}
+                eventHandlers={{ remove: () => onSelectListing?.(null) }}
               >
                 <div style={{ minWidth: 200, maxWidth: 240, fontFamily: "inherit" }}>
                   <p style={{ fontWeight: 700, fontSize: 14, margin: "0 0 2px", lineHeight: 1.3 }}>
