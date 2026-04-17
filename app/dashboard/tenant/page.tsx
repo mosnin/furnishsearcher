@@ -75,6 +75,7 @@ type HousingRequest = {
   createdAt: number;
 };
 
+import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -251,7 +252,7 @@ export default function TenantDashboardPage() {
 
   const handleRemoveSavedSearch = async (id: string, name: string) => {
     try {
-      await removeSavedSearch({ id: id as SavedSearch["_id"] });
+      await removeSavedSearch({ id: id as Id<"savedSearches"> });
       toast.success(`"${name}" removed`);
     } catch (err) {
       console.error("Failed to remove saved search:", err);
@@ -261,7 +262,7 @@ export default function TenantDashboardPage() {
 
   const handleCloseHousingRequest = async (id: string) => {
     try {
-      await closeHousingRequest({ id: id as HousingRequest["_id"] });
+      await closeHousingRequest({ id: id as Id<"housingRequests"> });
       toast.success("Housing request closed.");
     } catch (err) {
       console.error("Failed to close housing request:", err);
