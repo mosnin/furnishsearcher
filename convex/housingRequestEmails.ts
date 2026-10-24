@@ -12,7 +12,13 @@ export const notifyOwner = internalAction({
       internal.housingRequests.notificationDetails,
       args,
     );
-    if (!details) return null;
+    if (!details) {
+      await ctx.runMutation(internal.housingRequests.recordEmailStatus, {
+        ...args,
+        status: "suppressed",
+      });
+      return null;
+    }
     if (
       !process.env.RESEND_API_KEY ||
       !process.env.EMAIL_FROM ||

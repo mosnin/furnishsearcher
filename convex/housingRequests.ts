@@ -16,6 +16,7 @@ import {
   prepareCriteria,
   type HousingCriteria,
 } from "./lib/housing";
+import { blockState, requireMessagingAllowed } from "./lib/messageAccess";
 import { sendListingMessage } from "./lib/messaging";
 import { DAY } from "../lib/stays";
 
@@ -191,15 +192,22 @@ async function saveMatch(
     )
     .unique();
   if (!delivery) {
+    const blocked = (await blockState(ctx, request.userId, listing.landlordId))
+      .cannotMessage;
     const deliveryId = await ctx.db.insert("housingRequestDeliveries", {
       requestId: request._id,
       landlordId: listing.landlordId,
       createdAt: Date.now(),
-      emailStatus: "queued",
+      emailStatus: blocked ? "suppressed" : "queued",
     });
-    await ctx.scheduler.runAfter(0, internal.housingRequestEmails.notifyOwner, {
-      deliveryId,
-    });
+    if (!blocked)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.housingRequestEmails.notifyOwner,
+        {
+          deliveryId,
+        },
+      );
   }
 }
 
@@ -320,7 +328,11 @@ export const inbox = query({
     const page = [];
     for (const delivery of result.page) {
       const request = await ctx.db.get(delivery.requestId);
-      if (!request) continue;
+      if (
+        !request ||
+        (await blockState(ctx, request.userId, user._id)).cannotMessage
+      )
+        continue;
       const tenant = await ctx.db.get(request.userId);
       page.push({
         deliveryId: delivery._id,
@@ -355,6 +367,7 @@ export const matchingProperties = query({
     const user = await requireUser(ctx);
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found.");
+    await requireMessagingAllowed(ctx, user._id, request.userId);
     const result = await ctx.db
       .query("housingRequestMatches")
       .withIndex("by_requestId_and_landlordId", (q) =>
@@ -437,11 +450,13 @@ export const reply = mutation({
       .unique();
     if (!match || match.landlordId !== owner._id)
       throw new Error("This request has not been matched to your property.");
+    await requireMessagingAllowed(ctx, owner._id, request.userId);
     if (match.conversationId) return match.conversationId;
     const { conversationId } = await sendListingMessage(ctx, {
       senderId: owner._id,
       receiverId: request.userId,
       listingId: listing._id,
+      origin: "housing_request",
       content: args.message,
     });
     await ctx.db.patch(match._id, { conversationId, respondedAt: Date.now() });
@@ -488,7 +503,13 @@ export const notificationDetails = internalQuery({
       ctx.db.get(delivery.requestId),
       ctx.db.get(delivery.landlordId),
     ]);
-    if (!request || request.status !== "open" || !owner?.email) return null;
+    if (
+      !request ||
+      request.status !== "open" ||
+      !owner?.email ||
+      (await blockState(ctx, request.userId, owner._id)).cannotMessage
+    )
+      return null;
     return { email: owner.email, city: request.city, state: request.state };
   },
 });
@@ -499,6 +520,7 @@ export const recordEmailStatus = internalMutation({
       v.literal("sent"),
       v.literal("failed"),
       v.literal("unconfigured"),
+      v.literal("suppressed"),
     ),
   },
   returns: v.null(),

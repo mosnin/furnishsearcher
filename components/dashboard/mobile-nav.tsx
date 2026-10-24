@@ -63,6 +63,8 @@ type ConversationSummary = {
   landlordId: Id<"users">;
   tenantRead: boolean;
   landlordRead: boolean;
+  blockedByMe?: boolean;
+  archived?: boolean;
 };
 
 function UnreadBadge() {
@@ -79,7 +81,7 @@ function UnreadBadge() {
 
   const unreadCount =
     conversations?.filter((c) =>
-      c.tenantId === convexUser?._id ? !c.tenantRead : !c.landlordRead
+      !c.blockedByMe && !c.archived && (c.tenantId === convexUser?._id ? !c.tenantRead : !c.landlordRead)
     ).length ?? 0;
 
   if (unreadCount === 0) return null;

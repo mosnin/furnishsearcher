@@ -24,6 +24,8 @@ import type * as housingRequests from "../housingRequests.js";
 import type * as http from "../http.js";
 import type * as inquiries from "../inquiries.js";
 import type * as listings from "../listings.js";
+import type * as messageEmails from "../messageEmails.js";
+import type * as messageTemplates from "../messageTemplates.js";
 import type * as messages from "../messages.js";
 import type * as payments from "../payments.js";
 import type * as referrals from "../referrals.js";
@@ -55,6 +57,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inquiries: typeof inquiries;
   listings: typeof listings;
+  messageEmails: typeof messageEmails;
+  messageTemplates: typeof messageTemplates;
   messages: typeof messages;
   payments: typeof payments;
   referrals: typeof referrals;

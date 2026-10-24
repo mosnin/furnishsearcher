@@ -2,6 +2,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireUser } from "./auth";
+import { conversationKey, requireMessagingAllowed } from "./messageAccess";
 
 export async function sendListingMessage(
   ctx: MutationCtx,
@@ -10,6 +11,8 @@ export async function sendListingMessage(
     receiverId: Id<"users">;
     listingId: Id<"listings">;
     content: string;
+    clientRequestId?: string;
+    origin?: "inbox" | "property" | "housing_request";
   },
 ) {
   const sender = await requireUser(ctx);
@@ -19,6 +22,36 @@ export async function sendListingMessage(
   const content = args.content.trim();
   if (!content || content.length > 2000)
     throw new Error("Enter a message of up to 2,000 characters.");
+  if (args.clientRequestId) {
+    if (
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
+        args.clientRequestId,
+      )
+    )
+      throw new Error("Invalid send reference.");
+    const previous = await ctx.db
+      .query("messages")
+      .withIndex("by_sender_request", (q) =>
+        q
+          .eq("senderId", sender._id)
+          .eq("clientRequestId", args.clientRequestId),
+      )
+      .unique();
+    if (previous) {
+      if (
+        previous.receiverId !== args.receiverId ||
+        previous.listingId !== args.listingId ||
+        previous.content !== content ||
+        !previous.conversationDocId
+      )
+        throw new Error("Send reference already used for another message.");
+      return {
+        messageId: previous._id,
+        conversationId: previous.conversationDocId,
+      };
+    }
+  }
+  await requireMessagingAllowed(ctx, sender._id, args.receiverId);
   const [receiver, listing] = await Promise.all([
     ctx.db.get(args.receiverId),
     ctx.db.get(args.listingId),
@@ -35,50 +68,44 @@ export async function sendListingMessage(
       q.eq("listingId", listing._id).eq("tenantId", tenantId),
     )
     .unique();
-  if (!existing && listing.status !== "active")
+  if (!existing && (listing.status !== "active" || listing.moderationHold))
     throw new Error("This property is not accepting new messages.");
-  const conversationKey =
-    [sender._id, receiver._id].sort().join("_") + "_" + listing._id;
-  const now = Date.now();
-  const messageId = await ctx.db.insert("messages", {
-    conversationId: conversationKey,
-    senderId: sender._id,
-    receiverId: receiver._id,
-    listingId: listing._id,
-    content,
-    read: false,
-    createdAt: now,
-  });
+  const key = conversationKey(sender._id, receiver._id, listing._id),
+    now = Date.now();
   const patch = {
+    key,
     lastMessage: content,
     lastMessageAt: now,
-    tenantRead: !senderIsLandlord,
-    landlordRead: senderIsLandlord,
+    tenantRead: senderIsLandlord ? false : (existing?.tenantRead ?? true),
+    landlordRead: senderIsLandlord ? (existing?.landlordRead ?? true) : false,
+    // A fresh message returns both parties' conversations to the main inbox.
+    tenantArchived: false,
+    landlordArchived: false,
   };
   let conversationId: Id<"conversations">;
   if (existing) {
     await ctx.db.patch(existing._id, patch);
     conversationId = existing._id;
-  } else {
+  } else
     conversationId = await ctx.db.insert("conversations", {
       listingId: listing._id,
       tenantId,
       landlordId: listing.landlordId,
       ...patch,
     });
-  }
-  if (receiver.email)
-    await ctx.scheduler.runAfter(
-      0,
-      internal.emails.sendNewMessageNotification,
-      {
-        toEmail: receiver.email,
-        toName: receiver.name,
-        fromName: sender.name,
-        listingTitle: listing.title,
-        messagePreview: content.slice(0, 200),
-        conversationId,
-      },
-    );
+  const messageId = await ctx.db.insert("messages", {
+    conversationId: key,
+    conversationDocId: conversationId,
+    senderId: sender._id,
+    receiverId: receiver._id,
+    listingId: listing._id,
+    content,
+    read: false,
+    createdAt: now,
+    origin: args.origin ?? "property",
+    ...(args.clientRequestId ? { clientRequestId: args.clientRequestId } : {}),
+    emailStatus: "pending",
+  });
+  await ctx.scheduler.runAfter(0, internal.messageEmails.notify, { messageId });
   return { messageId, conversationId };
 }

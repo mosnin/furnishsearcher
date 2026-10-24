@@ -20,17 +20,19 @@ export const sendNewMessageNotification = internalAction({
     messagePreview: v.string(),
     conversationId: v.string(),
   },
-  handler: async (_ctx, args) => {
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const conversationId = await ctx.runQuery(internal.messages.legacyNotificationConversation, { conversationId: args.conversationId, email: args.toEmail });
+    if (!conversationId || !process.env.RESEND_API_KEY || !process.env.EMAIL_FROM || !process.env.NEXT_PUBLIC_APP_URL) return null;
     try {
       await resend.emails.send({
-        from: FROM,
+        from: process.env.EMAIL_FROM,
         to: args.toEmail,
         subject: `New message about "${args.listingTitle}" — FurnishFinder`,
-        html: newMessageEmailHtml(args),
+        html: newMessageEmailHtml({ ...args, conversationId }),
       });
-    } catch (e) {
-      console.error("Failed to send email:", e);
-    }
+    } catch { /* Legacy jobs predate per-message delivery records. */ }
+    return null;
   },
 });
 
@@ -155,7 +157,7 @@ function newMessageEmailHtml(args: NewMessageArgs): string {
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                 <tr>
                   <td align="center">
-                    <a href="https://furnishfinder.com/dashboard/messages"
+                    <a href="${escapeHtml(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/messages?conv=${encodeURIComponent(args.conversationId)}`)}"
                        style="display:inline-block;background:#0f2044;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:0.2px;">
                       View Message
                     </a>

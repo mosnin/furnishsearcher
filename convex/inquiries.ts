@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireMessagingAllowed } from "./lib/messageAccess";
 import { requireUser } from "./lib/auth";
 import { DAY, isAvailable, validateStay } from "../lib/stays";
 
@@ -23,6 +24,7 @@ export const create = mutation({
     const listing = await ctx.db.get(args.listingId);
     if (!listing || listing.status !== "active") throw new Error("This listing is unavailable.");
     if (tenant._id === listing.landlordId) throw new Error("You cannot inquire about your own property.");
+    await requireMessagingAllowed(ctx, tenant._id, listing.landlordId);
     validateStay(args.moveIn, args.moveOut, Math.max(1, listing.minStay) * 30);
     if (args.moveIn < Math.floor(Date.now() / DAY) * DAY) throw new Error("Move-in cannot be in the past.");
     if (!Number.isInteger(args.occupants) || args.occupants < 1 || args.occupants > 30) throw new Error("Enter 1–30 occupants.");

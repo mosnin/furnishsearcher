@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
 import { caseFields, replyFields, auditFields } from "./validators/support";
+import { messageFields, conversationFields, templateFields } from "./validators/messaging";
 import { calendarFeedFields } from "./validators/calendars";
 
 export default defineSchema({
@@ -89,28 +90,21 @@ export default defineSchema({
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_listing", ["tenantId", "listingId"]),
 
-  messages: defineTable({
-    conversationId: v.string(),
-    senderId: v.id("users"),
-    receiverId: v.id("users"),
-    listingId: v.id("listings"),
-    content: v.string(),
-    read: v.boolean(),
-    createdAt: v.number(),
-  })
+  userBlocks: defineTable({ blockerId: v.id("users"), blockedId: v.id("users"), createdAt: v.number() })
+    .index("by_pair", ["blockerId", "blockedId"])
+    .index("by_blocker", ["blockerId"]),
+  messageTemplates: defineTable(templateFields)
+    .index("by_user", ["userId"])
+    .index("by_user_name", ["userId", "normalizedName"]),
+  messagingPreferences: defineTable({ userId: v.id("users"), signature: v.string() }).index("by_user", ["userId"]),
+  messages: defineTable(messageFields)
     .index("by_conversation", ["conversationId"])
     .index("by_receiver", ["receiverId"])
+    .index("by_sender_request", ["senderId", "clientRequestId"])
+    .index("by_conversation_receiver_read", ["conversationId", "receiverId", "read"])
     .index("by_conversation_read", ["conversationId", "read"]),
-
-  conversations: defineTable({
-    listingId: v.id("listings"),
-    tenantId: v.id("users"),
-    landlordId: v.id("users"),
-    lastMessage: v.string(),
-    lastMessageAt: v.number(),
-    tenantRead: v.boolean(),
-    landlordRead: v.boolean(),
-  })
+  conversations: defineTable(conversationFields)
+    .index("by_key", ["key"])
     .index("by_tenant", ["tenantId"])
     .index("by_landlord", ["landlordId"])
     .index("by_listing_tenant", ["listingId", "tenantId"]),
@@ -224,7 +218,7 @@ export default defineSchema({
   housingRequestDeliveries: defineTable({
     requestId: v.id("housingRequests"), landlordId: v.id("users"), createdAt: v.number(),
     readAt: v.optional(v.number()),
-    emailStatus: v.union(v.literal("queued"), v.literal("sent"), v.literal("unconfigured"), v.literal("failed")),
+    emailStatus: v.union(v.literal("queued"), v.literal("sent"), v.literal("unconfigured"), v.literal("failed"), v.literal("suppressed")),
   }).index("by_requestId_and_landlordId", ["requestId", "landlordId"])
     .index("by_landlordId", ["landlordId"]),
 

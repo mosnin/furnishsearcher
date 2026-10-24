@@ -42,6 +42,8 @@ type ConvConversation = {
   lastMessageAt: number;
   tenantRead: boolean;
   landlordRead: boolean;
+  archived?: boolean;
+  blockedByMe?: boolean;
   listing: { title: string } | null;
   otherUser: { name: string } | null;
 };
@@ -235,6 +237,8 @@ export default function TenantDashboardPage() {
 
   const closeHousingRequest = useMutation(api.housingRequests.close);
 
+  const visibleConversations = conversations?.filter(c => !c.archived && !c.blockedByMe) ?? [];
+
   const isLoading = !isLoaded || convexUser === undefined;
   const firstName = convexUser?.name?.split(" ")[0] ?? "there";
   const today = new Date().toLocaleDateString("en-US", {
@@ -247,7 +251,7 @@ export default function TenantDashboardPage() {
   const unreadMessages =
     conversations?.filter((c) => {
       const isTenant = c.tenantId === convexUser?._id;
-      return isTenant ? !c.tenantRead : !c.landlordRead;
+      return !c.archived && !c.blockedByMe && (isTenant ? !c.tenantRead : !c.landlordRead);
     }).length ?? 0;
 
   const handleRemoveSavedSearch = async (id: string, name: string) => {
@@ -307,7 +311,7 @@ export default function TenantDashboardPage() {
         />
         <StatCard
           title="Messages"
-          value={unreadMessages > 0 ? `${unreadMessages} unread` : conversations?.length ?? 0}
+          value={unreadMessages > 0 ? `${unreadMessages} unread` : visibleConversations.length}
           icon={MessageSquare}
           loading={isLoading || conversations === undefined}
         />
@@ -403,11 +407,11 @@ export default function TenantDashboardPage() {
               ))}
             </CardContent>
           </Card>
-        ) : conversations.length === 0 ? (
+        ) : visibleConversations.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <MessageSquare className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No messages yet</h3>
+              <h3 className="text-base font-medium text-slate-900 mb-1">No messages in your inbox</h3>
               <p className="text-sm text-slate-500 mb-4">
                 Find a listing you love and reach out to the landlord.
               </p>
@@ -419,7 +423,7 @@ export default function TenantDashboardPage() {
         ) : (
           <Card>
             <CardContent className="p-0 divide-y divide-slate-100">
-              {conversations.slice(0, 3).map((conv) => {
+              {visibleConversations.slice(0, 3).map((conv) => {
                 const isTenant = conv.tenantId === convexUser?._id;
                 const isUnread = isTenant ? !conv.tenantRead : !conv.landlordRead;
                 return (
