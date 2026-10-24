@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./lib/publication";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -16,7 +17,7 @@ export const getByListing = query({
     const identity = await ctx.auth.getUserIdentity();
     const user = identity ? await ctx.db.query("users").withIndex("by_clerk_id", q => q.eq("clerkId", identity.subject)).unique() : null;
     const canManage = user?._id === listing.landlordId || user?.role === "admin";
-    if (listing.status !== "active" && !canManage) return [];
+    if (!canManage && !await publiclyVisible(ctx,listing)) return [];
     const blocks = await ctx.db.query("availabilityBlocks").withIndex("by_listing_start", q => q.eq("listingId", args.listingId)).take(4001);
     if (blocks.length > 4000) throw new Error("This property's calendar requires an availability review.");
     return blocks.map(block => {

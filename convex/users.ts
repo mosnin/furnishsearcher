@@ -1,3 +1,5 @@
+import { billingMode } from "../lib/billing";
+import { identityPassed } from "./lib/publication";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -10,7 +12,8 @@ export const getOrCreate = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || identity.subject !== args.clerkId) throw new Error("Not authorized");
+    if (!identity || identity.subject !== args.clerkId)
+      throw new Error("Not authorized");
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -53,7 +56,11 @@ export const getByClerkId = query({
 export const updateRole = mutation({
   args: {
     userId: v.id("users"),
-    role: v.union(v.literal("tenant"), v.literal("landlord"), v.literal("admin")),
+    role: v.union(
+      v.literal("tenant"),
+      v.literal("landlord"),
+      v.literal("admin"),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -63,8 +70,11 @@ export const updateRole = mutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
-    if (!caller || (caller.role !== "admin" &&
-      (caller._id !== args.userId || args.role === "admin"))) {
+    if (
+      !caller ||
+      (caller.role !== "admin" &&
+        (caller._id !== args.userId || args.role === "admin"))
+    ) {
       throw new Error("Not authorized to change this role");
     }
 
@@ -79,7 +89,15 @@ export const updateRole = mutation({
 export const getById = query({
   args: { id: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!caller || (caller._id !== args.id && caller.role !== "admin"))
+      return null;
+    return ctx.db.get(args.id);
   },
 });
 
@@ -117,6 +135,10 @@ export const updateProfile = mutation({
       throw new Error("Not authorized to edit this profile");
     }
 
+    if (args.linkedinVerified === true)
+      throw new Error(
+        "A LinkedIn badge requires a verified provider connection.",
+      );
     const { userId, ...fields } = args;
     const user = await ctx.db.get(userId);
     if (!user) throw new Error(`User ${userId} not found`);
@@ -153,6 +175,7 @@ export const getPublicProfile = query({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
+    const identityVerified = await identityPassed(ctx, user);
     return {
       _id: user._id,
       name: user.name,
@@ -163,8 +186,9 @@ export const getPublicProfile = query({
       state: user.state,
       occupation: user.occupation,
       bio: user.bio,
-      linkedinVerified: user.linkedinVerified,
-      role: user.role,
+      linkedinVerified: false,
+      identityVerified,
+      identityTestMode: identityVerified ? billingMode() === "test" : false,
       createdAt: user.createdAt,
     };
   },

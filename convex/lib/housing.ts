@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./publication";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { DAY } from "../../lib/stays";
@@ -9,7 +10,7 @@ export async function listingFits(
   listing: Doc<"listings">,
   request: HousingCriteria,
 ) {
-  if (!matchesCriteria(listing, request)) return false;
+  if (!await publiclyVisible(ctx,listing)||!matchesCriteria(listing, request)) return false;
   const end =
     request.moveOutDate ?? request.moveInDate + request.duration * 30 * DAY;
   const conflict = await ctx.db

@@ -2,45 +2,8 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import assert from "node:assert/strict";
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
-import { deflateSync } from "node:zlib";
-// Small, visibly synthetic PNG fixtures; no property photography or image library needed.
-function syntheticPanel(hex) {
-  const width = 1200,
-    height = 800;
-  const rgb = [1, 3, 5].map((offset) =>
-    Number.parseInt(hex.slice(offset, offset + 2), 16),
-  );
-  const rows = Buffer.alloc((width * 3 + 1) * height);
-  for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++)
-      for (let c = 0; c < 3; c++)
-        rows[y * (width * 3 + 1) + 1 + x * 3 + c] = rgb[c];
-  const chunk = (name, data) => {
-    const body = Buffer.concat([Buffer.from(name), data]);
-    let crc = 0xffffffff;
-    for (const byte of body) {
-      crc ^= byte;
-      for (let bit = 0; bit < 8; bit++)
-        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
-    }
-    const size = Buffer.alloc(4);
-    size.writeUInt32BE(data.length);
-    const checksum = Buffer.alloc(4);
-    checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
-    return Buffer.concat([size, body, checksum]);
-  };
-  const header = Buffer.alloc(13);
-  header.writeUInt32BE(width, 0);
-  header.writeUInt32BE(height, 4);
-  header[8] = 8;
-  header[9] = 2;
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk("IHDR", header),
-    chunk("IDAT", deflateSync(rows)),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
-}
+import { syntheticPanel } from "./synthetic-photo.mjs";
+import { prepareLocalPublication } from "./local-publication-fixtures.mjs";
 const env = readFileSync(".env.local", "utf8");
 const url = env
   .match(/^NEXT_PUBLIC_CONVEX_URL=(.+)$/m)?.[1]
@@ -118,6 +81,7 @@ await mutate("listings:update", {
   photos: [],
   photoAssets: assets,
 });
+await prepareLocalPublication([listing._id]);
 let publicListing = await new ConvexHttpClient(url).query(
   makeFunctionReference("listings:getById"),
   { id: listing._id },
@@ -132,6 +96,7 @@ await mutate("listings:update", {
   id: listing._id,
   photoAssets: [{ ...assets[1], caption: "[QA] Temporary cover" }, assets[0]],
 });
+await prepareLocalPublication([listing._id]);
 publicListing = await query("listings:getById", { id: listing._id });
 assert.equal(publicListing.photoCaptions[0], "[QA] Temporary cover");
 await mutate("listings:update", { id: listing._id, photoAssets: assets });
@@ -158,6 +123,7 @@ const invalid = await fetch(`${site}/photos/upload`, {
   body: "not an image",
 });
 assert.equal(invalid.status, 400);
+await prepareLocalPublication([listing._id]);
 publicListing = await query("listings:getById", { id: listing._id });
 const receipt = {
   checkedAt: new Date().toISOString(),

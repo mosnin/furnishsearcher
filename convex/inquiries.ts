@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./lib/publication";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
@@ -22,7 +23,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const tenant = await requireUser(ctx);
     const listing = await ctx.db.get(args.listingId);
-    if (!listing || listing.status !== "active") throw new Error("This listing is unavailable.");
+    if (!listing || !await publiclyVisible(ctx,listing)) throw new Error("This listing is unavailable.");
     if (tenant._id === listing.landlordId) throw new Error("You cannot inquire about your own property.");
     await requireMessagingAllowed(ctx, tenant._id, listing.landlordId);
     validateStay(args.moveIn, args.moveOut, Math.max(1, listing.minStay) * 30);
@@ -83,7 +84,7 @@ export const respond = mutation({
     if (inquiry.status !== "pending") throw new Error("This inquiry has already been resolved.");
     if (args.decision === "accepted") {
       const listing = await ctx.db.get(inquiry.listingId);
-      if (!listing || listing.status !== "active") throw new Error("This property is unavailable.");
+      if (!listing || !await publiclyVisible(ctx,listing)) throw new Error("This property is unavailable.");
       if ((inquiry.pets && !listing.petFriendly) || (listing.maxOccupancy !== undefined && inquiry.occupants > listing.maxOccupancy)) throw new Error("The party no longer meets the property rules.");
       const blocks = await ctx.db.query("availabilityBlocks")
         .withIndex("by_listing_start", q => q.eq("listingId", listing._id).lt("startDate", inquiry.moveOut)).take(500);

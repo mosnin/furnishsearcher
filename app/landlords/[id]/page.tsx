@@ -39,8 +39,8 @@ function getInitials(name: string): string {
 export default function LandlordProfilePage({ params }: PageProps) {
   const { id } = React.use(params);
 
-  const landlord = useQuery(api.users.getById, {
-    id: id as Id<"users">,
+  const landlord = useQuery(api.users.getPublicProfile, {
+    userId: id as Id<"users">,
   });
 
   const listings = useQuery(
@@ -124,10 +124,10 @@ export default function LandlordProfilePage({ params }: PageProps) {
             <div className="mt-4 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
-                {landlord.linkedinVerified && (
+                {landlord.identityVerified && (
                   <Badge className="gap-1 bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
                     <BadgeCheck className="h-3.5 w-3.5" />
-                    Verified Landlord
+                    {landlord.identityTestMode ? "Test identity check" : "Identity verified"}
                   </Badge>
                 )}
               </div>

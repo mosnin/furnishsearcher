@@ -2,7 +2,11 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
 import { caseFields, replyFields, auditFields } from "./validators/support";
-import { messageFields, conversationFields, templateFields } from "./validators/messaging";
+import {
+  messageFields,
+  conversationFields,
+  templateFields,
+} from "./validators/messaging";
 import { searchFields, searchDeliveryStatus } from "./validators/search";
 import { calendarFeedFields } from "./validators/calendars";
 
@@ -12,13 +16,95 @@ import { photoAsset } from "./validators/photos";
 
 import { subscriptionStatus } from "./validators/billing";
 
+import { identityStatus } from "./validators/identity";
+
 export default defineSchema({
-  billingAdjustments: defineTable({ transactionId: v.string(), mode: v.union(v.literal("test"),v.literal("prod")), refundedAmount: v.number(), paidAmount: v.number(), disputed: v.boolean(), updatedAt: v.number() }).index("by_transaction_mode", ["transactionId", "mode"]),
-  billingCustomers: defineTable({ userId: v.id("users"), customerId: v.string(), mode: v.union(v.literal("test"),v.literal("prod")), verifiedAt: v.number() }).index("by_user", ["userId", "verifiedAt"]).index("by_customer_mode", ["customerId", "mode"]),
-  photoUploads: defineTable({ storageId: v.id("_storage"), ownerId: v.id("users"), createdAt: v.number() }).index("by_storage", ["storageId"]).index("by_owner_time", ["ownerId", "createdAt"]),
-  counters: defineTable({ name: v.string(), value: v.number() }).index("by_name", ["name"]),
-  dataMigrations: defineTable({ name: v.string(), cursor: v.union(v.string(), v.null()), complete: v.boolean() }).index("by_name", ["name"]),
-  savedSearchDeliveries: defineTable({ searchId: v.id("savedSearches"), listingId: v.id("listings"), createdAt: v.number(), status: searchDeliveryStatus, lastAttemptAt: v.number() })
+  identityResultAudit: defineTable({
+    checkId: v.id("identityChecks"),
+    status: v.string(),
+    observedAt: v.number(),
+  }).index("by_check", ["checkId", "observedAt"]),
+  identityReviewAudit: defineTable({
+    checkId: v.id("identityChecks"),
+    reviewerId: v.id("users"),
+    action: v.union(
+      v.literal("hold"),
+      v.literal("recheck"),
+      v.literal("recover"),
+    ),
+    note: v.string(),
+    createdAt: v.number(),
+  }).index("by_check", ["checkId", "createdAt"]),
+  identityChecks: defineTable({
+    userId: v.id("users"),
+    status: identityStatus,
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    region: v.string(),
+    workflowKey: v.string(),
+    accountId: v.optional(v.string()),
+    workflowId: v.optional(v.string()),
+    hostedUrl: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    checkedAt: v.optional(v.number()),
+    verifiedAt: v.optional(v.number()),
+    lastPollAt: v.optional(v.number()),
+    refreshGeneration: v.optional(v.number()),
+  })
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_status_poll", ["status", "lastPollAt"]),
+  providerTokens: defineTable({
+    key: v.string(),
+    token: v.string(),
+    expiresAt: v.number(),
+  }).index("by_key", ["key"]),
+  listingReviews: defineTable({
+    listingId: v.id("listings"),
+    reviewerId: v.id("users"),
+    revision: v.number(),
+    decision: v.union(v.literal("approved"), v.literal("rejected")),
+    note: v.string(),
+    createdAt: v.number(),
+  }).index("by_listing", ["listingId", "createdAt"]),
+  billingAdjustments: defineTable({
+    transactionId: v.string(),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    refundedAmount: v.number(),
+    paidAmount: v.number(),
+    disputed: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_transaction_mode", ["transactionId", "mode"]),
+  billingCustomers: defineTable({
+    userId: v.id("users"),
+    customerId: v.string(),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    verifiedAt: v.number(),
+  })
+    .index("by_user", ["userId", "verifiedAt"])
+    .index("by_customer_mode", ["customerId", "mode"]),
+  photoUploads: defineTable({
+    storageId: v.id("_storage"),
+    ownerId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_storage", ["storageId"])
+    .index("by_owner_time", ["ownerId", "createdAt"]),
+  counters: defineTable({ name: v.string(), value: v.number() }).index(
+    "by_name",
+    ["name"],
+  ),
+  dataMigrations: defineTable({
+    name: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    complete: v.boolean(),
+  }).index("by_name", ["name"]),
+  savedSearchDeliveries: defineTable({
+    searchId: v.id("savedSearches"),
+    listingId: v.id("listings"),
+    createdAt: v.number(),
+    status: searchDeliveryStatus,
+    lastAttemptAt: v.number(),
+  })
     .index("by_search_listing", ["searchId", "listingId"])
     .index("by_search", ["searchId", "createdAt"]),
   supportCases: defineTable(caseFields)
@@ -31,13 +117,22 @@ export default defineSchema({
     .index("by_case", ["caseId", "createdAt"])
     .index("by_case_visibility", ["caseId", "internal", "createdAt"])
     .index("by_author", ["authorId", "createdAt"]),
-  supportAudit: defineTable(auditFields).index("by_case", ["caseId", "createdAt"]),
+  supportAudit: defineTable(auditFields).index("by_case", [
+    "caseId",
+    "createdAt",
+  ]),
   users: defineTable({
+    identityCheckId: v.optional(v.id("identityChecks")),
+    identityHold: v.optional(v.boolean()),
     clerkId: v.string(),
     name: v.string(),
     email: v.string(),
     avatar: v.optional(v.string()),
-    role: v.union(v.literal("tenant"), v.literal("landlord"), v.literal("admin")),
+    role: v.union(
+      v.literal("tenant"),
+      v.literal("landlord"),
+      v.literal("admin"),
+    ),
     createdAt: v.number(),
     // Extended profile fields
     firstName: v.optional(v.string()),
@@ -58,10 +153,22 @@ export default defineSchema({
     linkedinVerified: v.optional(v.boolean()),
     // Referral system
     referralCode: v.optional(v.string()),
-  }).index("by_clerk_id", ["clerkId"])
+  })
+    .index("by_clerk_id", ["clerkId"])
     .index("by_referral_code", ["referralCode"]),
 
   listings: defineTable({
+    firstPublishedAt: v.optional(v.number()),
+    publicationRequested: v.optional(v.boolean()),
+    revision: v.optional(v.number()),
+    approvalStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+      ),
+    ),
+    approvedRevision: v.optional(v.number()),
     publicId: v.optional(v.string()),
     searchCity: v.optional(v.string()),
     searchState: v.optional(v.string()),
@@ -88,14 +195,19 @@ export default defineSchema({
     calendarSyncThrough: v.optional(v.number()),
     moderationHold: v.optional(v.boolean()),
     minStay: v.number(),
-    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending"), v.literal("rejected")),
+    status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("pending"),
+      v.literal("rejected"),
+    ),
     createdAt: v.number(),
     views: v.number(),
     // Featured listing (paid boost via Creem.io)
     featured: v.optional(v.boolean()),
     featuredUntil: v.optional(v.number()),
     featuredPaymentId: v.optional(v.id("payments")),
-    featuredMode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
+    featuredMode: v.optional(v.union(v.literal("test"), v.literal("prod"))),
   })
     .index("by_landlord", ["landlordId"])
     .index("by_landlord_status", ["landlordId", "status"])
@@ -120,18 +232,29 @@ export default defineSchema({
     .index("by_tenant", ["tenantId"])
     .index("by_tenant_listing", ["tenantId", "listingId"]),
 
-  userBlocks: defineTable({ blockerId: v.id("users"), blockedId: v.id("users"), createdAt: v.number() })
+  userBlocks: defineTable({
+    blockerId: v.id("users"),
+    blockedId: v.id("users"),
+    createdAt: v.number(),
+  })
     .index("by_pair", ["blockerId", "blockedId"])
     .index("by_blocker", ["blockerId"]),
   messageTemplates: defineTable(templateFields)
     .index("by_user", ["userId"])
     .index("by_user_name", ["userId", "normalizedName"]),
-  messagingPreferences: defineTable({ userId: v.id("users"), signature: v.string() }).index("by_user", ["userId"]),
+  messagingPreferences: defineTable({
+    userId: v.id("users"),
+    signature: v.string(),
+  }).index("by_user", ["userId"]),
   messages: defineTable(messageFields)
     .index("by_conversation", ["conversationId"])
     .index("by_receiver", ["receiverId"])
     .index("by_sender_request", ["senderId", "clientRequestId"])
-    .index("by_conversation_receiver_read", ["conversationId", "receiverId", "read"])
+    .index("by_conversation_receiver_read", [
+      "conversationId",
+      "receiverId",
+      "read",
+    ])
     .index("by_conversation_read", ["conversationId", "read"]),
   conversations: defineTable(conversationFields)
     .index("by_key", ["key"])
@@ -153,8 +276,14 @@ export default defineSchema({
     .index("by_reviewer_listing", ["reviewerId", "listingId"]),
 
   savedSearches: defineTable({
-    ...searchFields, userId: v.id("users"), name: v.string(), emailAlerts: v.optional(v.boolean()), createdAt: v.number(),
-  }).index("by_user", ["userId"]).index("by_email_alerts", ["emailAlerts"]),
+    ...searchFields,
+    userId: v.id("users"),
+    name: v.string(),
+    emailAlerts: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_email_alerts", ["emailAlerts"]),
 
   // Creem.io subscription plans
   subscriptions: defineTable({
@@ -165,7 +294,7 @@ export default defineSchema({
     plan: v.union(
       v.literal("landlord_pro"),
       v.literal("landlord_premium"),
-      v.literal("tenant_plus")
+      v.literal("tenant_plus"),
     ),
     status: subscriptionStatus,
     verifiedAt: v.optional(v.number()),
@@ -175,7 +304,7 @@ export default defineSchema({
     entitlementExpiresAt: v.optional(v.number()),
     entitlementCheckedAt: v.optional(v.number()),
     lastEventAt: v.optional(v.number()),
-    mode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
+    mode: v.optional(v.union(v.literal("test"), v.literal("prod"))),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.optional(v.boolean()),
@@ -193,10 +322,16 @@ export default defineSchema({
     refundedAmountCents: v.optional(v.number()),
     trustedCheckout: v.optional(v.boolean()),
     requestId: v.optional(v.string()),
-    plan: v.optional(v.union(v.literal("landlord_pro"),v.literal("landlord_premium"),v.literal("tenant_plus"))),
+    plan: v.optional(
+      v.union(
+        v.literal("landlord_pro"),
+        v.literal("landlord_premium"),
+        v.literal("tenant_plus"),
+      ),
+    ),
     checkoutUrl: v.optional(v.string()),
     returnUrl: v.optional(v.string()),
-    mode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
+    mode: v.optional(v.union(v.literal("test"), v.literal("prod"))),
     userId: v.id("users"),
     creemCustomerId: v.optional(v.string()),
     creemCheckoutId: v.string(),
@@ -206,7 +341,7 @@ export default defineSchema({
       v.literal("feature_listing"),
       v.literal("subscription"),
       v.literal("security_deposit"),
-      v.literal("other")
+      v.literal("other"),
     ),
     listingId: v.optional(v.id("listings")),
     amountCents: v.number(),
@@ -217,7 +352,7 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("refunded"),
       v.literal("partially_refunded"),
-      v.literal("disputed")
+      v.literal("disputed"),
     ),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
@@ -245,16 +380,30 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   housingRequestMatches: defineTable({
-    requestId: v.id("housingRequests"), listingId: v.id("listings"), landlordId: v.id("users"),
-    createdAt: v.number(), respondedAt: v.optional(v.number()), conversationId: v.optional(v.id("conversations")),
-  }).index("by_requestId_and_listingId", ["requestId", "listingId"])
+    requestId: v.id("housingRequests"),
+    listingId: v.id("listings"),
+    landlordId: v.id("users"),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+    conversationId: v.optional(v.id("conversations")),
+  })
+    .index("by_requestId_and_listingId", ["requestId", "listingId"])
     .index("by_requestId_and_landlordId", ["requestId", "landlordId"]),
 
   housingRequestDeliveries: defineTable({
-    requestId: v.id("housingRequests"), landlordId: v.id("users"), createdAt: v.number(),
+    requestId: v.id("housingRequests"),
+    landlordId: v.id("users"),
+    createdAt: v.number(),
     readAt: v.optional(v.number()),
-    emailStatus: v.union(v.literal("queued"), v.literal("sent"), v.literal("unconfigured"), v.literal("failed"), v.literal("suppressed")),
-  }).index("by_requestId_and_landlordId", ["requestId", "landlordId"])
+    emailStatus: v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("unconfigured"),
+      v.literal("failed"),
+      v.literal("suppressed"),
+    ),
+  })
+    .index("by_requestId_and_landlordId", ["requestId", "landlordId"])
     .index("by_landlordId", ["landlordId"]),
 
   calendarFeeds: defineTable(calendarFeedFields)
@@ -284,11 +433,17 @@ export default defineSchema({
     occupants: v.number(),
     pets: v.boolean(),
     message: v.string(),
-    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("withdrawn")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined"),
+      v.literal("withdrawn"),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
     availabilityBlockId: v.optional(v.id("availabilityBlocks")),
-  }).index("by_tenantId", ["tenantId"])
+  })
+    .index("by_tenantId", ["tenantId"])
     .index("by_landlordId", ["landlordId"])
     .index("by_listingId_and_status", ["listingId", "status"]),
 
@@ -300,7 +455,7 @@ export default defineSchema({
     status: v.union(
       v.literal("code_created"),
       v.literal("signed_up"),
-      v.literal("converted")
+      v.literal("converted"),
     ),
     createdAt: v.number(),
     convertedAt: v.optional(v.number()),

@@ -1,5 +1,6 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 import { convexTest } from "convex-test";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
 const modules = import.meta.glob("../convex/**/*.ts");
@@ -9,7 +10,10 @@ vi.mock("resend", () => ({
     emails = { send };
   },
 }));
+beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   send.mockReset();
 });
@@ -62,6 +66,7 @@ async function setup() {
     });
     return { owner, tenant, stranger, admin, listing, message };
   });
+  await seedPublishedFixtures(t);
   return {
     t,
     ids,

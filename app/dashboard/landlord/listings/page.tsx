@@ -1,4 +1,6 @@
 "use client";
+import { IdentityPanel } from "@/components/identity-panel";
+import { PublicationStatus,type PublicationState } from "@/components/publication-status";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -11,7 +13,7 @@ import { formatPrice, formatDate } from "@/lib/utils";
 type ManagedListing = {
   _id: string;
   title: string;
-  status: "active" | "inactive" | "pending";
+  status: "active" | "inactive" | "pending" | "rejected";
   price: number;
   bedrooms: number;
   bathrooms: number;
@@ -22,6 +24,7 @@ type ManagedListing = {
   zip: string;
   propertyType: string;
   createdAt: number;
+  publication?: PublicationState;
   moderationHold?: boolean;
   featured?: boolean;
   featuredUntil?: number;
@@ -54,13 +57,14 @@ import {
   CalendarDays,
 } from "lucide-react";
 
-type StatusFilter = "all" | "active" | "inactive" | "pending";
+type StatusFilter = "all" | "active" | "inactive" | "pending" | "rejected";
 
-function StatusBadge({ status }: { status: "active" | "inactive" | "pending" }) {
+function StatusBadge({ status }: { status: "active" | "inactive" | "pending" | "rejected" }) {
   const variants = {
     active: "success",
     inactive: "secondary",
     pending: "outline",
+    rejected: "destructive",
   } as const;
   return (
     <Badge variant={variants[status]} className="capitalize">
@@ -80,11 +84,12 @@ export default function LandlordListingsPage() {
     userId ? { clerkId: userId } : "skip"
   );
 
-  const listings = useQuery(
+  const rawListings = useQuery(
     api.listings.getByLandlord,
     convexUser?._id ? { landlordId: convexUser._id } : "skip"
   ) as ManagedListing[] | undefined;
 
+  const listings=rawListings?.map(listing=>({...listing,status:(listing.publication?.live?"active":listing.publication?.approval==="rejected"?"rejected":listing.publication?.approval==="approved"?"inactive":"pending") as ManagedListing["status"]}));
   const publishMutation = useMutation(api.listings.publish);
   const unpublishMutation = useMutation(api.listings.unpublish);
   const deleteMutation = useMutation(api.listings.deleteListing);
@@ -100,8 +105,8 @@ export default function LandlordListingsPage() {
         await unpublishMutation({ id });
         toast.success("Listing set to inactive");
       } else {
-        await publishMutation({ id });
-        toast.success("Listing is now active");
+        const result=await publishMutation({ id });
+        toast.success(result.live?"Listing is now live":"Publication requested. Complete the remaining requirements.");
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update status");
@@ -129,6 +134,7 @@ export default function LandlordListingsPage() {
     { label: "Active", value: "active", count: listings?.filter((l) => l.status === "active").length },
     { label: "Inactive", value: "inactive", count: listings?.filter((l) => l.status === "inactive").length },
     { label: "Pending", value: "pending", count: listings?.filter((l) => l.status === "pending").length },
+    { label:"Rejected",value:"rejected",count:listings?.filter(l=>l.status==="rejected").length },
   ];
 
   return (
@@ -324,12 +330,12 @@ export default function LandlordListingsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() =>
-                            handleToggle(listing._id as Id<"listings">, listing.status)
+                            handleToggle(listing._id as Id<"listings">, listing.publication?.live ? "active" : "inactive")
                           }
-                          title={listing.status === "active" ? "Deactivate" : "Activate"}
+                          title={listing.publication?.live ? "Hide listing" : "Request publication"}
                           className="text-slate-500"
                         >
-                          {listing.status === "active" ? (
+                          {listing.publication?.live ? (
                             <ToggleRight className="h-5 w-5 text-emerald-600" />
                           ) : (
                             <ToggleLeft className="h-5 w-5" />
@@ -347,12 +353,15 @@ export default function LandlordListingsPage() {
                       </div>
                     </div>
                   </div>
+                  <PublicationStatus state={listing.publication} />
                 </CardContent>
               </Card>
             );
           })}
         </div>
       )}
+
+      <IdentityPanel enabled={!!convexUser?._id} />
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>

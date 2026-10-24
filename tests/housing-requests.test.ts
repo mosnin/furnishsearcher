@@ -1,3 +1,4 @@
+import { seedPublishedFixtures,approveFixtureEdit } from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
@@ -57,6 +58,7 @@ async function fixture() {
     const expensive = await ctx.db.insert("listings", { ...data, price: 5000 });
     return { tenant, owner, stranger, listing, second, expensive, data };
   });
+  await seedPublishedFixtures(t);
   return {
     t,
     ids,
@@ -317,6 +319,7 @@ describe("housing request delivery", () => {
           title: `Fixture ${i}`,
         });
     });
+    await seedPublishedFixtures(t);
     const requestId = await tenant.mutation(api.housingRequests.create, {
       ...criteria,
       userId: ids.tenant,
@@ -330,6 +333,7 @@ describe("housing request delivery", () => {
       matchingStatus: "complete",
     });
     await owner.mutation(api.listings.update, { id: ids.listing, price: 1800 });
+    await approveFixtureEdit(t,ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (
@@ -439,6 +443,7 @@ describe("housing request delivery", () => {
       id: ids.listing,
       maxOccupancy: 1,
     });
+    await approveFixtureEdit(t,ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (
@@ -462,6 +467,7 @@ describe("housing request delivery", () => {
       id: ids.listing,
       maxOccupancy: null,
     });
+    await approveFixtureEdit(t,ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (

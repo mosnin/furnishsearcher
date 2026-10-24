@@ -15,6 +15,7 @@ export async function requireBillingOwner(
 export async function activePaidSubscription(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
+  landlordOnly = false,
 ) {
   let mode: "test" | "prod";
   try {
@@ -34,6 +35,7 @@ export async function activePaidSubscription(
     )
     .filter((q) =>
       q.and(
+        ...(landlordOnly ? [q.or(q.eq(q.field("plan"),"landlord_pro"),q.eq(q.field("plan"),"landlord_premium"))] : []),
         q.neq(q.field("billingHold"), true),
         q.gt(q.field("verifiedAt"), 0),
         q.gt(q.field("currentPeriodEnd"), now),

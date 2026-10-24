@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-24T23:45:02.087Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "prerequisites": {
+    "syntheticOnly": true,
+    "identityAndPayment": "Privileged local fixture state; not actual Jumio verification or a Creem transaction",
+    "staffApproval": "Actual authorized local mutation with the expected content revision"
+  },
+  "listingId": "k976qqsxcmrs93kjzm1g132q4h8gxzx1",
+  "privateStreetHidden": true,
+  "unrelatedApprovalRejected": true,
+  "editImmediatelyHidesListing": true,
+  "staleApprovalRejected": true,
+  "reviewedRevisionBecomesLive": true,
+  "staffCannotUnhideOwnerHiddenListing": true,
+  "fixtureRestored": true,
+  "actualJumioVerification": false,
+  "actualCreemPayment": false
+}

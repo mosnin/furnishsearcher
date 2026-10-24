@@ -190,6 +190,7 @@ export const process = internalMutation({
           lastEventAt: Math.max(sub.lastEventAt ?? 0, at),
           updatedAt: Date.now(),
         });
+      if(sub)await ctx.scheduler.runAfter(0,internal.publication.reconcileOwner,{userId:sub.userId,cursor:null});
       return record(
         type === "dispute.created"
           ? "billing_disputed"
@@ -493,6 +494,7 @@ export const process = internalMutation({
         internal.payments.refreshEntitlement,
         { subscriptionId, expectedExpiration: values.entitlementExpiresAt },
       );
+    await ctx.scheduler.runAfter(0,internal.publication.reconcileOwner,{userId,cursor:null});
     return record("subscription_updated");
   },
 });

@@ -1,3 +1,4 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 declare global { interface ImportMeta { glob(pattern: string): Record<string, () => Promise<unknown>>; } }
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
@@ -23,6 +24,7 @@ async function fixture() {
     });
     return { owner, tenant, other, listing };
   });
+  await seedPublishedFixtures(t);
   const tenant = t.withIdentity({ subject: "tenant" });
   const owner = t.withIdentity({ subject: "owner" });
   const other = t.withIdentity({ subject: "other" });

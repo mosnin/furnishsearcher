@@ -1,3 +1,4 @@
+import { prepareLocalPublication } from "./local-publication-fixtures.mjs";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
@@ -121,10 +122,10 @@ for (const sample of [
         },
         ownerSubject,
       );
-    run("listings:publish", { id }, ownerSubject);
   }
   created.push(listing._id);
 }
+await prepareLocalPublication(created);
 const filters = {
   city: "Austin",
   state: "TX",
@@ -206,6 +207,7 @@ const details = {
   facilities: [{ name: "Synthetic QA hospital", miles: 1.2 }],
 };
 run("listings:update", { id: detailId, details }, ownerSubject);
+await prepareLocalPublication([detailId]);
 assert.deepEqual(run("listings:getById", { id: detailId }).details, details);
 assert.throws(
   () => run("listings:update", { id: detailId, details }, tenantSubject),
@@ -237,9 +239,13 @@ run(
   },
   ownerSubject,
 );
+await prepareLocalPublication([detailId]);
 assert.equal(run("listings:getById", { id: detailId }).details.fees.length, 0);
 run("listings:update", { id: detailId, details }, ownerSubject);
+await prepareLocalPublication([detailId]);
 const receipt = {
+  publicationPrerequisites:
+    "Privileged synthetic identity/payment fixtures and a local staff review; not real provider verification",
   listingDetailsPersistedAndCleared: true,
   unrelatedDetailsWriteRejected: true,
   invalidFeesRejected: true,

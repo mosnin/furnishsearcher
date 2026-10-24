@@ -9,6 +9,7 @@ import { paginationOptsValidator } from "convex/server";
 import { requireUser } from "./lib/auth";
 import { activePaidSubscription, requireBillingOwner } from "./lib/billing";
 import { billingPlan } from "./validators/billing";
+import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -397,11 +398,16 @@ export const refreshEntitlement = internalMutation({
       subscription.entitlementExpiresAt === args.expectedExpiration &&
       Math.min(subscription.paidThrough ?? 0, subscription.currentPeriodEnd) <=
         Date.now()
-    )
+    ) {
       await ctx.db.patch(subscription._id, {
         entitlementExpiresAt: undefined,
         entitlementCheckedAt: Date.now(),
       });
+      await ctx.scheduler.runAfter(0, internal.publication.reconcileOwner, {
+        userId: subscription.userId,
+        cursor: null,
+      });
+    }
     return null;
   },
 });

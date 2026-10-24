@@ -1,3 +1,4 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 import type { FunctionReturnType } from "convex/server";
 import { convexTest } from "convex-test";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -65,6 +66,7 @@ async function setup() {
       });
     return { owner, tenant, other, listing, second };
   });
+  await seedPublishedFixtures(t);
   const owner = t.withIdentity({ subject: "owner" }),
     tenant = t.withIdentity({ subject: "tenant" }),
     other = t.withIdentity({ subject: "other" });

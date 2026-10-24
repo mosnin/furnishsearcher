@@ -1,3 +1,4 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { describe, it, expect } from "vitest";
 import schema from "../convex/schema";
@@ -142,7 +143,7 @@ describe("authenticated property photos", () => {
     expect(stored?.photos).toEqual([]);
     expect(stored?.photoAssets?.[0].caption).toBe("Kitchen");
     await t.run((ctx) => ctx.db.patch(id, { status: "active" }));
-    let listing = await t.query(api.listings.getById, { id });
+    let listing = await owner.query(api.listings.getById, { id });
     expect(listing?.photos).toEqual([first.url, second.url]);
     await owner.mutation(api.listings.update, {
       id,
@@ -152,9 +153,11 @@ describe("authenticated property photos", () => {
         { storageId: first.storageId, caption: "Kitchen" },
       ],
     });
-    listing = await t.query(api.listings.getById, { id });
+    listing = await owner.query(api.listings.getById, { id });
     expect(listing?.photos[0]).toBe(second.url);
     expect(listing?.photoCaptions).toEqual(["New cover", "Kitchen"]);
+    await t.run(ctx=>ctx.db.patch(id,{status:"active"}));
+    await seedPublishedFixtures(t);
     const results = await t.query(api.search.listings, {
       propertyId: id,
       paginationOpts: { cursor: null, numItems: 10 },
@@ -185,7 +188,7 @@ describe("authenticated property photos", () => {
       }),
     ).rejects.toThrow("240");
     await owner.mutation(api.listings.update, { id, photoAssets: [] });
-    expect((await t.query(api.listings.getById, { id }))?.photos).toEqual([]);
+    expect((await owner.query(api.listings.getById, { id }))?.photos).toEqual([]);
   });
   it("preserves only existing legacy URLs and rejects new unowned URLs, mixed sources and excessive galleries", async () => {
     const { t, owner, data, upload } = await fixture();
@@ -209,7 +212,7 @@ describe("authenticated property photos", () => {
       ],
     });
     expect(
-      (await t.query(api.listings.getById, { id }))?.photoCaptions,
+      (await owner.query(api.listings.getById, { id }))?.photoCaptions,
     ).toEqual(["Legacy image"]);
     await expect(
       owner.mutation(api.listings.update, {

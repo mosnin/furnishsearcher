@@ -1,3 +1,4 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
@@ -76,6 +77,7 @@ async function fixture() {
     });
     return { owner, other, listingId, manualId, data };
   });
+  await seedPublishedFixtures(t);
   const provider = vi
     .fn()
     .mockImplementation(async () => respond(reservation()));

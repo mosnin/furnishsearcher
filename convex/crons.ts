@@ -8,4 +8,5 @@ crons.interval(
   {},
 );
 crons.interval("backfill search fields", { minutes: 15 }, internal.migrations.searchIndexV1, {});
+crons.interval("refresh pending identity checks",{minutes:5},internal.identity.pollPending,{});
 export default crons;

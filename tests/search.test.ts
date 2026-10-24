@@ -1,3 +1,4 @@
+import { seedPublishedFixtures,approveFixtureEdit } from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { FunctionReturnType } from "convex/server";
@@ -79,6 +80,7 @@ async function fixture(count = 1) {
       );
     return { owner, tenant, other, listings, data };
   });
+  await seedPublishedFixtures(t);
   return {
     t,
     ids,
@@ -275,6 +277,7 @@ describe("paged marketplace search and IDs", () => {
       city: "  Round Rock ",
       state: "TX",
     });
+    await approveFixtureEdit(t,ids.listings[0]);
     expect(await all(t, { city: "Round Rock", state: "Texas" })).toHaveLength(
       1,
     );

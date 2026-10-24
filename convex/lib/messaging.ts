@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./publication";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -68,7 +69,7 @@ export async function sendListingMessage(
       q.eq("listingId", listing._id).eq("tenantId", tenantId),
     )
     .unique();
-  if (!existing && (listing.status !== "active" || listing.moderationHold))
+  if (!existing && !await publiclyVisible(ctx,listing))
     throw new Error("This property is not accepting new messages.");
   const key = conversationKey(sender._id, receiver._id, listing._id),
     now = Date.now();

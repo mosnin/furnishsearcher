@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./lib/publication";
 import { listingPhotos } from "./lib/photos";
 import {
   paginationOptsValidator,
@@ -168,7 +169,7 @@ export const report = mutation({
       });
     } else {
       const listing = await ctx.db.get(args.listingId!);
-      if (!listing || listing.status !== "active")
+      if (!listing || !await publiclyVisible(ctx,listing))
         throw new Error("Listing unavailable. Use the contact form instead.");
       if (listing.landlordId === user._id)
         throw new Error("Use support for your own property.");

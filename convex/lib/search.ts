@@ -1,3 +1,4 @@
+import { publiclyVisible } from "./publication";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import {
@@ -15,6 +16,7 @@ export async function matchSearch(
   if (
     listing.status !== "active" ||
     listing.moderationHold ||
+    !await publiclyVisible(ctx,listing) ||
     !matchesSearch(listing, filters)
   )
     return null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatDate, formatPrice } from "@/lib/utils";
@@ -10,6 +10,7 @@ type AdminListing = {
   _id: string;
   title: string;
   status: "active" | "inactive" | "pending" | "rejected";
+  revision?: number;
   price: number;
   bedrooms: number;
   bathrooms: number;
@@ -24,14 +25,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { StaffListingReview } from "@/components/staff-listing-review";
 import {
   Building2,
   Users,
   MessageSquare,
   BarChart3,
   CheckCircle,
-  XCircle,
   Clock,
   ShieldCheck,
 } from "lucide-react";
@@ -69,7 +69,10 @@ function StatCard({
 }
 
 function RoleBadge({ role }: { role: string }) {
-  const map: Record<string, { variant: "default" | "success" | "secondary" | "outline"; label: string }> = {
+  const map: Record<
+    string,
+    { variant: "default" | "success" | "secondary" | "outline"; label: string }
+  > = {
     admin: { variant: "default", label: "Admin" },
     landlord: { variant: "success", label: "Landlord" },
     tenant: { variant: "secondary", label: "Tenant" },
@@ -83,36 +86,19 @@ export default function AdminDashboardPage() {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
-  const allListings = useQuery(api.listings.getAll, {}) as AdminListing[] | undefined;
-
-  const approveMutation = useMutation(api.listings.approveListing);
-  const rejectMutation = useMutation(api.listings.rejectListing);
+  const allListings = useQuery(api.listings.getAll, {}) as
+    | AdminListing[]
+    | undefined;
 
   const isLoading = convexUser === undefined || allListings === undefined;
 
-  const pendingListings = allListings?.filter((l) => l.status === "pending") ?? [];
-  const activeListings = allListings?.filter((l) => l.status === "active") ?? [];
-
-  const handleApprove = async (id: Id<"listings">, title: string) => {
-    try {
-      await approveMutation({ id });
-      toast.success(`"${title}" is now live`);
-    } catch {
-      toast.error("Failed to approve listing");
-    }
-  };
-
-  const handleReject = async (id: Id<"listings">, title: string) => {
-    try {
-      await rejectMutation({ id });
-      toast.success(`"${title}" rejected — landlord notified`);
-    } catch {
-      toast.error("Failed to reject listing");
-    }
-  };
+  const pendingListings =
+    allListings?.filter((l) => l.status === "pending") ?? [];
+  const activeListings =
+    allListings?.filter((l) => l.status === "active") ?? [];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -158,9 +144,14 @@ export default function AdminDashboardPage() {
       {/* Listings Pending Review */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Listings Pending Review</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Listings Pending Review
+          </h2>
           {!isLoading && pendingListings.length > 0 && (
-            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">
+            <Badge
+              variant="outline"
+              className="text-amber-700 border-amber-300 bg-amber-50"
+            >
               {pendingListings.length} pending
             </Badge>
           )}
@@ -218,11 +209,17 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {pendingListings.map((listing) => (
-                    <tr key={listing._id} className="hover:bg-slate-50 transition-colors">
+                    <tr
+                      key={listing._id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
                       <td className="px-4 py-4">
-                        <p className="font-medium text-slate-900 text-sm">{listing.title}</p>
+                        <p className="font-medium text-slate-900 text-sm">
+                          {listing.title}
+                        </p>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          {listing.propertyType} · {listing.bedrooms} bd / {listing.bathrooms} ba
+                          {listing.propertyType} · {listing.bedrooms} bd /{" "}
+                          {listing.bathrooms} ba
                         </p>
                       </td>
                       <td className="px-4 py-4 hidden sm:table-cell">
@@ -242,26 +239,9 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() =>
-                              handleApprove(listing._id as Id<"listings">, listing.title)
-                            }
-                          >
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() =>
-                              handleReject(listing._id as Id<"listings">, listing.title)
-                            }
-                          >
-                            <XCircle className="h-3.5 w-3.5 mr-1" />
-                            Reject
-                          </Button>
+                          <StaffListingReview
+                            id={listing._id as Id<"listings">}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -275,7 +255,9 @@ export default function AdminDashboardPage() {
 
       {/* Recent Listings */}
       <section>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">All Listings Overview</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          All Listings Overview
+        </h2>
         {isLoading ? (
           <Card>
             <CardContent className="p-0 divide-y divide-slate-100">
@@ -318,10 +300,17 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {allListings.slice(0, 10).map((listing) => (
-                    <tr key={listing._id} className="hover:bg-slate-50 transition-colors">
+                    <tr
+                      key={listing._id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-900 text-sm">{listing.title}</p>
-                        <p className="text-xs text-slate-500">{listing.propertyType}</p>
+                        <p className="font-medium text-slate-900 text-sm">
+                          {listing.title}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {listing.propertyType}
+                        </p>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <p className="text-sm text-slate-700">
@@ -339,8 +328,8 @@ export default function AdminDashboardPage() {
                             listing.status === "active"
                               ? "success"
                               : listing.status === "pending"
-                              ? "outline"
-                              : "secondary"
+                                ? "outline"
+                                : "secondary"
                           }
                           className="capitalize"
                         >
@@ -348,7 +337,9 @@ export default function AdminDashboardPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <p className="text-sm text-slate-500">{listing.views}</p>
+                        <p className="text-sm text-slate-500">
+                          {listing.views}
+                        </p>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <p className="text-sm text-slate-500">
@@ -366,7 +357,9 @@ export default function AdminDashboardPage() {
             <CardContent className="flex items-center justify-center py-12 text-center">
               <div>
                 <Building2 className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500 text-sm">No listings on the platform yet.</p>
+                <p className="text-slate-500 text-sm">
+                  No listings on the platform yet.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -375,12 +368,15 @@ export default function AdminDashboardPage() {
 
       {/* Platform Stats Summary */}
       <section>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Platform Overview</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          Platform Overview
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-6 text-center">
               <p className="text-3xl font-bold text-[#0f2044]">
-                {allListings?.filter((l) => l.status === "active").length ?? "—"}
+                {allListings?.filter((l) => l.status === "active").length ??
+                  "—"}
               </p>
               <p className="text-sm text-slate-500 mt-1">Live Listings</p>
             </CardContent>
@@ -388,7 +384,9 @@ export default function AdminDashboardPage() {
           <Card>
             <CardContent className="p-6 text-center">
               <p className="text-3xl font-bold text-[#0f2044]">
-                {allListings?.reduce((s, l) => s + l.views, 0).toLocaleString() ?? "—"}
+                {allListings
+                  ?.reduce((s, l) => s + l.views, 0)
+                  .toLocaleString() ?? "—"}
               </p>
               <p className="text-sm text-slate-500 mt-1">Total Listing Views</p>
             </CardContent>

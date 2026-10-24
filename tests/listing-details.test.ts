@@ -82,7 +82,7 @@ describe("owner-supplied listing details", () => {
     const id = await owner.mutation(api.listings.create, { ...data, details });
     await owner.mutation(api.listings.update, { id, title: "Updated" });
     await t.run((ctx) => ctx.db.patch(id, { status: "active" }));
-    const listing = await t.query(api.listings.getById, { id });
+    const listing = await owner.query(api.listings.getById, { id });
     expect(listing?.details).toEqual({
       ...details,
       rooms: [{ ...details.rooms[0], name: "Bedroom 1" }],
@@ -93,7 +93,7 @@ describe("owner-supplied listing details", () => {
       details: emptyListingDetails(),
     });
     expect(
-      (await t.query(api.listings.getById, { id }))?.details?.fees,
+      (await owner.query(api.listings.getById, { id }))?.details?.fees,
     ).toEqual([]);
     const legacy = await owner.mutation(api.listings.create, data);
     expect(
