@@ -1,9 +1,21 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
+import { caseFields, replyFields, auditFields } from "./validators/support";
 import { calendarFeedFields } from "./validators/calendars";
 
 export default defineSchema({
+  supportCases: defineTable(caseFields)
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_email", ["email", "createdAt"])
+    .index("by_status", ["status", "updatedAt"])
+    .index("by_user_listing", ["userId", "listingId", "kind", "createdAt"])
+    .index("by_user_message", ["userId", "messageId", "createdAt"]),
+  supportReplies: defineTable(replyFields)
+    .index("by_case", ["caseId", "createdAt"])
+    .index("by_case_visibility", ["caseId", "internal", "createdAt"])
+    .index("by_author", ["authorId", "createdAt"]),
+  supportAudit: defineTable(auditFields).index("by_case", ["caseId", "createdAt"]),
   users: defineTable({
     clerkId: v.string(),
     name: v.string(),
@@ -53,6 +65,7 @@ export default defineSchema({
     parkingIncluded: v.boolean(),
     availableFrom: v.number(),
     calendarSyncThrough: v.optional(v.number()),
+    moderationHold: v.optional(v.boolean()),
     minStay: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending"), v.literal("rejected")),
     createdAt: v.number(),
@@ -62,6 +75,7 @@ export default defineSchema({
     featuredUntil: v.optional(v.number()),
   })
     .index("by_landlord", ["landlordId"])
+    .index("by_landlord_status", ["landlordId", "status"])
     .index("by_status", ["status"])
     .index("by_city_state", ["city", "state"])
     .index("by_status_city", ["status", "city"])

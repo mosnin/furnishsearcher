@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,11 +37,13 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function ContactForm() {
-  const sendContact = useAction(api.emails.sendContactEmail);
+  const sendContact = useMutation(api.support.submitContact);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormState, string>>
+  >({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormState, string>> = {};
@@ -59,7 +62,9 @@ export default function ContactForm() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -75,16 +80,20 @@ export default function ContactForm() {
 
     setSubmitting(true);
     try {
-      await sendContact({
+      const caseId = await sendContact({
         name: form.name.trim(),
         email: form.email.trim(),
         subject: form.subject,
         message: form.message.trim(),
       });
-      setSubmitted(true);
-      toast.success("Message sent! We'll get back to you within 24 hours.");
-    } catch {
-      toast.error("Failed to send message. Please try again.");
+      setSubmitted(caseId);
+      toast.success("Your support case has been saved.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to save your case. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -97,14 +106,23 @@ export default function ContactForm() {
           <CheckCircle2 className="w-8 h-8 text-green-600" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Message sent!</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            Case received
+          </h3>
           <p className="text-gray-500 text-sm">
-            We&apos;ll get back to you within 24 hours.
+            Your case is saved for staff review. Keep this reference:{" "}
+            {submitted}
           </p>
         </div>
+        <Link
+          href="/dashboard/support"
+          className="text-sm text-[#1e3a8a] underline"
+        >
+          View cases submitted while signed in
+        </Link>
         <button
           onClick={() => {
-            setSubmitted(false);
+            setSubmitted(null);
             setForm(INITIAL_FORM);
           }}
           className="text-sm text-[#1e3a8a] hover:underline font-medium mt-2"
@@ -125,12 +143,15 @@ export default function ContactForm() {
         <Input
           id="name"
           name="name"
+          maxLength={100}
           type="text"
           autoComplete="name"
           placeholder="Jane Smith"
           value={form.name}
           onChange={handleChange}
-          className={cn(errors.name && "border-red-400 focus-visible:ring-red-300")}
+          className={cn(
+            errors.name && "border-red-400 focus-visible:ring-red-300",
+          )}
         />
         {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
       </div>
@@ -143,12 +164,15 @@ export default function ContactForm() {
         <Input
           id="email"
           name="email"
+          maxLength={254}
           type="email"
           autoComplete="email"
           placeholder="jane@example.com"
           value={form.email}
           onChange={handleChange}
-          className={cn(errors.email && "border-red-400 focus-visible:ring-red-300")}
+          className={cn(
+            errors.email && "border-red-400 focus-visible:ring-red-300",
+          )}
         />
         {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
       </div>
@@ -164,7 +188,7 @@ export default function ContactForm() {
           className={cn(
             "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-800",
             !form.subject && "text-gray-400",
-            errors.subject && "border-red-400 focus-visible:ring-red-300"
+            errors.subject && "border-red-400 focus-visible:ring-red-300",
           )}
         >
           <option value="" disabled>
@@ -176,7 +200,9 @@ export default function ContactForm() {
             </option>
           ))}
         </select>
-        {errors.subject && <p className="text-xs text-red-500">{errors.subject}</p>}
+        {errors.subject && (
+          <p className="text-xs text-red-500">{errors.subject}</p>
+        )}
       </div>
 
       {/* Message */}
@@ -187,13 +213,14 @@ export default function ContactForm() {
         <Textarea
           id="message"
           name="message"
+          maxLength={5000}
           rows={5}
           placeholder="Tell us how we can help…"
           value={form.message}
           onChange={handleChange}
           className={cn(
             "resize-none",
-            errors.message && "border-red-400 focus-visible:ring-red-300"
+            errors.message && "border-red-400 focus-visible:ring-red-300",
           )}
         />
         <div className="flex items-center justify-between">
@@ -202,7 +229,9 @@ export default function ContactForm() {
           ) : (
             <span />
           )}
-          <span className="text-xs text-gray-400">{form.message.length} chars</span>
+          <span className="text-xs text-gray-400">
+            {form.message.length} chars
+          </span>
         </div>
       </div>
 

@@ -40,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { BookingInquiry } from "@/components/booking-inquiry";
+import { ReportDialog } from "@/components/report-dialog";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
@@ -478,6 +479,8 @@ export default function ListingDetailPage({ params }: PageProps) {
                       Share
                     </button>
                   </div>
+
+                  <ReportDialog listingId={listing._id} />
 
                   {/* Trust indicators */}
                   <div className="rounded-xl bg-slate-50 px-4 py-3 flex flex-col gap-2">

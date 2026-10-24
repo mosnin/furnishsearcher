@@ -30,6 +30,8 @@ import type * as referrals from "../referrals.js";
 import type * as reviews from "../reviews.js";
 import type * as saved from "../saved.js";
 import type * as savedSearches from "../savedSearches.js";
+import type * as support from "../support.js";
+import type * as supportEmails from "../supportEmails.js";
 import type * as syncCalendars from "../syncCalendars.js";
 import type * as users from "../users.js";
 
@@ -59,6 +61,8 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   saved: typeof saved;
   savedSearches: typeof savedSearches;
+  support: typeof support;
+  supportEmails: typeof supportEmails;
   syncCalendars: typeof syncCalendars;
   users: typeof users;
 }>;

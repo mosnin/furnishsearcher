@@ -139,6 +139,7 @@ export const publish = mutation({
       throw new Error("Not authorized");
     }
 
+    if (listing.moderationHold) throw new Error("This listing is under staff review. Contact support before publishing.");
     await ctx.db.patch(args.id, { status: "active" });
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: args.id, cursor: null });
 
@@ -214,8 +215,13 @@ export const getById = query({
   handler: async (ctx, args) => {
     const listing = await ctx.db.get(args.id);
     if (!listing) return null;
+    if (listing.status !== "active" || listing.moderationHold) {
+      const identity = await ctx.auth.getUserIdentity();
+      const caller = identity ? await ctx.db.query("users").withIndex("by_clerk_id", q => q.eq("clerkId", identity.subject)).unique() : null;
+      if (!caller || (caller._id !== listing.landlordId && caller.role !== "admin")) return null;
+    }
     const landlord = await ctx.db.get(listing.landlordId);
-    return { ...listing, landlord: landlord ?? null };
+    return { ...listing, landlord: landlord ? { _id: landlord._id, name: landlord.name, avatar: landlord.avatar, createdAt: landlord.createdAt } : null };
   },
 });
 
@@ -299,9 +305,12 @@ export const search = query({
 export const getByLandlord = query({
   args: { landlordId: v.id("users") },
   handler: async (ctx, args) => {
-    const listings = await ctx.db
-      .query("listings")
-      .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
+    const identity = await ctx.auth.getUserIdentity();
+    const caller = identity ? await ctx.db.query("users").withIndex("by_clerk_id", q => q.eq("clerkId", identity.subject)).unique() : null;
+    const canManage = caller?._id === args.landlordId || caller?.role === "admin";
+    const listings = await (canManage
+      ? ctx.db.query("listings").withIndex("by_landlord", q => q.eq("landlordId", args.landlordId))
+      : ctx.db.query("listings").withIndex("by_landlord_status", q => q.eq("landlordId", args.landlordId).eq("status", "active")).filter(q => q.neq(q.field("moderationHold"), true)))
       .collect();
     listings.sort((a, b) => b.createdAt - a.createdAt);
     return listings;
@@ -354,6 +363,7 @@ export const approveListing = mutation({
     const landlord = await ctx.db.get(listing.landlordId);
     if (!landlord) throw new Error("Landlord not found");
 
+    if (listing.moderationHold) throw new Error("This listing is under staff review. Contact support before publishing.");
     await ctx.db.patch(args.id, { status: "active" });
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: args.id, cursor: null });
 

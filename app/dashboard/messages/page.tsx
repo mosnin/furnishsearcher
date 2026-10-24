@@ -1,4 +1,5 @@
 "use client";
+import { ReportDialog } from "@/components/report-dialog";
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -149,6 +150,7 @@ function MessageBubble({
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {!isMine && <ReportDialog messageId={message._id as Id<"messages">} />}
         <p
           className={cn(
             "text-[11px] mt-1",

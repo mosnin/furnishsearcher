@@ -43,6 +43,7 @@ const tenantNav: NavItem[] = [
   { label: "Housing Requests", href: "/dashboard/housing-requests", icon: FileText },
   { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
@@ -56,6 +57,7 @@ const landlordNav: NavItem[] = [
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },
   { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },
+  { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
@@ -65,7 +67,8 @@ const adminNav: NavItem[] = [
   { label: "All Listings", href: "/dashboard/admin/listings", icon: Building2 },
   { label: "All Users", href: "/dashboard/admin/users", icon: Users },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Reports", href: "/dashboard/admin/reports", icon: FileText },
+  { label: "Platform Analytics", href: "/dashboard/admin/reports", icon: BarChart3 },
+  { label: "Support & Reports", href: "/dashboard/admin/support", icon: ShieldCheck },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
 ];
 

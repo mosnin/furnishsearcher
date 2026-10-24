@@ -1,6 +1,6 @@
 "use node";
 import { internalAction, action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
@@ -71,14 +71,9 @@ export const sendContactEmail = action({
     subject: v.string(),
     message: v.string(),
   },
-  handler: async (_ctx, args) => {
-    await resend.emails.send({
-      from: FROM,
-      to: FROM,
-      replyTo: args.email,
-      subject: `[FurnishFinder Contact] ${args.subject}`,
-      html: contactEmailHtml(args),
-    });
+  returns: v.id("supportCases"),
+  handler: async (ctx, args): Promise<import("./_generated/dataModel").Id<"supportCases">> => {
+    return ctx.runMutation(api.support.submitContact, args);
   },
 });
 
@@ -493,41 +488,6 @@ function savedSearchAlertHtml(args: SavedSearchAlertArgs): string {
         </table>
       </td>
     </tr>
-  </table>
-</body>
-</html>`;
-}
-
-interface ContactEmailArgs {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-}
-
-function contactEmailHtml(args: ContactEmailArgs): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8" /><title>Contact Form — FurnishFinder</title></head>
-<body style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f4f6f9;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;">
-        <tr><td style="background:#0f2044;border-radius:12px 12px 0 0;padding:28px 40px;text-align:center;">
-          <span style="font-size:22px;font-weight:800;color:#ffffff;">FurnishFinder</span>
-        </td></tr>
-        <tr><td style="background:#ffffff;padding:40px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-          <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#374151;">From: ${escapeHtml(args.name)} &lt;${escapeHtml(args.email)}&gt;</p>
-          <p style="margin:0 0 20px;font-size:15px;font-weight:600;color:#374151;">Subject: ${escapeHtml(args.subject)}</p>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px 24px;">
-            <p style="margin:0;font-size:15px;color:#374151;line-height:1.7;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
-          </div>
-        </td></tr>
-        <tr><td style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:16px 40px;text-align:center;">
-          <p style="margin:0;font-size:13px;color:#9ca3af;">&copy; ${new Date().getFullYear()} FurnishFinder. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
   </table>
 </body>
 </html>`;

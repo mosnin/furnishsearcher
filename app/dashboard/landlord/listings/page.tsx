@@ -22,6 +22,7 @@ type ManagedListing = {
   zip: string;
   propertyType: string;
   createdAt: number;
+  moderationHold?: boolean;
   featured?: boolean;
   featuredUntil?: number;
 };
@@ -102,8 +103,8 @@ export default function LandlordListingsPage() {
         await publishMutation({ id });
         toast.success("Listing is now active");
       }
-    } catch {
-      toast.error("Failed to update status");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update status");
     }
   };
 
@@ -253,6 +254,7 @@ export default function LandlordListingsPage() {
                             {listing.title}
                           </h3>
                           <StatusBadge status={listing.status} />
+                          {listing.moderationHold && <Link href="/contact" className="text-sm text-amber-800 underline">Under staff review · contact support</Link>}
                           {listing.featured &&
                             listing.featuredUntil &&
                             listing.featuredUntil > Date.now() && (

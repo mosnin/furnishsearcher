@@ -49,14 +49,11 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Email
+                      Support cases
                     </p>
-                    <a
-                      href="mailto:support@furnishfinder.com"
-                      className="text-sm font-medium text-[#1e3a8a] hover:underline break-all"
-                    >
-                      support@furnishfinder.com
-                    </a>
+                    <Link href="/dashboard/support" className="text-sm font-medium text-[#1e3a8a] hover:underline">
+                      View your cases and replies
+                    </Link>
                   </div>
                 </div>
               </CardContent>
@@ -73,7 +70,7 @@ export default function ContactPage() {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Response Time
                     </p>
-                    <p className="text-sm font-medium text-gray-800">Within 24 hours</p>
+                    <p className="text-sm font-medium text-gray-800">Follow your case in the dashboard</p>
                   </div>
                 </div>
               </CardContent>
@@ -90,7 +87,7 @@ export default function ContactPage() {
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                       Hours
                     </p>
-                    <p className="text-sm font-medium text-gray-800">Mon–Fri 9am–6pm ET</p>
+                    <p className="text-sm font-medium text-gray-800">Submit a case anytime</p>
                   </div>
                 </div>
               </CardContent>
