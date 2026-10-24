@@ -7,4 +7,5 @@ crons.interval(
   internal.calendarFeeds.refreshDue,
   {},
 );
+crons.interval("backfill search fields", { minutes: 15 }, internal.migrations.searchIndexV1, {});
 export default crons;

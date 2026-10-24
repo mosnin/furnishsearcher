@@ -16,28 +16,20 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { criteriaOnly, type SearchFilters } from "@/lib/search";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface SaveSearchButtonProps {
-  location?: string;
-  city?: string;
-  state?: string;
-  maxPrice?: number;
-  bedrooms?: number;
-  propertyType?: string;
-  petFriendly?: boolean;
-}
-
-export default function SaveSearchButton({
-  location,
-  city,
-  state,
-  maxPrice,
-  bedrooms,
-  propertyType,
-  petFriendly,
-}: SaveSearchButtonProps) {
+export default function SaveSearchButton(filters: SearchFilters) {
+  const {
+    location,
+    city,
+    state,
+    maxPrice,
+    bedrooms,
+    propertyType,
+    petFriendly,
+  } = filters;
   const router = useRouter();
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
@@ -48,7 +40,7 @@ export default function SaveSearchButton({
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    isSignedIn && userId ? { clerkId: userId } : "skip"
+    isSignedIn && userId ? { clerkId: userId } : "skip",
   );
 
   const saveSearch = useMutation(api.savedSearches.save);
@@ -86,13 +78,7 @@ export default function SaveSearchButton({
       await saveSearch({
         userId: convexUser._id,
         name: trimmedName,
-        location,
-        city,
-        state,
-        maxPrice,
-        bedrooms,
-        propertyType,
-        petFriendly,
+        ...criteriaOnly(filters),
       });
       setDialogOpen(false);
       toast.success(`Search "${trimmedName}" saved!`);
@@ -128,7 +114,8 @@ export default function SaveSearchButton({
           <DialogHeader>
             <DialogTitle>Save This Search</DialogTitle>
             <DialogDescription>
-              Give this search a name so you can find it later in your dashboard.
+              Give this search a name so you can find it later in your
+              dashboard.
             </DialogDescription>
           </DialogHeader>
 
@@ -146,7 +133,12 @@ export default function SaveSearchButton({
           </div>
 
           {/* Criteria preview */}
-          {(city || state || maxPrice || bedrooms || propertyType || petFriendly !== undefined) && (
+          {(city ||
+            state ||
+            maxPrice ||
+            bedrooms ||
+            propertyType ||
+            petFriendly !== undefined) && (
             <div className="flex flex-wrap gap-1.5 pb-1">
               {(city || state) && (
                 <span className="text-xs bg-slate-100 text-slate-600 rounded-full px-2.5 py-1 font-medium">

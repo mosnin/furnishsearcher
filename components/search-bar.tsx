@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Calendar, DollarSign, Search, Sparkles } from "lucide-react";
+import { parseDate, buildSearchUrl } from "@/lib/search";
+import { DAY, searchDateRange } from "@/lib/stays";
 import { cn } from "@/lib/utils";
 import { BUDGET_OPTIONS } from "@/lib/utils";
 import { TOP_CITIES } from "@/lib/cities";
@@ -14,19 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-function dateOptions() {
-  const now = new Date();
-  return [
-    { label: "Flexible", value: "flexible" },
-    { label: "This Month", value: "this-month" },
-    { label: "Next Month", value: "next-month" },
-    ...Array.from({ length: 10 }, (_, i) => {
-      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i + 2, 1));
-      return { label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }), value: date.toISOString().slice(0, 7) };
-    }),
-  ];
-}
 
 interface SearchBarProps {
   className?: string;
@@ -42,9 +31,20 @@ export default function SearchBar({
   defaultBudget = "",
 }: SearchBarProps) {
   const router = useRouter();
-  const DATE_OPTIONS = React.useMemo(dateOptions, []);
   const [location, setLocation] = React.useState(defaultLocation);
-  const [date, setDate] = React.useState(defaultDate);
+  const initialRange = searchDateRange(defaultDate);
+  const [moveIn, setMoveIn] = React.useState(
+    initialRange.moveIn === undefined
+      ? ""
+      : new Date(initialRange.moveIn).toISOString().slice(0, 10),
+  );
+  const [moveOut, setMoveOut] = React.useState(
+    initialRange.moveOut === undefined
+      ? ""
+      : new Date(initialRange.moveOut).toISOString().slice(0, 10),
+  );
+  const [flexibleDays, setFlexibleDays] = React.useState(0);
+  const [error, setError] = React.useState("");
   const [budget, setBudget] = React.useState(defaultBudget);
 
   // Autocomplete state
@@ -60,7 +60,7 @@ export default function SearchBar({
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.stateCode.toLowerCase().includes(q) ||
-        c.state.toLowerCase().includes(q)
+        c.state.toLowerCase().includes(q),
     ).slice(0, 8);
   }, [location]);
 
@@ -83,12 +83,12 @@ export default function SearchBar({
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((prev) =>
-        prev < filteredCities.length - 1 ? prev + 1 : 0
+        prev < filteredCities.length - 1 ? prev + 1 : 0,
       );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredCities.length - 1
+        prev > 0 ? prev - 1 : filteredCities.length - 1,
       );
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
@@ -113,11 +113,28 @@ export default function SearchBar({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setShowDropdown(false);
-    const params = new URLSearchParams();
-    if (location.trim()) params.set("location", location.trim());
-    if (date) params.set("date", date);
-    if (budget) params.set("budget", budget);
-    router.push(`/search?${params.toString()}`);
+    try {
+      const range =
+        moveIn || moveOut
+          ? {
+              moveIn: parseDate(moveIn),
+              moveOut: parseDate(moveOut),
+              flexibleDays,
+            }
+          : {};
+      router.push(
+        buildSearchUrl({
+          location: location.trim() || undefined,
+          ...range,
+          maxPrice: budget && budget !== "any" ? Number(budget) : undefined,
+        }),
+      );
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Choose valid search criteria.",
+      );
+    }
   };
 
   const dropdownVisible = showDropdown && filteredCities.length > 0;
@@ -126,9 +143,9 @@ export default function SearchBar({
     <div className={cn("w-full", className)}>
       <form onSubmit={handleSearch}>
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/20 border border-white/80 overflow-visible">
-          <div className="flex flex-col md:flex-row">
+          <div className="flex flex-col md:flex-row md:flex-wrap">
             {/* Location Field */}
-            <div className="flex-1 relative flex items-center gap-3 px-5 py-4 md:border-r border-b md:border-b-0 border-gray-100 group focus-within:bg-gray-50/50 transition-colors rounded-tl-2xl rounded-bl-2xl">
+            <div className="flex-1 md:basis-[35%] relative flex items-center gap-3 px-5 py-4 md:border-r border-b border-gray-100 group focus-within:bg-gray-50/50 transition-colors rounded-tl-2xl rounded-bl-2xl">
               <MapPin className="w-5 h-5 text-[#0f2044] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
@@ -144,7 +161,7 @@ export default function SearchBar({
                   onFocus={() => {
                     if (filteredCities.length > 0) setShowDropdown(true);
                   }}
-                  placeholder="City, zip, or neighborhood"
+                  placeholder="City, state, ZIP or property ID"
                   autoComplete="off"
                   className="w-full text-sm text-gray-900 placeholder:text-gray-400 bg-transparent outline-none font-medium"
                 />
@@ -166,20 +183,22 @@ export default function SearchBar({
                         "w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors",
                         idx === activeIndex
                           ? "bg-[#0f2044] text-white"
-                          : "text-gray-700 hover:bg-[#0f2044] hover:text-white"
+                          : "text-gray-700 hover:bg-[#0f2044] hover:text-white",
                       )}
                     >
                       <MapPin
                         className={cn(
                           "w-4 h-4 flex-shrink-0",
-                          idx === activeIndex ? "text-white" : "text-[#0f2044]"
+                          idx === activeIndex ? "text-white" : "text-[#0f2044]",
                         )}
                       />
                       <span className="font-medium">{city.name}</span>
                       <span
                         className={cn(
                           "ml-auto text-xs",
-                          idx === activeIndex ? "text-white/70" : "text-gray-400"
+                          idx === activeIndex
+                            ? "text-white/70"
+                            : "text-gray-400",
                         )}
                       >
                         {city.stateCode}
@@ -191,24 +210,60 @@ export default function SearchBar({
             </div>
 
             {/* Date Field */}
-            <div className="flex-1 flex items-center gap-3 px-5 py-4 md:border-r border-b md:border-b-0 border-gray-100 focus-within:bg-gray-50/50 transition-colors">
+            <div className="flex-1 md:basis-[65%] flex items-center gap-3 px-5 py-4 border-b border-gray-100 focus-within:bg-gray-50/50 transition-colors">
               <Calendar className="w-5 h-5 text-[#0f2044] flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
-                  Move-in Date
-                </label>
-                <Select value={date} onValueChange={setDate}>
-                  <SelectTrigger className="h-auto p-0 border-0 shadow-none focus:ring-0 text-sm font-medium text-gray-900 data-[placeholder]:text-gray-400 bg-transparent [&>svg]:hidden">
-                    <SelectValue placeholder="When do you need it?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DATE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-xs font-semibold text-gray-500">
+                    Move-in
+                    <input
+                      type="date"
+                      aria-label="Move-in date"
+                      value={moveIn}
+                      onChange={(e) => {
+                        setMoveIn(e.target.value);
+                        if (!moveOut && e.target.value) {
+                          try {
+                            setMoveOut(
+                              new Date(parseDate(e.target.value) + 30 * DAY)
+                                .toISOString()
+                                .slice(0, 10),
+                            );
+                          } catch {
+                            setMoveOut("");
+                          }
+                        }
+                      }}
+                      className="block bg-transparent text-sm text-gray-900 w-full mt-1"
+                    />
+                  </label>
+                  <label className="text-xs font-semibold text-gray-500">
+                    Move-out
+                    <input
+                      type="date"
+                      aria-label="Move-out date"
+                      value={moveOut}
+                      onChange={(e) => setMoveOut(e.target.value)}
+                      className="block bg-transparent text-sm text-gray-900 w-full mt-1"
+                    />
+                  </label>
+                </div>
+                <label className="text-xs text-gray-500 flex gap-2 items-center mt-2">
+                  Flexibility
+                  <select
+                    aria-label="Date flexibility"
+                    value={flexibleDays}
+                    onChange={(e) => setFlexibleDays(Number(e.target.value))}
+                    className="bg-transparent text-xs text-gray-800"
+                  >
+                    <option value={0}>Exact dates</option>
+                    {[7, 14, 30].map((n) => (
+                      <option key={n} value={n}>
+                        ±{n} days
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </select>
+                </label>
               </div>
             </div>
 
@@ -248,12 +303,20 @@ export default function SearchBar({
         </div>
       </form>
 
+      {error && (
+        <p
+          role="alert"
+          className="text-sm text-white bg-red-900/80 rounded-lg p-3 mt-3"
+        >
+          {error}
+        </p>
+      )}
       {/* Hint below search */}
       <div className="mt-3 flex items-center justify-center gap-2">
         <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/20">
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           <p className="text-white/90 text-xs font-medium">
-            New! Search near your workplace or hospital
+            Search monthly stays with exact or flexible dates
           </p>
         </div>
       </div>

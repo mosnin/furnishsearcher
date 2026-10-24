@@ -21,32 +21,7 @@ export function formatDate(date: number): string {
   }).format(new Date(date));
 }
 
-export const PROPERTY_TYPES = [
-  "Apartment",
-  "House",
-  "Condo",
-  "Studio",
-  "Townhouse",
-  "Room",
-] as const;
-
-export const AMENITIES = [
-  "WiFi",
-  "Parking",
-  "Washer/Dryer",
-  "Air Conditioning",
-  "Heating",
-  "Kitchen",
-  "Gym",
-  "Pool",
-  "Pet Friendly",
-  "Dishwasher",
-  "TV",
-  "Balcony",
-  "Utilities Included",
-  "Elevator",
-  "Doorman",
-] as const;
+export { PROPERTY_TYPES, AMENITIES } from "./search-options";
 
 export const BUDGET_OPTIONS = [
   { label: "Under $1,500/mo", value: "1500" },
@@ -55,5 +30,5 @@ export const BUDGET_OPTIONS = [
   { label: "Under $3,000/mo", value: "3000" },
   { label: "Under $4,000/mo", value: "4000" },
   { label: "Under $5,000/mo", value: "5000" },
-  { label: "$5,000+/mo", value: "9999" },
+  { label: "Any budget", value: "any" },
 ] as const;

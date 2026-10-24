@@ -3,9 +3,15 @@ import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
 import { caseFields, replyFields, auditFields } from "./validators/support";
 import { messageFields, conversationFields, templateFields } from "./validators/messaging";
+import { searchFields, searchDeliveryStatus } from "./validators/search";
 import { calendarFeedFields } from "./validators/calendars";
 
 export default defineSchema({
+  counters: defineTable({ name: v.string(), value: v.number() }).index("by_name", ["name"]),
+  dataMigrations: defineTable({ name: v.string(), cursor: v.union(v.string(), v.null()), complete: v.boolean() }).index("by_name", ["name"]),
+  savedSearchDeliveries: defineTable({ searchId: v.id("savedSearches"), listingId: v.id("listings"), createdAt: v.number(), status: searchDeliveryStatus, lastAttemptAt: v.number() })
+    .index("by_search_listing", ["searchId", "listingId"])
+    .index("by_search", ["searchId", "createdAt"]),
   supportCases: defineTable(caseFields)
     .index("by_user", ["userId", "createdAt"])
     .index("by_email", ["email", "createdAt"])
@@ -47,6 +53,9 @@ export default defineSchema({
     .index("by_referral_code", ["referralCode"]),
 
   listings: defineTable({
+    publicId: v.optional(v.string()),
+    searchCity: v.optional(v.string()),
+    searchState: v.optional(v.string()),
     landlordId: v.id("users"),
     title: v.string(),
     description: v.string(),
@@ -80,7 +89,14 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_city_state", ["city", "state"])
     .index("by_status_city", ["status", "city"])
-    .index("by_featured", ["featured", "featuredUntil"]),
+    .index("by_featured", ["featured", "featuredUntil"])
+    .index("by_publicId", ["publicId"])
+    .index("by_search_newest", ["status", "createdAt"])
+    .index("by_search_price", ["status", "price"])
+    .index("by_search_views", ["status", "views"])
+    .index("by_city_newest", ["status", "searchCity", "createdAt"])
+    .index("by_city_price", ["status", "searchCity", "price"])
+    .index("by_city_views", ["status", "searchCity", "views"]),
 
   savedListings: defineTable({
     tenantId: v.id("users"),
@@ -123,18 +139,8 @@ export default defineSchema({
     .index("by_reviewer_listing", ["reviewerId", "listingId"]),
 
   savedSearches: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    location: v.optional(v.string()),
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-    maxPrice: v.optional(v.number()),
-    bedrooms: v.optional(v.number()),
-    propertyType: v.optional(v.string()),
-    petFriendly: v.optional(v.boolean()),
-    emailAlerts: v.optional(v.boolean()),
-    createdAt: v.number(),
-  }).index("by_user", ["userId"]),
+    ...searchFields, userId: v.id("users"), name: v.string(), emailAlerts: v.optional(v.boolean()), createdAt: v.number(),
+  }).index("by_user", ["userId"]).index("by_email_alerts", ["emailAlerts"]),
 
   // Creem.io subscription plans
   subscriptions: defineTable({

@@ -36,5 +36,6 @@ export function searchDateRange(value: string, now = new Date()) {
   else if (/^\d{4}-\d{2}(-\d{2})?$/.test(value)) start = Date.parse(value.length === 7 ? `${value}-01` : value);
   else return {};
   if (!Number.isFinite(start)) return {};
+  if (/^\d{4}-\d{2}(-\d{2})?$/.test(value) && new Date(start).toISOString().slice(0, 10) !== (value.length === 7 ? `${value}-01` : value)) return {};
   return { moveIn: start, moveOut: start + 30 * DAY };
 }

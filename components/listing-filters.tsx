@@ -1,213 +1,158 @@
 "use client";
-
-import { useCallback } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import type { SearchFilters } from "@/lib/search";
+import { PROPERTY_TYPES, AMENITIES } from "@/lib/search-options";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-
-const PROPERTY_TYPES = ["Apartment", "House", "Condo", "Studio", "Townhouse"] as const;
-const BED_OPTIONS = [1, 2, 3, 4] as const;
-
-export interface FilterState {
-  propertyTypes: string[];
-  minBeds: number;
-  minPrice: number;
-  maxPrice: number;
-  petFriendly: boolean;
-  utilitiesIncluded: boolean;
-}
-
-const DEFAULT_FILTERS: FilterState = {
-  propertyTypes: [],
-  minBeds: 0,
-  minPrice: 0,
-  maxPrice: 0,
-  petFriendly: false,
-  utilitiesIncluded: false,
-};
-
-interface ListingFiltersProps {
-  filters: FilterState;
-  onFilterChange: (filters: FilterState) => void;
+import { Button } from "@/components/ui/button";
+export type FilterState = SearchFilters;
+export function ListingFilters({
+  filters,
+  onFilterChange,
+  className,
+}: {
+  filters: SearchFilters;
+  onFilterChange: (filters: SearchFilters) => void;
   className?: string;
-}
-
-export function ListingFilters({ filters, onFilterChange, className }: ListingFiltersProps) {
-  const update = useCallback(
-    <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
-      onFilterChange({ ...filters, [key]: value });
-    },
-    [filters, onFilterChange]
-  );
-
-  const togglePropertyType = useCallback(
-    (type: string) => {
-      const next = filters.propertyTypes.includes(type)
-        ? filters.propertyTypes.filter((t) => t !== type)
-        : [...filters.propertyTypes, type];
-      update("propertyTypes", next);
-    },
-    [filters.propertyTypes, update]
-  );
-
-  const clearAll = useCallback(() => {
-    onFilterChange(DEFAULT_FILTERS);
-  }, [onFilterChange]);
-
-  const hasActiveFilters =
-    filters.propertyTypes.length > 0 ||
-    filters.minBeds > 0 ||
-    filters.minPrice > 0 ||
-    filters.maxPrice > 0 ||
-    filters.petFriendly ||
-    filters.utilitiesIncluded;
-
+}) {
+  function update<K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K],
+  ) {
+    onFilterChange({ ...filters, [key]: value });
+  }
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-foreground text-base">Filters</h2>
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAll}
-            className="text-xs text-muted-foreground h-7 px-2 hover:text-foreground"
-          >
-            Clear all
-          </Button>
-        )}
+    <div className={className}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold">Filters</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            onFilterChange({
+              location: filters.location,
+              city: filters.city,
+              state: filters.state,
+              propertyId: filters.propertyId,
+              moveIn: filters.moveIn,
+              moveOut: filters.moveOut,
+              flexibleDays: filters.flexibleDays,
+              sort: filters.sort,
+            })
+          }
+        >
+          Clear filters
+        </Button>
       </div>
-
-      {/* Property Type */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-foreground">Property Type</h3>
-        <div className="flex flex-col gap-2.5">
+      <fieldset className="space-y-3">
+        <legend className="font-medium text-sm mb-2">Property types</legend>
+        <div className="flex flex-wrap gap-3">
           {PROPERTY_TYPES.map((type) => (
-            <div key={type} className="flex items-center gap-2.5">
-              <Checkbox
-                id={`type-${type}`}
-                checked={filters.propertyTypes.includes(type)}
-                onCheckedChange={() => togglePropertyType(type)}
+            <label key={type} className="text-sm flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={filters.propertyTypes?.includes(type) ?? false}
+                onChange={(e) =>
+                  update(
+                    "propertyTypes",
+                    e.target.checked
+                      ? [...(filters.propertyTypes ?? []), type]
+                      : filters.propertyTypes?.filter((t) => t !== type),
+                  )
+                }
               />
-              <Label
-                htmlFor={`type-${type}`}
-                className="text-sm text-foreground cursor-pointer font-normal"
-              >
-                {type}
-              </Label>
-            </div>
+              {type === "Room" ? "Room for rent" : type}
+            </label>
           ))}
         </div>
+      </fieldset>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 my-5">
+        {(
+          [
+            ["minPrice", "Minimum monthly rent"],
+            ["maxPrice", "Maximum monthly rent"],
+            ["bedrooms", "Minimum bedrooms"],
+            ["bathrooms", "Minimum bathrooms"],
+            ["occupants", "Occupants"],
+          ] as const
+        ).map(([key, label]) => (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={`search-${key}`}>{label}</Label>
+            <Input
+              id={`search-${key}`}
+              type="number"
+              min={key === "occupants" ? 1 : 0}
+              step={key === "bathrooms" ? 0.5 : 1}
+              max={key.includes("Price") ? 10000000 : 30}
+              value={filters[key] ?? ""}
+              onChange={(e) =>
+                update(
+                  key,
+                  e.target.value === "" ? undefined : Number(e.target.value),
+                )
+              }
+              placeholder="Any"
+            />
+          </div>
+        ))}
       </div>
-
-      <Separator />
-
-      {/* Bedrooms */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-foreground">Bedrooms</h3>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => update("minBeds", 0)}
-            className={cn(
-              "h-9 min-w-[40px] px-3 rounded-md border text-sm font-medium transition-colors",
-              filters.minBeds === 0
-                ? "border-[#0f2044] bg-[#0f2044] text-white"
-                : "border-border bg-background text-foreground hover:border-[#0f2044] hover:text-[#0f2044]"
-            )}
-          >
-            Any
-          </button>
-          {BED_OPTIONS.map((n) => (
-            <button
-              key={n}
-              onClick={() => update("minBeds", n)}
-              className={cn(
-                "h-9 min-w-[40px] px-3 rounded-md border text-sm font-medium transition-colors",
-                filters.minBeds === n
-                  ? "border-[#0f2044] bg-[#0f2044] text-white"
-                  : "border-border bg-background text-foreground hover:border-[#0f2044] hover:text-[#0f2044]"
-              )}
+      <div className="grid sm:grid-cols-3 gap-4 mb-5">
+        {(
+          [
+            ["petFriendly", "Pets", "Pet friendly", "No pets"],
+            ["utilitiesIncluded", "Utilities", "Included", "Not included"],
+            ["parkingIncluded", "Parking", "Included", "Not included"],
+          ] as const
+        ).map(([key, label, yes, no]) => (
+          <label key={key} className="text-sm space-y-2">
+            {label}
+            <select
+              className="block w-full rounded-md border p-2 bg-white"
+              value={filters[key] === undefined ? "" : String(filters[key])}
+              onChange={(e) =>
+                update(
+                  key,
+                  e.target.value === "" ? undefined : e.target.value === "true",
+                )
+              }
             >
-              {n}+
-            </button>
+              <option value="">Any</option>
+              <option value="true">{yes}</option>
+              <option value="false">{no}</option>
+            </select>
+          </label>
+        ))}
+      </div>
+      <fieldset>
+        <legend className="font-medium text-sm mb-3">
+          Amenities & accessibility · all selected features required
+        </legend>
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {AMENITIES.filter(
+            (a) =>
+              !["Pet Friendly", "Parking", "Utilities Included"].includes(a),
+          ).map((a) => (
+            <label key={a} className="flex gap-2 items-center text-sm">
+              <input
+                type="checkbox"
+                checked={filters.amenities?.includes(a) ?? false}
+                onChange={(e) =>
+                  update(
+                    "amenities",
+                    e.target.checked
+                      ? [...(filters.amenities ?? []), a]
+                      : filters.amenities?.filter((item) => item !== a),
+                  )
+                }
+              />
+              {a}
+            </label>
           ))}
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Price Range */}
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-foreground">Price Range</h3>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <Label htmlFor="min-price" className="text-xs text-muted-foreground mb-1 block">
-              Min
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input
-                id="min-price"
-                type="number"
-                min={0}
-                placeholder="0"
-                value={filters.minPrice || ""}
-                onChange={(e) => update("minPrice", Number(e.target.value) || 0)}
-                className="pl-7 text-sm"
-              />
-            </div>
-          </div>
-          <span className="text-muted-foreground text-sm mt-5">—</span>
-          <div className="flex-1">
-            <Label htmlFor="max-price" className="text-xs text-muted-foreground mb-1 block">
-              Max
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-              <Input
-                id="max-price"
-                type="number"
-                min={0}
-                placeholder="Any"
-                value={filters.maxPrice || ""}
-                onChange={(e) => update("maxPrice", Number(e.target.value) || 0)}
-                className="pl-7 text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Boolean toggles */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="pet-friendly" className="text-sm font-medium text-foreground cursor-pointer">
-            Pet Friendly
-          </Label>
-          <Switch
-            id="pet-friendly"
-            checked={filters.petFriendly}
-            onCheckedChange={(v) => update("petFriendly", v)}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="utilities-included" className="text-sm font-medium text-foreground cursor-pointer">
-            Utilities Included
-          </Label>
-          <Switch
-            id="utilities-included"
-            checked={filters.utilitiesIncluded}
-            onCheckedChange={(v) => update("utilitiesIncluded", v)}
-          />
-        </div>
-      </div>
+      </fieldset>
+      <p className="text-xs text-slate-500 mt-4">
+        Amenities and accessibility features are described by the owner. Confirm
+        that the property meets your needs before arranging a stay.
+      </p>
     </div>
   );
 }

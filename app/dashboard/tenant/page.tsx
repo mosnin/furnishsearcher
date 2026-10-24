@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import { buildSearchUrl, criteriaOnly, type SearchFilters } from "@/lib/search";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 
 type ConvDoc<T> = T & { _id: string };
@@ -48,7 +49,7 @@ type ConvConversation = {
   otherUser: { name: string } | null;
 };
 
-type SavedSearch = {
+type SavedSearch = SearchFilters & {
   _id: string;
   userId: string;
   name: string;
@@ -502,15 +503,7 @@ export default function TenantDashboardPage() {
                 key={search._id}
                 className="group flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm hover:border-[#0f2044]/40 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => {
-                  const params = new URLSearchParams();
-                  if (search.city) params.set("city", search.city);
-                  if (search.state) params.set("state", search.state);
-                  if (search.location) params.set("location", search.location);
-                  if (search.maxPrice) params.set("maxPrice", String(search.maxPrice));
-                  if (search.bedrooms) params.set("bedrooms", String(search.bedrooms));
-                  if (search.propertyType) params.set("propertyType", search.propertyType);
-                  if (search.petFriendly) params.set("petFriendly", "true");
-                  router.push(`/search?${params.toString()}`);
+                  try { router.push(buildSearchUrl(criteriaOnly(search))); } catch { toast.error("This saved search needs new criteria. Open Saved Searches to remove it."); }
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">

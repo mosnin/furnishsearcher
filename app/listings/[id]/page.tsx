@@ -452,6 +452,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     Contact Landlord
                   </button>
 
+                  <p className="text-xs text-slate-500 break-all">Property ID: {listing.publicId ?? listing._id}</p>
                   {/* Save + Share */}
                   <div className="flex gap-2">
                     <button

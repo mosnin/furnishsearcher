@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { parseDate } from "@/lib/search";
 import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -20,8 +22,10 @@ export function BookingInquiry({ listingId, minStay, petFriendly }: {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [moveIn, setMoveIn] = useState("");
-  const [moveOut, setMoveOut] = useState("");
+  const params = useSearchParams();
+  function initial(key: string) { const value = params.get(key) ?? ""; try { parseDate(value); return value; } catch { return ""; } }
+  const [moveIn, setMoveIn] = useState(() => initial("moveIn"));
+  const [moveOut, setMoveOut] = useState(() => initial("moveOut"));
   const [occupants, setOccupants] = useState(1);
   const [pets, setPets] = useState(false);
   const [message, setMessage] = useState("");

@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { isAvailable, validateStay } from "../lib/stays";
+import { nextListingId } from "./lib/listingIds";
+import { normalizeCity, normalizeState } from "../lib/locations";
 import { removeFeed } from "./lib/calendarFeeds";
 
 export const create = mutation({
@@ -44,6 +46,7 @@ export const create = mutation({
 
     if (args.maxOccupancy !== undefined && (!Number.isInteger(args.maxOccupancy) || args.maxOccupancy < 1 || args.maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
     return await ctx.db.insert("listings", {
+      publicId: await nextListingId(ctx), searchCity: normalizeCity(args.city), searchState: normalizeState(args.state),
       landlordId: args.landlordId,
       title: args.title,
       description: args.description,
@@ -115,7 +118,7 @@ export const update = mutation({
       Object.entries(fields).filter(([, val]) => val !== undefined)
     );
 
-    await ctx.db.patch(id, { ...updates, ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
+    await ctx.db.patch(id, { ...updates, ...(args.city !== undefined ? { searchCity: normalizeCity(args.city) } : {}), ...(args.state !== undefined ? { searchState: normalizeState(args.state) } : {}), ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: id, cursor: null });
     return await ctx.db.get(id);
   },
