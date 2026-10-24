@@ -1,3 +1,5 @@
+import { US_STATES } from "./locations";
+
 export type City = {
   name: string;
   state: string;
@@ -110,7 +112,7 @@ export const TOP_CITIES: City[] = [
   { name: "Naples", state: "Florida", stateCode: "FL", lat: 26.1420, lng: -81.7948 },
 ];
 
-export const STATES = [...new Set(TOP_CITIES.map((c) => c.stateCode))].sort();
+export const STATES = Object.keys(US_STATES).sort();
 
 export function getCitiesByState(stateCode: string): City[] {
   return TOP_CITIES.filter((c) => c.stateCode === stateCode);

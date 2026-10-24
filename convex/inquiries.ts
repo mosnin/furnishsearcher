@@ -26,6 +26,7 @@ export const create = mutation({
     validateStay(args.moveIn, args.moveOut, Math.max(1, listing.minStay) * 30);
     if (args.moveIn < Math.floor(Date.now() / DAY) * DAY) throw new Error("Move-in cannot be in the past.");
     if (!Number.isInteger(args.occupants) || args.occupants < 1 || args.occupants > 30) throw new Error("Enter 1–30 occupants.");
+    if (listing.maxOccupancy !== undefined && args.occupants > listing.maxOccupancy) throw new Error("This party exceeds the maximum occupancy.");
     if (args.pets && !listing.petFriendly) throw new Error("This property does not allow pets.");
     const message = args.message.trim();
     if (!message || message.length > 2000) throw new Error("Enter a message of up to 2,000 characters.");
@@ -81,6 +82,7 @@ export const respond = mutation({
     if (args.decision === "accepted") {
       const listing = await ctx.db.get(inquiry.listingId);
       if (!listing || listing.status !== "active") throw new Error("This property is unavailable.");
+      if ((inquiry.pets && !listing.petFriendly) || (listing.maxOccupancy !== undefined && inquiry.occupants > listing.maxOccupancy)) throw new Error("The party no longer meets the property rules.");
       const blocks = await ctx.db.query("availabilityBlocks")
         .withIndex("by_listing_start", q => q.eq("listingId", listing._id).lt("startDate", inquiry.moveOut)).take(500);
       if (blocks.length === 500 || !isAvailable(listing, blocks, inquiry.moveIn, inquiry.moveOut)) {

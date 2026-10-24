@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 export const getByListing = query({
   args: { listingId: v.id("listings") },
@@ -88,6 +89,7 @@ export const updateBlock = mutation({
     if (newStart >= newEnd) throw new Error("Start date must be before end date");
 
     await ctx.db.patch(args.id, updates);
+    await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: listing._id, cursor: null });
   },
 });
 
@@ -113,5 +115,6 @@ export const removeBlock = mutation({
     }
 
     await ctx.db.delete(args.id);
+    await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: listing._id, cursor: null });
   },
 });

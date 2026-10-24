@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { sendListingMessage } from "./lib/messaging";
 
 function buildConversationId(
   userIdA: string,
@@ -18,91 +18,8 @@ export const sendMessage = mutation({
     listingId: v.id("listings"),
     content: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller) throw new Error("User not found");
-    if (caller._id !== args.senderId) throw new Error("Not authorized");
-
-    const sender = await ctx.db.get(args.senderId);
-    if (!sender) throw new Error(`Sender ${args.senderId} not found`);
-
-    const receiver = await ctx.db.get(args.receiverId);
-    if (!receiver) throw new Error(`Receiver ${args.receiverId} not found`);
-
-    const listing = await ctx.db.get(args.listingId);
-    if (!listing) throw new Error(`Listing ${args.listingId} not found`);
-
-    const conversationId = buildConversationId(
-      args.senderId,
-      args.receiverId,
-      args.listingId
-    );
-
-    const now = Date.now();
-
-    const messageId = await ctx.db.insert("messages", {
-      conversationId,
-      senderId: args.senderId,
-      receiverId: args.receiverId,
-      listingId: args.listingId,
-      content: args.content,
-      read: false,
-      createdAt: now,
-    });
-
-    const senderIsLandlord = args.senderId === listing.landlordId;
-    const tenantId = senderIsLandlord ? args.receiverId : args.senderId;
-    const landlordId = senderIsLandlord ? args.senderId : args.receiverId;
-
-    const existing = await ctx.db
-      .query("conversations")
-      .withIndex("by_listing_tenant", (q) =>
-        q.eq("listingId", args.listingId).eq("tenantId", tenantId)
-      )
-      .unique();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        lastMessage: args.content,
-        lastMessageAt: now,
-        tenantRead: senderIsLandlord ? false : true,
-        landlordRead: senderIsLandlord ? true : false,
-      });
-    } else {
-      await ctx.db.insert("conversations", {
-        listingId: args.listingId,
-        tenantId,
-        landlordId,
-        lastMessage: args.content,
-        lastMessageAt: now,
-        tenantRead: senderIsLandlord ? false : true,
-        landlordRead: senderIsLandlord ? true : false,
-      });
-    }
-
-    if (receiver.email) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.emails.sendNewMessageNotification,
-        {
-          toEmail: receiver.email,
-          toName: receiver.name,
-          fromName: sender.name,
-          listingTitle: listing.title,
-          messagePreview: args.content.slice(0, 200),
-          conversationId,
-        }
-      );
-    }
-
-    return messageId;
-  },
+  returns: v.id("messages"),
+  handler: async (ctx, args) => (await sendListingMessage(ctx, args)).messageId,
 });
 
 export const getConversations = query({

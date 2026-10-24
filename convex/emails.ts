@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = { get emails() { return new Resend(process.env.RESEND_API_KEY).emails; } };
 const FROM = process.env.EMAIL_FROM ?? "noreply@furnishfinder.com";
 
 // ---------------------------------------------------------------------------

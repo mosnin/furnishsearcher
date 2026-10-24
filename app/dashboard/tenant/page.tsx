@@ -601,6 +601,8 @@ export default function TenantDashboardPage() {
         )}
       </section>
 
+      <div className="mb-4 text-right"><Link href="/dashboard/housing-requests" className="text-sm underline">View all housing requests</Link></div>
+
       {/* My Housing Requests */}
       <section>
         <div className="flex items-center justify-between mb-4">

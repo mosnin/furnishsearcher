@@ -40,6 +40,7 @@ const tenantNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
   { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
   { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
+  { label: "Housing Requests", href: "/dashboard/housing-requests", icon: FileText },
   { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "My Profile", href: "/dashboard/profile", icon: User },

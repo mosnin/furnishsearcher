@@ -46,6 +46,7 @@ interface FormData {
   zip: string;
   bedrooms: number;
   bathrooms: number;
+  maxOccupancy: string;
   price: number;
   minStay: number;
   availableFrom: string;
@@ -153,6 +154,7 @@ export default function EditListingPage() {
         zip: listing.zip,
         bedrooms: listing.bedrooms,
         bathrooms: listing.bathrooms,
+        maxOccupancy: listing.maxOccupancy ? String(listing.maxOccupancy) : "",
         price: listing.price,
         minStay: listing.minStay,
         availableFrom: `${yyyy}-${mm}-${dd}`,
@@ -226,6 +228,7 @@ export default function EditListingPage() {
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
+        maxOccupancy: form.maxOccupancy ? Number(form.maxOccupancy) : null,
         minStay: Number(form.minStay),
         availableFrom: new Date(form.availableFrom).getTime(),
         amenities: form.amenities,
@@ -447,6 +450,10 @@ export default function EditListingPage() {
                       onChange={(e) => update("price", Number(e.target.value))}
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxOccupancy">Maximum occupants (optional)</Label>
+                  <Input id="maxOccupancy" type="number" min={1} max={30} value={form.maxOccupancy} onChange={e => update("maxOccupancy", e.target.value)} placeholder="Not specified" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="minStay">Minimum Stay (months)</Label>

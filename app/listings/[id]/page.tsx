@@ -412,7 +412,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                       <span className="text-[15px] font-normal text-slate-500 ml-1">/month</span>
                     </p>
                     <p className="text-[12px] text-slate-500 mt-1">
-                      {minStay}+ month minimum stay
+                      {minStay}+ month minimum stay{listing.maxOccupancy ? ` · Up to ${listing.maxOccupancy} occupants` : ""}
                     </p>
                   </div>
 

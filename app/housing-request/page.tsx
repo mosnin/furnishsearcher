@@ -1,379 +1,776 @@
 "use client";
 
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import {
+  useConvexAuth,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { STATES, getCitiesByState } from "@/lib/cities";
+import type { FunctionArgs } from "convex/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Home, MapPin, DollarSign, Calendar, BedDouble } from "lucide-react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import { AMENITIES, PROPERTY_TYPES, formatPrice } from "@/lib/utils";
+import { STATES, getCitiesByState } from "@/lib/cities";
+import { US_STATES } from "@/lib/locations";
+import { DAY, validateStay } from "@/lib/stays";
+import { prepareCriteria } from "@/lib/housing";
+import { CheckCircle, Home, MapPin, Calendar, Plus, X } from "lucide-react";
 
-const BUDGET_RANGES = [
-  { label: "Under $1,500 / mo", value: "1500" },
-  { label: "Under $2,000 / mo", value: "2000" },
-  { label: "Under $2,500 / mo", value: "2500" },
-  { label: "Under $3,000 / mo", value: "3000" },
-  { label: "Under $4,000 / mo", value: "4000" },
-  { label: "Under $5,000 / mo", value: "5000" },
-  { label: "$5,000+ / mo", value: "9999" },
-];
+type Criteria = Omit<
+  FunctionArgs<typeof api.housingRequests.preview>,
+  "paginationOpts"
+>;
+type Traveler = {
+  name: string;
+  moveIn: string;
+  moveOut: string;
+  workplace: string;
+};
+const selectStyle =
+  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 
-const BEDROOM_OPTIONS = [
-  { label: "1 Bedroom", value: "1" },
-  { label: "2 Bedrooms", value: "2" },
-  { label: "3 Bedrooms", value: "3" },
-  { label: "4+ Bedrooms", value: "4" },
-];
+function MatchPreview({ criteria }: { criteria: Criteria }) {
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.housingRequests.preview,
+    criteria,
+    { initialNumItems: 50 },
+  );
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-5" aria-live="polite">
+        <h3 className="font-semibold">Properties matching these dates</h3>
+        {status === "LoadingFirstPage" ? (
+          <p>Checking properties…</p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600">
+              {results.length} matching{" "}
+              {results.length === 1 ? "property" : "properties"}
+              {status === "Exhausted" ? " found." : " found so far."} Your
+              request will be checked against every active property when
+              submitted.
+            </p>
+            {results.slice(0, 5).map((p) => (
+              <Link
+                className="flex justify-between gap-4 text-sm hover:underline"
+                key={p.listingId}
+                href={`/listings/${p.listingId}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span>
+                  {p.title} · {p.city}, {p.state}
+                </span>
+                <span className="shrink-0">{formatPrice(p.price)}/mo</span>
+              </Link>
+            ))}
+            {status === "CanLoadMore" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => loadMore(50)}
+              >
+                Find more matches
+              </Button>
+            )}
+            {status === "LoadingMore" && <p>Checking more properties…</p>}
+            {status === "Exhausted" && results.length === 0 && (
+              <p className="text-sm text-slate-600">
+                Try adding nearby cities or adjusting your requirements. You can
+                still submit a request for properties listed later.
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function HousingRequestPage() {
-  const router = useRouter();
-  const { userId, isLoaded, isSignedIn } = useAuth();
-
-  const convexUser = useQuery(
+  const { userId } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const user = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId && isAuthenticated ? { clerkId: userId } : "skip",
   );
-
-  const createRequest = useMutation(api.housingRequests.create);
-
-  // Form state
+  const create = useMutation(api.housingRequests.create);
+  const createAgency = useMutation(api.housingRequests.createAgency);
+  const [kind, setKind] = useState<"traveler" | "agency">("traveler");
+  const [agencyName, setAgencyName] = useState("");
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
-  const [moveInDate, setMoveInDate] = useState("");
-  const [duration, setDuration] = useState("");
-  const [maxBudget, setMaxBudget] = useState("");
-  const [bedrooms, setBedrooms] = useState("");
-  const [petFriendly, setPetFriendly] = useState(false);
+  const [nearby, setNearby] = useState("");
+  const [moveIn, setMoveIn] = useState("");
+  const [moveOut, setMoveOut] = useState("");
+  const [budget, setBudget] = useState("");
+  const [bedrooms, setBedrooms] = useState("1");
+  const [occupants, setOccupants] = useState("1");
+  const [type, setType] = useState("");
+  const [pets, setPets] = useState(false);
+  const [utilities, setUtilities] = useState(false);
+  const [parking, setParking] = useState(false);
+  const [amenities, setAmenities] = useState<string[]>([]);
   const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submittedCity, setSubmittedCity] = useState("");
+  const [workplace, setWorkplace] = useState("");
+  const [contact, setContact] = useState<"platform" | "phone">("platform");
+  const [travelers, setTravelers] = useState<Traveler[]>([
+    { name: "", moveIn: "", moveOut: "", workplace: "" },
+  ]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [preview, setPreview] = useState<Criteria | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(0);
+  const cities = useMemo(() => getCitiesByState(state), [state]);
 
-  const citiesForState = state ? getCitiesByState(state) : [];
-
-  // Reset city when state changes
-  const handleStateChange = (val: string) => {
-    setState(val);
-    setCity("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isSignedIn) {
-      toast.error("Please sign in to submit a housing request.");
-      return;
-    }
-
-    if (!convexUser) {
-      toast.error("Unable to load your account. Please try again.");
-      return;
-    }
-
-    if (!state || !city || !moveInDate || !duration || !maxBudget || !bedrooms) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-
-    setIsSubmitting(true);
+  function criteriaFor(traveler?: Traveler): Criteria {
+    const start = Date.parse(traveler?.moveIn || moveIn),
+      end = Date.parse(traveler?.moveOut || moveOut);
+    validateStay(start, end);
+    if (!city.trim() || !state || !Number(budget))
+      throw new Error("Enter a city, state and monthly budget.");
+    return prepareCriteria({
+      city,
+      state,
+      moveInDate: start,
+      moveOutDate: end,
+      duration: Math.ceil((end - start) / (30 * DAY)),
+      maxBudget: Number(budget),
+      bedrooms: Number(bedrooms),
+      occupants: Number(occupants),
+      propertyType: type || undefined,
+      petFriendly: pets,
+      utilitiesIncluded: utilities,
+      parkingIncluded: parking,
+      amenities,
+      nearbyCities: nearby
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean),
+      description,
+      workplace: traveler?.workplace || workplace,
+      contactPreference: contact,
+    });
+  }
+  function updateTraveler(index: number, key: keyof Traveler, value: string) {
+    setTravelers((current) =>
+      current.map((t, i) => (i === index ? { ...t, [key]: value } : t)),
+    );
+    setPreview(null);
+  }
+  function showPreview() {
+    setError("");
     try {
-      await createRequest({
-        userId: convexUser._id,
-        city,
-        state,
-        moveInDate: new Date(moveInDate).getTime(),
-        duration: parseInt(duration, 10),
-        maxBudget: parseInt(maxBudget, 10),
-        bedrooms: parseInt(bedrooms, 10),
-        petFriendly,
-        description,
-      });
-      setSubmittedCity(city);
-      setSubmitted(true);
-      toast.success("Housing request submitted!");
-    } catch (err) {
-      console.error("Failed to submit housing request:", err);
-      toast.error("Failed to submit your request. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      setPreview(
+        criteriaFor(kind === "agency" ? travelers[previewIndex] : undefined),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Check your request details.");
     }
-  };
+  }
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    if (!user) {
+      setError("Complete your account profile before submitting.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (kind === "agency") {
+        const criteria = criteriaFor(travelers[0]);
+        const ids = await createAgency({
+          ...criteria,
+          userId: user._id,
+          agencyName,
+          travelers: travelers.map((t) => ({
+            name: t.name,
+            moveInDate: Date.parse(t.moveIn || moveIn),
+            moveOutDate: Date.parse(t.moveOut || moveOut),
+            workplace: t.workplace || workplace,
+          })),
+        });
+        setSubmitted(ids.length);
+      } else {
+        await create({ ...criteriaFor(), userId: user._id });
+        setSubmitted(1);
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to submit. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  if (submitted) {
+  if (submitted)
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="max-w-lg w-full">
           <CardContent className="flex flex-col items-center text-center gap-5 py-14 px-8">
-            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-9 w-9 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Request Submitted!</h1>
-            <p className="text-slate-600 leading-relaxed">
-              Your request has been submitted! Landlords in{" "}
-              <span className="font-semibold text-[#0f2044]">{submittedCity}</span>{" "}
-              will reach out when they have a match.
+            <CheckCircle className="h-14 w-14 text-green-600" />
+            <h1 className="text-2xl font-bold text-slate-900">
+              {submitted === 1
+                ? "Request submitted"
+                : `${submitted} requests submitted`}
+            </h1>
+            <p className="text-slate-600">
+              We’re checking your requirements against active properties.
+              Matching owners will receive your request in their dashboard and
+              can reply directly.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 w-full mt-2">
-              <Button asChild className="flex-1 bg-[#0f2044] hover:bg-[#1a3360]">
-                <Link href="/dashboard/tenant">View Dashboard</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="flex-1"
-              >
-                <Link href="/search">Browse Listings</Link>
-              </Button>
-            </div>
+            <Button asChild>
+              <Link href="/dashboard/housing-requests">Track my requests</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/search">Browse rentals</Link>
+            </Button>
           </CardContent>
         </Card>
       </main>
     );
-  }
 
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
-      {/* Hero */}
       <section className="bg-[#0f2044] text-white py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm font-medium text-blue-100 mb-6">
+          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm text-blue-100 mb-6">
             <Home className="h-4 w-4" />
-            For Renters
+            For renters and agencies
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
             Submit a Housing Request
           </h1>
           <p className="mt-4 text-lg text-blue-200">
-            Let landlords come to you — describe what you need and get matched
-            with furnished properties in your target city.
+            Tell us what you need. Owners with matching properties can come to
+            you.
           </p>
         </div>
       </section>
-
-      {/* Form */}
       <section className="py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          {!isLoaded ? (
+          {isLoading ? (
             <Card>
-              <CardContent className="py-12 text-center text-slate-500">
-                Loading…
+              <CardContent className="p-10 text-center">
+                Loading your account…
               </CardContent>
             </Card>
-          ) : !isSignedIn ? (
+          ) : !isAuthenticated ? (
             <Card>
-              <CardContent className="flex flex-col items-center gap-4 py-14 text-center px-8">
-                <div className="h-14 w-14 rounded-full bg-[#0f2044]/10 flex items-center justify-center">
-                  <Home className="h-7 w-7 text-[#0f2044]" />
-                </div>
-                <h2 className="text-xl font-bold text-slate-900">Sign in to Submit</h2>
-                <p className="text-slate-500 text-sm max-w-sm">
-                  Create a free account or sign in to submit a housing request.
-                  Landlords will be able to find and contact you directly.
-                </p>
-                <div className="flex gap-3 mt-2">
-                  <Button asChild className="bg-[#0f2044] hover:bg-[#1a3360]">
-                    <Link href="/sign-up">Create Account</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link href="/sign-in">Sign In</Link>
-                  </Button>
-                </div>
+              <CardContent className="space-y-4 p-10 text-center">
+                <h2 className="text-xl font-bold">
+                  Sign in to submit a request
+                </h2>
+                <p>Create a free account to connect with property owners.</p>
+                <Button asChild>
+                  <Link href="/sign-in?redirect_url=%2Fhousing-request">
+                    Sign in
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/sign-up?redirect_url=%2Fhousing-request">
+                    Create account
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           ) : (
             <Card className="shadow-md">
-              <CardContent className="p-8">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Location */}
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                      <MapPin className="h-4 w-4 text-[#0f2044]" />
-                      Location
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="state">State *</Label>
-                        <Select value={state} onValueChange={handleStateChange} required>
-                          <SelectTrigger id="state">
-                            <SelectValue placeholder="Select state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATES.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="city">City *</Label>
-                        <Select
-                          value={city}
-                          onValueChange={setCity}
-                          required
-                          disabled={!state}
+              <CardContent className="p-6 sm:p-8">
+                <form
+                  onSubmit={submit}
+                  onChange={() => setPreview(null)}
+                  className="space-y-6"
+                >
+                  <fieldset className="space-y-2">
+                    <legend className="font-semibold">I’m submitting as</legend>
+                    <div className="flex gap-6">
+                      {(["traveler", "agency"] as const).map((k) => (
+                        <label
+                          key={k}
+                          className="flex items-center gap-2 capitalize"
                         >
-                          <SelectTrigger id="city">
-                            <SelectValue placeholder={state ? "Select city" : "Choose state first"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {citiesForState.map((c) => (
-                              <SelectItem key={c.name} value={c.name}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <input
+                            type="radio"
+                            name="requester"
+                            checked={kind === k}
+                            onChange={() => {
+                              setKind(k);
+                              setPreview(null);
+                            }}
+                          />
+                          {k}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  {kind === "agency" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="agency">Agency name</Label>
+                      <Input
+                        id="agency"
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        required
+                        maxLength={150}
+                      />
+                    </div>
+                  )}
+                  <fieldset className="space-y-4">
+                    <legend className="font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Location
+                    </legend>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="state">State</Label>
+                        <select
+                          id="state"
+                          className={selectStyle}
+                          value={state}
+                          onChange={(e) => {
+                            setState(e.target.value);
+                            setCity("");
+                          }}
+                          required
+                        >
+                          <option value="">Select state</option>
+                          {STATES.map((s) => (
+                            <option key={s} value={s}>
+                              {US_STATES[s]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          list="request-cities"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          required
+                          maxLength={100}
+                          placeholder="Enter any city"
+                        />
+                        <datalist id="request-cities">
+                          {cities.map((c) => (
+                            <option key={c.name} value={c.name} />
+                          ))}
+                        </datalist>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Dates & Duration */}
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                      <Calendar className="h-4 w-4 text-[#0f2044]" />
-                      Timing
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="nearby">
+                        Also consider nearby cities
+                      </Label>
+                      <Input
+                        id="nearby"
+                        value={nearby}
+                        onChange={(e) => setNearby(e.target.value)}
+                        placeholder="Separate up to five cities with commas"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Cities must be in the selected state.
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="workplace">
+                        Workplace or hospital (optional)
+                      </Label>
+                      <Input
+                        id="workplace"
+                        value={workplace}
+                        onChange={(e) => setWorkplace(e.target.value)}
+                        maxLength={200}
+                      />
+                    </div>
+                  </fieldset>
+                  <fieldset className="space-y-4">
+                    <legend className="font-semibold flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Stay dates
+                    </legend>
+                    <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label htmlFor="move-in-date">Move-in Date *</Label>
+                        <Label htmlFor="move-in">Move-in</Label>
                         <Input
-                          id="move-in-date"
+                          id="move-in"
                           type="date"
-                          value={moveInDate}
-                          onChange={(e) => setMoveInDate(e.target.value)}
-                          min={new Date().toISOString().split("T")[0]}
+                          value={moveIn}
+                          min={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setMoveIn(e.target.value)}
                           required
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="duration">Duration *</Label>
-                        <Select value={duration} onValueChange={setDuration} required>
-                          <SelectTrigger id="duration">
-                            <SelectValue placeholder="How many months?" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                              <SelectItem key={n} value={String(n)}>
-                                {n} {n === 1 ? "month" : "months"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Budget & Bedrooms */}
-                  <div>
-                    <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                      <DollarSign className="h-4 w-4 text-[#0f2044]" />
-                      Budget &amp; Size
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="max-budget">Max Monthly Budget *</Label>
-                        <Select value={maxBudget} onValueChange={setMaxBudget} required>
-                          <SelectTrigger id="max-budget">
-                            <SelectValue placeholder="Select budget" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BUDGET_RANGES.map((b) => (
-                              <SelectItem key={b.value} value={b.value}>
-                                {b.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="bedrooms">Bedrooms *</Label>
-                        <Select value={bedrooms} onValueChange={setBedrooms} required>
-                          <SelectTrigger id="bedrooms">
-                            <SelectValue placeholder="How many bedrooms?" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BEDROOM_OPTIONS.map((b) => (
-                              <SelectItem key={b.value} value={b.value}>
-                                {b.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pet Friendly */}
-                  <div className="space-y-1.5">
-                    <Label>Pet Friendly</Label>
-                    <div className="flex items-center gap-3 mt-1">
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={petFriendly}
-                        onClick={() => setPetFriendly((v) => !v)}
-                        className={cn(
-                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                          petFriendly ? "bg-[#0f2044]" : "bg-slate-200"
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200",
-                            petFriendly ? "translate-x-5" : "translate-x-0"
-                          )}
+                        <Label htmlFor="move-out">Move-out</Label>
+                        <Input
+                          id="move-out"
+                          type="date"
+                          value={moveOut}
+                          min={moveIn}
+                          onChange={(e) => setMoveOut(e.target.value)}
+                          required
                         />
-                      </button>
-                      <span className="text-sm text-slate-600">
-                        {petFriendly ? "I have a pet — need pet-friendly housing" : "No pets"}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Description */}
+                    <p className="text-xs text-slate-500">
+                      Monthly stays of at least 30 days.
+                    </p>
+                  </fieldset>
+                  {kind === "agency" && (
+                    <fieldset className="space-y-4">
+                      <legend className="font-semibold">Travelers</legend>
+                      <p className="text-sm text-slate-600">
+                        Each traveler gets a separate request. Housing
+                        requirements below apply to all travelers; you can set
+                        individual dates and workplaces.
+                      </p>
+                      {travelers.map((t, index) => (
+                        <div
+                          key={index}
+                          className="rounded-lg border border-slate-200 p-4 space-y-3"
+                        >
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-medium">
+                              Traveler {index + 1}
+                            </h3>
+                            {travelers.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                aria-label={`Remove traveler ${index + 1}`}
+                                onClick={() => {
+                                  setTravelers((current) =>
+                                    current.filter((_, i) => i !== index),
+                                  );
+                                  setPreviewIndex(0);
+                                  setPreview(null);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <Label htmlFor={`traveler-${index}`}>Name</Label>
+                          <Input
+                            id={`traveler-${index}`}
+                            value={t.name}
+                            onChange={(e) =>
+                              updateTraveler(index, "name", e.target.value)
+                            }
+                            required
+                            maxLength={100}
+                          />
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor={`in-${index}`}>
+                                Move-in (optional override)
+                              </Label>
+                              <Input
+                                id={`in-${index}`}
+                                type="date"
+                                value={t.moveIn}
+                                onChange={(e) =>
+                                  updateTraveler(
+                                    index,
+                                    "moveIn",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`out-${index}`}>
+                                Move-out (optional override)
+                              </Label>
+                              <Input
+                                id={`out-${index}`}
+                                type="date"
+                                value={t.moveOut}
+                                onChange={(e) =>
+                                  updateTraveler(
+                                    index,
+                                    "moveOut",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                          <Label htmlFor={`work-${index}`}>
+                            Workplace (optional override)
+                          </Label>
+                          <Input
+                            id={`work-${index}`}
+                            value={t.workplace}
+                            onChange={(e) =>
+                              updateTraveler(index, "workplace", e.target.value)
+                            }
+                            maxLength={200}
+                          />
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={travelers.length >= 10}
+                        onClick={() => {
+                          setTravelers((current) => [
+                            ...current,
+                            {
+                              name: "",
+                              moveIn: "",
+                              moveOut: "",
+                              workplace: "",
+                            },
+                          ]);
+                          setPreview(null);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add traveler
+                      </Button>
+                    </fieldset>
+                  )}
+                  <fieldset className="space-y-4">
+                    <legend className="font-semibold">
+                      Housing requirements
+                    </legend>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="budget">Maximum monthly rent ($)</Label>
+                        <Input
+                          id="budget"
+                          type="number"
+                          min={1}
+                          max={1000000}
+                          value={budget}
+                          onChange={(e) => setBudget(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="bedrooms">Minimum bedrooms</Label>
+                        <Input
+                          id="bedrooms"
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={bedrooms}
+                          onChange={(e) => setBedrooms(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="occupants">Occupants per rental</Label>
+                        <Input
+                          id="occupants"
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={occupants}
+                          onChange={(e) => setOccupants(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="type">Property type</Label>
+                        <select
+                          id="type"
+                          className={selectStyle}
+                          value={type}
+                          onChange={(e) => setType(e.target.value)}
+                        >
+                          <option value="">Any type</option>
+                          {PROPERTY_TYPES.map((t) => (
+                            <option key={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {[
+                        {
+                          label: "Traveling with pets",
+                          checked: pets,
+                          set: setPets,
+                        },
+                        {
+                          label: "Utilities included",
+                          checked: utilities,
+                          set: setUtilities,
+                        },
+                        {
+                          label: "Parking included",
+                          checked: parking,
+                          set: setParking,
+                        },
+                      ].map(({ label, checked, set }) => (
+                        <label
+                          key={label}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => set(e.target.checked)}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-sm font-medium">Required amenities</p>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {AMENITIES.filter(
+                        (a) =>
+                          ![
+                            "Pet Friendly",
+                            "Parking",
+                            "Utilities Included",
+                          ].includes(a),
+                      ).map((a) => (
+                        <label
+                          key={a}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={amenities.includes(a)}
+                            onChange={(e) =>
+                              setAmenities((current) =>
+                                e.target.checked
+                                  ? [...current, a]
+                                  : current.filter((v) => v !== a),
+                              )
+                            }
+                          />
+                          {a}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <div className="space-y-1.5">
-                    <Label htmlFor="description">Tell Landlords About Yourself</Label>
+                    <Label htmlFor="description">
+                      Introduce yourself and describe your needs
+                    </Label>
                     <Textarea
                       id="description"
-                      placeholder="Share a bit about yourself, your work, your lifestyle, how long you've been renting, and anything else that might help landlords feel comfortable reaching out…"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
+                      maxLength={2000}
                       rows={5}
-                      className="resize-none"
                     />
-                    <p className="text-xs text-slate-400">
-                      Optional but highly recommended — requests with a description get 3× more responses.
+                    <p className="text-xs text-slate-500">
+                      Only owners with matching properties receive your request.
                     </p>
                   </div>
-
+                  <fieldset className="space-y-2">
+                    <legend className="font-semibold">
+                      How may matching owners contact you?
+                    </legend>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="contact"
+                        checked={contact === "platform"}
+                        onChange={() => setContact("platform")}
+                      />
+                      Platform messages only
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="contact"
+                        checked={contact === "phone"}
+                        disabled={!user?.phoneVerified}
+                        onChange={() => setContact("phone")}
+                      />
+                      Share my verified phone number
+                    </label>
+                    {!user?.phoneVerified && (
+                      <p className="text-xs text-slate-500">
+                        Phone sharing requires verification in{" "}
+                        <Link className="underline" href="/dashboard/profile">
+                          your profile
+                        </Link>
+                        .
+                      </p>
+                    )}
+                  </fieldset>
+                  {kind === "agency" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="preview-traveler">
+                        Preview matches for
+                      </Label>
+                      <select
+                        id="preview-traveler"
+                        className={selectStyle}
+                        value={previewIndex}
+                        onChange={(e) => {
+                          setPreviewIndex(Number(e.target.value));
+                          setPreview(null);
+                        }}
+                      >
+                        {travelers.map((t, i) => (
+                          <option key={i} value={i}>
+                            {t.name || `Traveler ${i + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" onClick={showPreview}>
+                    Preview matching properties
+                  </Button>
+                  {preview && (
+                    <MatchPreview
+                      key={JSON.stringify(preview)}
+                      criteria={preview}
+                    />
+                  )}
+                  <label className="flex items-start gap-2 text-sm">
+                    <input className="mt-1" type="checkbox" required />{" "}
+                    <span>
+                      I agree to the{" "}
+                      <Link href="/terms" className="underline">
+                        terms of use
+                      </Link>{" "}
+                      and to sharing this request with matching property owners.
+                    </span>
+                  </label>
+                  {error && (
+                    <p
+                      className="rounded-md bg-red-50 p-3 text-sm text-red-700"
+                      role="alert"
+                    >
+                      {error}
+                    </p>
+                  )}
                   <Button
-                    type="submit"
+                    className="w-full"
                     size="lg"
-                    disabled={isSubmitting || convexUser === undefined}
-                    className="w-full bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold"
+                    type="submit"
+                    disabled={busy || !user}
                   >
-                    {isSubmitting ? "Submitting…" : "Submit Housing Request"}
+                    {busy
+                      ? "Submitting…"
+                      : kind === "agency"
+                        ? "Submit traveler requests"
+                        : "Submit housing request"}
                   </Button>
                 </form>
               </CardContent>

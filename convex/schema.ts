@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { housingRequestFields } from "./validators/housing";
 
 export default defineSchema({
   users: defineTable({
@@ -42,6 +43,7 @@ export default defineSchema({
     price: v.number(),
     bedrooms: v.number(),
     bathrooms: v.number(),
+    maxOccupancy: v.optional(v.number()),
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),
@@ -192,22 +194,23 @@ export default defineSchema({
     processedAt: v.number(),
   }).index("by_source_event", ["source", "eventId"]),
 
-  housingRequests: defineTable({
-    userId: v.id("users"),
-    city: v.string(),
-    state: v.string(),
-    moveInDate: v.number(),
-    duration: v.number(),
-    maxBudget: v.number(),
-    bedrooms: v.number(),
-    petFriendly: v.boolean(),
-    description: v.string(),
-    status: v.union(v.literal("open"), v.literal("fulfilled"), v.literal("closed")),
-    createdAt: v.number(),
-  })
+  housingRequests: defineTable(housingRequestFields)
     .index("by_user", ["userId"])
     .index("by_city_state", ["city", "state"])
     .index("by_status", ["status"]),
+
+  housingRequestMatches: defineTable({
+    requestId: v.id("housingRequests"), listingId: v.id("listings"), landlordId: v.id("users"),
+    createdAt: v.number(), respondedAt: v.optional(v.number()), conversationId: v.optional(v.id("conversations")),
+  }).index("by_requestId_and_listingId", ["requestId", "listingId"])
+    .index("by_requestId_and_landlordId", ["requestId", "landlordId"]),
+
+  housingRequestDeliveries: defineTable({
+    requestId: v.id("housingRequests"), landlordId: v.id("users"), createdAt: v.number(),
+    readAt: v.optional(v.number()),
+    emailStatus: v.union(v.literal("queued"), v.literal("sent"), v.literal("unconfigured"), v.literal("failed")),
+  }).index("by_requestId_and_landlordId", ["requestId", "landlordId"])
+    .index("by_landlordId", ["landlordId"]),
 
   // Landlord availability calendar blocks
   availabilityBlocks: defineTable({

@@ -15,6 +15,7 @@ export const create = mutation({
     price: v.number(),
     bedrooms: v.number(),
     bathrooms: v.number(),
+    maxOccupancy: v.optional(v.number()),
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),
@@ -40,6 +41,7 @@ export const create = mutation({
     const landlord = await ctx.db.get(args.landlordId);
     if (!landlord) throw new Error(`Landlord ${args.landlordId} not found`);
 
+    if (args.maxOccupancy !== undefined && (!Number.isInteger(args.maxOccupancy) || args.maxOccupancy < 1 || args.maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
     return await ctx.db.insert("listings", {
       landlordId: args.landlordId,
       title: args.title,
@@ -51,6 +53,7 @@ export const create = mutation({
       price: args.price,
       bedrooms: args.bedrooms,
       bathrooms: args.bathrooms,
+      maxOccupancy: args.maxOccupancy,
       propertyType: args.propertyType,
       amenities: args.amenities,
       photos: args.photos,
@@ -78,6 +81,7 @@ export const update = mutation({
     price: v.optional(v.number()),
     bedrooms: v.optional(v.number()),
     bathrooms: v.optional(v.number()),
+    maxOccupancy: v.optional(v.union(v.number(), v.null())),
     propertyType: v.optional(v.string()),
     amenities: v.optional(v.array(v.string())),
     photos: v.optional(v.array(v.string())),
@@ -88,7 +92,8 @@ export const update = mutation({
     minStay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+    const { id, maxOccupancy, ...fields } = args;
+    if (maxOccupancy !== undefined && maxOccupancy !== null && (!Number.isInteger(maxOccupancy) || maxOccupancy < 1 || maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
@@ -109,7 +114,8 @@ export const update = mutation({
       Object.entries(fields).filter(([, val]) => val !== undefined)
     );
 
-    await ctx.db.patch(id, updates);
+    await ctx.db.patch(id, { ...updates, ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
+    await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: id, cursor: null });
     return await ctx.db.get(id);
   },
 });
@@ -133,6 +139,7 @@ export const publish = mutation({
     }
 
     await ctx.db.patch(args.id, { status: "active" });
+    await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: args.id, cursor: null });
 
     // Notify users whose saved searches match this listing
     await ctx.scheduler.runAfter(0, internal.emails.sendSavedSearchAlerts, {
@@ -344,6 +351,7 @@ export const approveListing = mutation({
     if (!landlord) throw new Error("Landlord not found");
 
     await ctx.db.patch(args.id, { status: "active" });
+    await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: args.id, cursor: null });
 
     await ctx.scheduler.runAfter(0, internal.emails.sendListingApprovedEmail, {
       toEmail: landlord.email,

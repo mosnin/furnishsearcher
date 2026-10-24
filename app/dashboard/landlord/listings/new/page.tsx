@@ -47,6 +47,7 @@ interface FormData {
   // Step 3
   bedrooms: number;
   bathrooms: number;
+  maxOccupancy: string;
   price: number;
   minStay: number;
   availableFrom: string;
@@ -79,6 +80,7 @@ const initialForm: FormData = {
   zip: "",
   bedrooms: 1,
   bathrooms: 1,
+  maxOccupancy: "",
   price: 0,
   minStay: 1,
   availableFrom: "",
@@ -209,6 +211,7 @@ export default function NewListingPage() {
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
+        maxOccupancy: form.maxOccupancy ? Number(form.maxOccupancy) : undefined,
         minStay: Number(form.minStay),
         availableFrom: new Date(form.availableFrom).getTime(),
         amenities: form.amenities,
@@ -402,6 +405,10 @@ export default function NewListingPage() {
                       onChange={(e) => update("price", Number(e.target.value))}
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxOccupancy">Maximum occupants (optional)</Label>
+                  <Input id="maxOccupancy" type="number" min={1} max={30} value={form.maxOccupancy} onChange={e => update("maxOccupancy", e.target.value)} placeholder="Not specified" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="minStay">Minimum Stay (months)</Label>
