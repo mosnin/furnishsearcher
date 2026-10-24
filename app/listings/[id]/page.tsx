@@ -39,6 +39,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { BookingInquiry } from "@/components/booking-inquiry";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
@@ -438,6 +439,8 @@ export default function ListingDetailPage({ params }: PageProps) {
                       )}
                     </div>
                   </div>
+
+                  <BookingInquiry listingId={listing._id} minStay={minStay} petFriendly={listing.petFriendly} />
 
                   {/* Contact button */}
                   <button

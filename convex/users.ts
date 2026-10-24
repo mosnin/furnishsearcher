@@ -9,6 +9,8 @@ export const getOrCreate = mutation({
     avatar: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) throw new Error("Not authorized");
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -39,6 +41,8 @@ export const getOrCreate = mutation({
 export const getByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.clerkId) return null;
     return await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -59,8 +63,9 @@ export const updateRole = mutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique();
-    if (!caller || caller.role !== "admin") {
-      throw new Error("Admin access required");
+    if (!caller || (caller.role !== "admin" &&
+      (caller._id !== args.userId || args.role === "admin"))) {
+      throw new Error("Not authorized to change this role");
     }
 
     const user = await ctx.db.get(args.userId);

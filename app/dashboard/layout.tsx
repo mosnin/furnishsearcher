@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LayoutDashboard,
+  CalendarDays,
   Heart,
   MessageSquare,
   User,
@@ -39,6 +40,7 @@ const tenantNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
   { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
   { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
+  { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
@@ -48,6 +50,7 @@ const landlordNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/landlord", icon: LayoutDashboard },
   { label: "My Listings", href: "/dashboard/landlord/listings", icon: Building2 },
   { label: "Add Listing", href: "/dashboard/landlord/listings/new", icon: PlusSquare },
+  { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
   { label: "Tenant Requests", href: "/dashboard/landlord/requests", icon: Users },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },

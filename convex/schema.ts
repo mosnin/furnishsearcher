@@ -221,6 +221,23 @@ export default defineSchema({
     .index("by_listing", ["listingId"])
     .index("by_listing_start", ["listingId", "startDate"]),
 
+  bookingInquiries: defineTable({
+    listingId: v.id("listings"),
+    tenantId: v.id("users"),
+    landlordId: v.id("users"),
+    moveIn: v.number(),
+    moveOut: v.number(),
+    occupants: v.number(),
+    pets: v.boolean(),
+    message: v.string(),
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("withdrawn")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    availabilityBlockId: v.optional(v.id("availabilityBlocks")),
+  }).index("by_tenantId", ["tenantId"])
+    .index("by_landlordId", ["landlordId"])
+    .index("by_listingId_and_status", ["listingId", "status"]),
+
   // Referral program
   referrals: defineTable({
     referrerId: v.id("users"),

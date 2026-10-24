@@ -15,17 +15,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const DATE_OPTIONS = [
-  { label: "Flexible", value: "flexible" },
-  { label: "This Month", value: "this-month" },
-  { label: "Next Month", value: "next-month" },
-  { label: "May 2026", value: "2026-05" },
-  { label: "June 2026", value: "2026-06" },
-  { label: "July 2026", value: "2026-07" },
-  { label: "August 2026", value: "2026-08" },
-  { label: "September 2026", value: "2026-09" },
-  { label: "October 2026", value: "2026-10" },
-];
+function dateOptions() {
+  const now = new Date();
+  return [
+    { label: "Flexible", value: "flexible" },
+    { label: "This Month", value: "this-month" },
+    { label: "Next Month", value: "next-month" },
+    ...Array.from({ length: 10 }, (_, i) => {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i + 2, 1));
+      return { label: date.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }), value: date.toISOString().slice(0, 7) };
+    }),
+  ];
+}
 
 interface SearchBarProps {
   className?: string;
@@ -41,6 +42,7 @@ export default function SearchBar({
   defaultBudget = "",
 }: SearchBarProps) {
   const router = useRouter();
+  const DATE_OPTIONS = React.useMemo(dateOptions, []);
   const [location, setLocation] = React.useState(defaultLocation);
   const [date, setDate] = React.useState(defaultDate);
   const [budget, setBudget] = React.useState(defaultBudget);

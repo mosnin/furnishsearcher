@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import LeafletMap from "@/components/leaflet-map";
 import { type MapListing } from "@/components/map-view";
 import { TOP_CITIES } from "@/lib/cities";
+import { searchDateRange } from "@/lib/stays";
 
 type SortOption = "price_asc" | "price_desc" | "newest" | "most_viewed";
 type ViewMode = "list" | "map" | "split";
@@ -71,6 +72,9 @@ function SearchPageInner() {
   const saveSearchMutation = useMutation(api.savedSearches.save);
 
   const rawListings = useQuery(api.listings.search, {
+    location: locationParam || undefined,
+    ...searchDateRange(dateParam),
+    utilitiesIncluded: utilitiesIncluded || undefined,
     city: cityParam || undefined,
     state: stateParam || undefined,
     maxPrice: maxPrice > 0 ? maxPrice : undefined,

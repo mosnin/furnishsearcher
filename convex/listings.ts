@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { isAvailable, validateStay } from "../lib/stays";
 
 export const create = mutation({
   args: {
@@ -209,6 +210,12 @@ export const getById = query({
 
 export const search = query({
   args: {
+    location: v.optional(v.string()),
+    moveIn: v.optional(v.number()),
+    moveOut: v.optional(v.number()),
+    parkingIncluded: v.optional(v.boolean()),
+    utilitiesIncluded: v.optional(v.boolean()),
+    amenities: v.optional(v.array(v.string())),
     city: v.optional(v.string()),
     state: v.optional(v.string()),
     maxPrice: v.optional(v.number()),
@@ -217,11 +224,17 @@ export const search = query({
     petFriendly: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    let listings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
+    let listings = await (args.city
+      ? ctx.db.query("listings").withIndex("by_status_city", q => q.eq("status", "active").eq("city", args.city!))
+      : ctx.db.query("listings").withIndex("by_status", q => q.eq("status", "active")))
+      .take(501);
 
+    if (listings.length === 501) throw new Error("Please narrow your search by city.");
+    if (args.location && !args.city) {
+      const terms = args.location.toLowerCase().split(/[ ,]+/).filter(Boolean);
+      listings = listings.filter(l => terms.every(term =>
+        `${l.city} ${l.state} ${l.zip} ${l.title}`.toLowerCase().includes(term)));
+    }
     if (args.city) {
       const cityLower = args.city.toLowerCase();
       listings = listings.filter((l) => l.city.toLowerCase().includes(cityLower));
@@ -244,6 +257,22 @@ export const search = query({
       listings = listings.filter((l) => l.petFriendly === args.petFriendly);
     }
 
+    if (args.parkingIncluded) listings = listings.filter(l => l.parkingIncluded);
+    if (args.utilitiesIncluded) listings = listings.filter(l => l.utilitiesIncluded);
+    if (args.amenities?.length) listings = listings.filter(l => args.amenities!.every(a => l.amenities.includes(a)));
+    if (args.moveIn !== undefined || args.moveOut !== undefined) {
+      if (args.moveIn === undefined || args.moveOut === undefined) throw new Error("Select both stay dates.");
+      const start = args.moveIn, end = args.moveOut;
+      validateStay(start, end);
+      const availability = await Promise.all(listings.map(async listing => {
+        if (!isAvailable(listing, [], start, end)) return false;
+        const conflict = await ctx.db.query("availabilityBlocks")
+          .withIndex("by_listing_start", q => q.eq("listingId", listing._id).lt("startDate", end))
+          .filter(q => q.gt(q.field("endDate"), start)).first();
+        return conflict === null;
+      }));
+      listings = listings.filter((_, index) => availability[index]);
+    }
     const now = Date.now();
     listings.sort((a, b) => {
       const aFeat = a.featured && a.featuredUntil && a.featuredUntil > now ? 1 : 0;
