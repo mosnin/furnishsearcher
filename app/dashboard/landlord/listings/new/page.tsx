@@ -34,7 +34,11 @@ import {
 } from "lucide-react";
 import { PhotoUpload } from "@/components/photo-upload";
 
+import { ListingDetailsEditor } from "@/components/listing-details-editor";
+import { emptyListingDetails, validateListingDetails, type ListingDetails } from "@/lib/listing-details";
+
 interface FormData {
+  details: ListingDetails;
   // Step 1
   title: string;
   propertyType: string;
@@ -71,6 +75,7 @@ const STEPS = [
 const BATHROOM_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 
 const initialForm: FormData = {
+  details: emptyListingDetails(),
   title: "",
   propertyType: "",
   description: "",
@@ -208,6 +213,7 @@ export default function NewListingPage() {
         city: form.city.trim(),
         state: form.state.trim(),
         zip: form.zip.trim(),
+        details: validateListingDetails(form.details),
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
@@ -223,7 +229,7 @@ export default function NewListingPage() {
       toast.success("Listing created! It will be reviewed shortly.");
       router.push("/dashboard/landlord");
     } catch (err) {
-      toast.error("Failed to create listing. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to create listing. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -438,6 +444,7 @@ export default function NewListingPage() {
                   onChange={(e) => update("availableFrom", e.target.value)}
                 />
               </div>
+              <ListingDetailsEditor value={form.details} onChange={details => update("details", details)} />
             </div>
           )}
 

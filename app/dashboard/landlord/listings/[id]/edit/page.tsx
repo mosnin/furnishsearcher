@@ -36,7 +36,11 @@ import {
 } from "lucide-react";
 import { PhotoUpload } from "@/components/photo-upload";
 
+import { ListingDetailsEditor } from "@/components/listing-details-editor";
+import { emptyListingDetails, validateListingDetails, type ListingDetails } from "@/lib/listing-details";
+
 interface FormData {
+  details: ListingDetails;
   title: string;
   propertyType: string;
   description: string;
@@ -140,11 +144,12 @@ export default function EditListingPage() {
   useEffect(() => {
     if (listing && !form) {
       const availableDate = new Date(listing.availableFrom);
-      const yyyy = availableDate.getFullYear();
-      const mm = String(availableDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(availableDate.getDate()).padStart(2, "0");
+      const yyyy = availableDate.getUTCFullYear();
+      const mm = String(availableDate.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(availableDate.getUTCDate()).padStart(2, "0");
 
       setForm({
+        details: listing.details ?? emptyListingDetails(),
         title: listing.title,
         propertyType: listing.propertyType,
         description: listing.description,
@@ -225,6 +230,7 @@ export default function EditListingPage() {
         city: form.city.trim(),
         state: form.state.trim(),
         zip: form.zip.trim(),
+        details: validateListingDetails(form.details),
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
@@ -240,7 +246,7 @@ export default function EditListingPage() {
       toast.success("Listing updated successfully!");
       router.push("/dashboard/landlord/listings");
     } catch (err) {
-      toast.error("Failed to update listing. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to update listing. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -483,6 +489,7 @@ export default function EditListingPage() {
                   onChange={(e) => update("availableFrom", e.target.value)}
                 />
               </div>
+              <ListingDetailsEditor value={form.details} onChange={details => update("details", details)} />
             </div>
           )}
 

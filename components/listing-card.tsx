@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Bed, Bath, Calendar, PawPrint, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatPrice, formatDate } from "@/lib/utils";
+import { cn, formatPrice, formatStayDate } from "@/lib/utils";
 
 export interface ListingCardData {
   _id: string;
@@ -120,7 +120,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-auto pt-1">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span>
-            Avail. {formatDate(listing.availableFrom)} &bull; {listing.minStay}+ mo
+            Avail. {formatStayDate(listing.availableFrom)} &bull; {listing.minStay}+ mo
           </span>
         </div>
       </div>

@@ -18,6 +18,7 @@ interface AvailabilityCalendarProps {
   onRemoveBlock?: (id: string) => void;
   editable?: boolean;
   syncThrough?: number;
+  availableFrom?: number;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -63,6 +64,7 @@ export function AvailabilityCalendar({
   onRemoveBlock,
   editable = false,
   syncThrough,
+  availableFrom,
 }: AvailabilityCalendarProps) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getUTCFullYear());
@@ -126,13 +128,13 @@ export function AvailabilityCalendar({
     <div className="select-none">
       {/* Month nav */}
       <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" size="icon" onClick={prevMonth}>
+        <Button variant="ghost" size="icon" aria-label="Previous month" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="font-semibold text-slate-800">
           {MONTHS[viewMonth]} {viewYear}
         </span>
-        <Button variant="ghost" size="icon" onClick={nextMonth}>
+        <Button variant="ghost" size="icon" aria-label="Next month" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -161,6 +163,7 @@ export function AvailabilityCalendar({
             today.getUTCDate(),
           );
           const isPast = cell.ts < todayTs;
+          const beforeStart = availableFrom !== undefined && cell.ts < availableFrom;
           const unconfirmed =
             syncThrough !== undefined && cell.ts + 86400000 > syncThrough;
           const isSelected =
@@ -170,13 +173,13 @@ export function AvailabilityCalendar({
           return (
             <button
               key={cell.day}
-              aria-label={`${MONTHS[viewMonth]} ${cell.day}, ${viewYear}: ${block ? block.type : unconfirmed ? "availability not confirmed" : "available"}`}
+              aria-label={`${MONTHS[viewMonth]} ${cell.day}, ${viewYear}: ${isPast ? "past date" : beforeStart ? "unavailable" : block ? block.type : unconfirmed ? "availability not confirmed" : "available"}`}
               onClick={() => handleDayClick(cell.day)}
               disabled={isPast && editable}
               className={cn(
                 "h-9 w-full rounded text-sm font-medium transition-colors",
-                (isPast || unconfirmed) && "text-slate-400 cursor-default",
-                !isPast && !unconfirmed && "text-slate-700 hover:bg-slate-100",
+                (isPast || beforeStart || unconfirmed) && "text-slate-400 cursor-default",
+                !isPast && !beforeStart && !unconfirmed && "text-slate-700 hover:bg-slate-100",
                 block?.type === "unavailable" &&
                   "bg-red-100 text-red-700 hover:bg-red-200",
                 block?.type === "booked" &&

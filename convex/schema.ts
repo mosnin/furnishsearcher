@@ -6,6 +6,8 @@ import { messageFields, conversationFields, templateFields } from "./validators/
 import { searchFields, searchDeliveryStatus } from "./validators/search";
 import { calendarFeedFields } from "./validators/calendars";
 
+import { listingDetails } from "./validators/listingDetails";
+
 export default defineSchema({
   counters: defineTable({ name: v.string(), value: v.number() }).index("by_name", ["name"]),
   dataMigrations: defineTable({ name: v.string(), cursor: v.union(v.string(), v.null()), complete: v.boolean() }).index("by_name", ["name"]),
@@ -67,6 +69,7 @@ export default defineSchema({
     bedrooms: v.number(),
     bathrooms: v.number(),
     maxOccupancy: v.optional(v.number()),
+    details: v.optional(listingDetails),
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),

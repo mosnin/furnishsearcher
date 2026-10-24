@@ -45,6 +45,7 @@ import type * as syncCalendars from "../syncCalendars.js";
 import type * as users from "../users.js";
 import type * as validators_calendars from "../validators/calendars.js";
 import type * as validators_housing from "../validators/housing.js";
+import type * as validators_listingDetails from "../validators/listingDetails.js";
 import type * as validators_messaging from "../validators/messaging.js";
 import type * as validators_search from "../validators/search.js";
 import type * as validators_support from "../validators/support.js";
@@ -93,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   "validators/calendars": typeof validators_calendars;
   "validators/housing": typeof validators_housing;
+  "validators/listingDetails": typeof validators_listingDetails;
   "validators/messaging": typeof validators_messaging;
   "validators/search": typeof validators_search;
   "validators/support": typeof validators_support;

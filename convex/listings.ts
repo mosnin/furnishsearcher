@@ -6,6 +6,9 @@ import { nextListingId } from "./lib/listingIds";
 import { normalizeCity, normalizeState } from "../lib/locations";
 import { removeFeed } from "./lib/calendarFeeds";
 
+import { listingDetails } from "./validators/listingDetails";
+import { validateListingDetails } from "../lib/listing-details";
+
 export const create = mutation({
   args: {
     landlordId: v.id("users"),
@@ -19,6 +22,7 @@ export const create = mutation({
     bedrooms: v.number(),
     bathrooms: v.number(),
     maxOccupancy: v.optional(v.number()),
+    details: v.optional(listingDetails),
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),
@@ -58,6 +62,7 @@ export const create = mutation({
       bedrooms: args.bedrooms,
       bathrooms: args.bathrooms,
       maxOccupancy: args.maxOccupancy,
+      ...(args.details ? { details: validateListingDetails(args.details) } : {}),
       propertyType: args.propertyType,
       amenities: args.amenities,
       photos: args.photos,
@@ -76,6 +81,7 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("listings"),
+    details: v.optional(listingDetails),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     city: v.optional(v.string()),
@@ -96,7 +102,7 @@ export const update = mutation({
     minStay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { id, maxOccupancy, ...fields } = args;
+    const { id, maxOccupancy, details, ...fields } = args;
     if (maxOccupancy !== undefined && maxOccupancy !== null && (!Number.isInteger(maxOccupancy) || maxOccupancy < 1 || maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
 
     const identity = await ctx.auth.getUserIdentity();
@@ -118,7 +124,7 @@ export const update = mutation({
       Object.entries(fields).filter(([, val]) => val !== undefined)
     );
 
-    await ctx.db.patch(id, { ...updates, ...(args.city !== undefined ? { searchCity: normalizeCity(args.city) } : {}), ...(args.state !== undefined ? { searchState: normalizeState(args.state) } : {}), ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
+    await ctx.db.patch(id, { ...updates, ...(details ? { details: validateListingDetails(details) } : {}), ...(args.city !== undefined ? { searchCity: normalizeCity(args.city) } : {}), ...(args.state !== undefined ? { searchState: normalizeState(args.state) } : {}), ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: id, cursor: null });
     return await ctx.db.get(id);
   },

@@ -187,7 +187,62 @@ const byId = run("search:listings", {
   paginationOpts: { cursor: null, numItems: 24 },
 });
 assert.equal(byId.page[0]._id, flexible.page[0]._id);
+const detailId = flexible.page[0]._id;
+const details = {
+  rooms: [{ name: "Bedroom 1", beds: "One queen bed" }],
+  bathroomDetails: [{ name: "Bathroom 1", description: "Private full bath" }],
+  fees: [
+    {
+      name: "Security deposit",
+      amount: 500.25,
+      refundable: true,
+      frequency: "once",
+    },
+    { name: "Pet rent", amount: 25, refundable: false, frequency: "monthly" },
+  ],
+  smoking: "prohibited",
+  maxVehicles: 0,
+  rules: "Synthetic QA: quiet hours after 10 PM.",
+  facilities: [{ name: "Synthetic QA hospital", miles: 1.2 }],
+};
+run("listings:update", { id: detailId, details }, ownerSubject);
+assert.deepEqual(run("listings:getById", { id: detailId }).details, details);
+assert.throws(
+  () => run("listings:update", { id: detailId, details }, tenantSubject),
+  /Not authorized/,
+);
+assert.throws(
+  () =>
+    run(
+      "listings:update",
+      {
+        id: detailId,
+        details: { ...details, fees: [{ ...details.fees[0], amount: -1 }] },
+      },
+      ownerSubject,
+    ),
+  /Fee amounts/,
+);
+run(
+  "listings:update",
+  {
+    id: detailId,
+    details: {
+      rooms: [],
+      fees: [],
+      smoking: "unspecified",
+      rules: "",
+      facilities: [],
+    },
+  },
+  ownerSubject,
+);
+assert.equal(run("listings:getById", { id: detailId }).details.fees.length, 0);
+run("listings:update", { id: detailId, details }, ownerSubject);
 const receipt = {
+  listingDetailsPersistedAndCleared: true,
+  unrelatedDetailsWriteRejected: true,
+  invalidFeesRejected: true,
   checkedAt: new Date().toISOString(),
   target: url,
   hosted: false,

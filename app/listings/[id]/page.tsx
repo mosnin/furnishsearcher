@@ -1,5 +1,6 @@
 "use client";
 
+import { ListingDetails } from "@/components/listing-details";
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,7 +49,7 @@ import { ReviewCard } from "@/components/review-card";
 import { ReviewForm } from "@/components/review-form";
 import { LandlordBadges } from "@/components/landlord-badges";
 import { AvailabilityCalendar } from "@/components/availability-calendar";
-import { cn, formatPrice, formatDate } from "@/lib/utils";
+import { cn, formatPrice, formatStayDate } from "@/lib/utils";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
   WiFi: Wifi,
@@ -322,7 +323,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               <KeyDetail
                 icon={<Calendar className="h-5 w-5" />}
                 label="Available"
-                value={formatDate(availableFrom)}
+                value={formatStayDate(availableFrom)}
               />
               {petFriendly && (
                 <KeyDetail
@@ -350,6 +351,9 @@ export default function ListingDetailPage({ params }: PageProps) {
                 {description}
               </p>
             </section>
+
+            <Separator />
+            <ListingDetails details={listing.details} maxOccupancy={listing.maxOccupancy} petFriendly={petFriendly} />
 
             {/* Amenities */}
             {amenities && amenities.length > 0 && (
@@ -383,7 +387,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
                   <p className="text-[14px] font-medium text-slate-900">
-                    {listing.calendarSyncThrough === 0 ? "Waiting for calendar availability confirmation" : `Available from ${formatDate(availableFrom)}`}
+                    {listing.calendarSyncThrough === 0 ? "Waiting for calendar availability confirmation" : `Available from ${formatStayDate(availableFrom)}`}
                   </p>
                   <p className="text-[12px] text-slate-500">
                     Minimum stay: {minStay} month{minStay === 1 ? "" : "s"}
@@ -395,6 +399,7 @@ export default function ListingDetailPage({ params }: PageProps) {
               ) : availabilityBlocks.length > 0 || listing.calendarSyncThrough !== undefined ? (
                 <AvailabilityCalendar
                   blocks={availabilityBlocks}
+                  availableFrom={listing.availableFrom}
                   syncThrough={listing.calendarSyncThrough}
                   editable={false}
                 />
@@ -491,7 +496,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-slate-500">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span>Verified listing on FurnishFinder</span>
+                      <span>Owner-supplied property details</span>
                     </div>
                   </div>
               </div>

@@ -1,5 +1,8 @@
 {
-  "checkedAt": "2026-10-24T22:23:48.518Z",
+  "listingDetailsPersistedAndCleared": true,
+  "unrelatedDetailsWriteRejected": true,
+  "invalidFeesRejected": true,
+  "checkedAt": "2026-10-24T22:30:02.775Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "authentication": "Privileged CLI development identities; not a Clerk browser/JWT acceptance test",
