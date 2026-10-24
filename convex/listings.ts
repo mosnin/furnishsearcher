@@ -9,6 +9,9 @@ import { removeFeed } from "./lib/calendarFeeds";
 import { listingDetails } from "./validators/listingDetails";
 import { validateListingDetails } from "../lib/listing-details";
 
+import { photoAsset } from "./validators/photos";
+import { listingPhotos, validatePhotoAssets } from "./lib/photos";
+
 export const create = mutation({
   args: {
     landlordId: v.id("users"),
@@ -26,6 +29,7 @@ export const create = mutation({
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),
+    photoAssets: v.optional(v.array(photoAsset)),
     petFriendly: v.boolean(),
     utilitiesIncluded: v.boolean(),
     parkingIncluded: v.boolean(),
@@ -49,6 +53,8 @@ export const create = mutation({
     if (!landlord) throw new Error(`Landlord ${args.landlordId} not found`);
 
     if (args.maxOccupancy !== undefined && (!Number.isInteger(args.maxOccupancy) || args.maxOccupancy < 1 || args.maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
+    if (args.photos.length) throw new Error("Upload new photos using the photo editor.");
+    const photoAssets = args.photoAssets ? await validatePhotoAssets(ctx, args.landlordId, args.photoAssets, []) : undefined;
     return await ctx.db.insert("listings", {
       publicId: await nextListingId(ctx), searchCity: normalizeCity(args.city), searchState: normalizeState(args.state),
       landlordId: args.landlordId,
@@ -65,7 +71,8 @@ export const create = mutation({
       ...(args.details ? { details: validateListingDetails(args.details) } : {}),
       propertyType: args.propertyType,
       amenities: args.amenities,
-      photos: args.photos,
+      photos: [],
+      ...(photoAssets ? { photoAssets } : {}),
       petFriendly: args.petFriendly,
       utilitiesIncluded: args.utilitiesIncluded,
       parkingIncluded: args.parkingIncluded,
@@ -95,6 +102,7 @@ export const update = mutation({
     propertyType: v.optional(v.string()),
     amenities: v.optional(v.array(v.string())),
     photos: v.optional(v.array(v.string())),
+    photoAssets: v.optional(v.array(photoAsset)),
     petFriendly: v.optional(v.boolean()),
     utilitiesIncluded: v.optional(v.boolean()),
     parkingIncluded: v.optional(v.boolean()),
@@ -102,7 +110,7 @@ export const update = mutation({
     minStay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { id, maxOccupancy, details, ...fields } = args;
+    const { id, maxOccupancy, details, photoAssets, photos, ...fields } = args;
     if (maxOccupancy !== undefined && maxOccupancy !== null && (!Number.isInteger(maxOccupancy) || maxOccupancy < 1 || maxOccupancy > 30)) throw new Error("Maximum occupancy must be 1–30.");
 
     const identity = await ctx.auth.getUserIdentity();
@@ -120,11 +128,13 @@ export const update = mutation({
       throw new Error("Not authorized to edit this listing");
     }
 
+    const assets = photoAssets ? await validatePhotoAssets(ctx, listing.landlordId, photoAssets, [...listing.photos, ...(listing.photoAssets ?? []).flatMap(a => a.legacyUrl ? [a.legacyUrl] : [])]) : undefined;
+    if (photos && !assets && (photos.length > 30 || photos.some(url => !listing.photos.includes(url)))) throw new Error("Upload new photos using the photo editor.");
     const updates = Object.fromEntries(
       Object.entries(fields).filter(([, val]) => val !== undefined)
     );
 
-    await ctx.db.patch(id, { ...updates, ...(details ? { details: validateListingDetails(details) } : {}), ...(args.city !== undefined ? { searchCity: normalizeCity(args.city) } : {}), ...(args.state !== undefined ? { searchState: normalizeState(args.state) } : {}), ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
+    await ctx.db.patch(id, { ...updates, ...(assets ? { photoAssets: assets, photos: [] } : photos ? { photos, photoAssets: undefined } : {}), ...(details ? { details: validateListingDetails(details) } : {}), ...(args.city !== undefined ? { searchCity: normalizeCity(args.city) } : {}), ...(args.state !== undefined ? { searchState: normalizeState(args.state) } : {}), ...(maxOccupancy !== undefined ? { maxOccupancy: maxOccupancy ?? undefined } : {}) });
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, { listingId: id, cursor: null });
     return await ctx.db.get(id);
   },
@@ -230,7 +240,7 @@ export const getById = query({
       if (!caller || (caller._id !== listing.landlordId && caller.role !== "admin")) return null;
     }
     const landlord = await ctx.db.get(listing.landlordId);
-    return { ...listing, landlord: landlord ? { _id: landlord._id, name: landlord.name, avatar: landlord.avatar, createdAt: landlord.createdAt } : null };
+    return { ...await listingPhotos(ctx, listing), landlord: landlord ? { _id: landlord._id, name: landlord.name, avatar: landlord.avatar, createdAt: landlord.createdAt } : null };
   },
 });
 
@@ -307,7 +317,7 @@ export const search = query({
       return b.createdAt - a.createdAt;
     });
 
-    return listings;
+    return Promise.all(listings.map(listing => listingPhotos(ctx, listing)));
   },
 });
 
@@ -322,7 +332,7 @@ export const getByLandlord = query({
       : ctx.db.query("listings").withIndex("by_landlord_status", q => q.eq("landlordId", args.landlordId).eq("status", "active")).filter(q => q.neq(q.field("moderationHold"), true)))
       .collect();
     listings.sort((a, b) => b.createdAt - a.createdAt);
-    return listings;
+    return Promise.all(listings.map(listing => listingPhotos(ctx, listing)));
   },
 });
 
@@ -334,14 +344,14 @@ export const getFeatured = query({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
-    if (activeListings.length <= 6) return activeListings;
+    if (activeListings.length <= 6) return Promise.all(activeListings.filter(l => !l.moderationHold).map(l => listingPhotos(ctx, l)));
 
     const shuffled = [...activeListings];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return shuffled.slice(0, 6);
+    return Promise.all(shuffled.filter(l => !l.moderationHold).slice(0, 6).map(l => listingPhotos(ctx, l)));
   },
 });
 
@@ -439,6 +449,6 @@ export const getAll = query({
 
     const listings = await ctx.db.query("listings").collect();
     listings.sort((a, b) => b.createdAt - a.createdAt);
-    return listings;
+    return Promise.all(listings.map(listing => listingPhotos(ctx, listing)));
   },
 });

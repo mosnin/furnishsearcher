@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 
 interface PhotoGalleryProps {
   photos: string[];
+  captions?: string[];
   title: string;
   className?: string;
 }
 
-export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
+export function PhotoGallery({ photos, captions = [], title, className }: PhotoGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -76,8 +77,9 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
             aria-label={`View photo 1 of ${totalPhotos}`}
           >
             <Image
+              unoptimized={mainPhoto!.startsWith("http://")}
               src={mainPhoto!}
-              alt={`${title} – main photo`}
+              alt={captions[0] || `${title} – main photo`}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -100,8 +102,9 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
                 aria-label={`View photo ${photoIndex + 1} of ${totalPhotos}`}
               >
                 <Image
+                  unoptimized={photo.startsWith("http://")}
                   src={photo}
-                  alt={`${title} – photo ${photoIndex + 1}`}
+                  alt={captions[photoIndex] || `${title} – photo ${photoIndex + 1}`}
                   fill
                   sizes="25vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -179,8 +182,9 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
           {/* Image */}
           <div className="relative w-full max-w-5xl max-h-[85vh] mx-16 aspect-video">
             <Image
+              unoptimized={photos[lightboxIndex].startsWith("http://")}
               src={photos[lightboxIndex]}
-              alt={`${title} – photo ${lightboxIndex + 1}`}
+              alt={captions[lightboxIndex] || `${title} – photo ${lightboxIndex + 1}`}
               fill
               sizes="100vw"
               className="object-contain"
@@ -199,6 +203,7 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
             </button>
           )}
 
+          {captions[lightboxIndex] && <p className="absolute bottom-24 left-4 right-4 text-center text-sm text-white">{captions[lightboxIndex]}</p>}
           {/* Thumbnail strip */}
           {totalPhotos > 1 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4">
@@ -215,7 +220,8 @@ export function PhotoGallery({ photos, title, className }: PhotoGalleryProps) {
                   aria-label={`Go to photo ${i + 1}`}
                 >
                   <Image
-                    src={photo}
+                    unoptimized={photo.startsWith("http://")}
+                  src={photo}
                     alt={`Thumbnail ${i + 1}`}
                     fill
                     sizes="64px"

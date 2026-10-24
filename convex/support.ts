@@ -1,3 +1,4 @@
+import { listingPhotos } from "./lib/photos";
 import {
   paginationOptsValidator,
   paginationResultValidator,
@@ -178,7 +179,7 @@ export const report = mutation({
         city: listing.city,
         state: listing.state,
         price: listing.price,
-        photos: listing.photos.slice(0, 20).map((url) => url.slice(0, 2048)),
+        photos: (await listingPhotos(ctx, listing)).photos.slice(0, 30).map((url) => url.slice(0, 2048)),
       });
     }
     const previous = args.messageId

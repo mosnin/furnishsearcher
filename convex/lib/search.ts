@@ -6,6 +6,7 @@ import {
   type SearchFilters,
 } from "../../lib/search";
 import { DAY } from "../../lib/stays";
+import { listingPhotos } from "./photos";
 export async function matchSearch(
   ctx: QueryCtx | MutationCtx,
   listing: Doc<"listings">,
@@ -52,7 +53,7 @@ export async function matchSearch(
     bedrooms: listing.bedrooms,
     bathrooms: listing.bathrooms,
     propertyType: listing.propertyType,
-    photos: listing.photos.slice(0, 5),
+    photos: (await listingPhotos(ctx, listing)).photos.slice(0, 5),
     amenities: listing.amenities,
     petFriendly: listing.petFriendly,
     utilitiesIncluded: listing.utilitiesIncluded,

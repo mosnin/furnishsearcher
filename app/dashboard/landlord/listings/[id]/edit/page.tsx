@@ -34,7 +34,8 @@ import {
   Star,
   ImageIcon,
 } from "lucide-react";
-import { PhotoUpload } from "@/components/photo-upload";
+import { ListingPhotoEditor } from "@/components/listing-photo-editor";
+import { photoAssetsFromDrafts, type PhotoDraft } from "@/lib/photos";
 
 import { ListingDetailsEditor } from "@/components/listing-details-editor";
 import { emptyListingDetails, validateListingDetails, type ListingDetails } from "@/lib/listing-details";
@@ -58,7 +59,7 @@ interface FormData {
   petFriendly: boolean;
   utilitiesIncluded: boolean;
   parkingIncluded: boolean;
-  photos: string[];
+  photos: PhotoDraft[];
 }
 
 const STEPS = [
@@ -127,6 +128,7 @@ export default function EditListingPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const convexUser = useQuery(
     api.users.getByClerkId,
@@ -167,7 +169,7 @@ export default function EditListingPage() {
         petFriendly: listing.petFriendly,
         utilitiesIncluded: listing.utilitiesIncluded,
         parkingIncluded: listing.parkingIncluded,
-        photos: listing.photos.length > 0 ? listing.photos : [""],
+        photos: listing.photoDrafts,
       });
     }
   }, [listing, form]);
@@ -220,7 +222,7 @@ export default function EditListingPage() {
     if (!form) return;
     setSubmitting(true);
     try {
-      const cleanPhotos = form.photos.filter((p) => p.trim() !== "");
+      const photoAssets = photoAssetsFromDrafts(form.photos);
       await updateMutation({
         id: listingId as Id<"listings">,
         title: form.title.trim(),
@@ -241,7 +243,8 @@ export default function EditListingPage() {
         petFriendly: form.petFriendly,
         utilitiesIncluded: form.utilitiesIncluded,
         parkingIncluded: form.parkingIncluded,
-        photos: cleanPhotos,
+        photos: [],
+        photoAssets,
       });
       toast.success("Listing updated successfully!");
       router.push("/dashboard/landlord/listings");
@@ -555,29 +558,7 @@ export default function EditListingPage() {
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Photos</CardTitle>
               </CardHeader>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <PhotoUpload
-                    key={index}
-                    variant="listing"
-                    currentUrl={form.photos[index] || undefined}
-                    label={index === 0 ? "Cover photo" : `Photo ${index + 1}`}
-                    onUpload={(url) => {
-                      setForm((prev) => {
-                        if (!prev) return prev;
-                        const photos = [...prev.photos];
-                        // Grow array if needed
-                        while (photos.length <= index) photos.push("");
-                        photos[index] = url;
-                        return { ...prev, photos };
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-slate-400">
-                Up to 10 photos. The first photo will be used as the cover image.
-              </p>
+              <ListingPhotoEditor photos={form.photos} onChange={photos => update("photos", photos)} busy={photoBusy} onBusyChange={setPhotoBusy} />
             </div>
           )}
         </CardContent>
@@ -585,7 +566,7 @@ export default function EditListingPage() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between mt-6">
-        <Button variant="outline" onClick={prevStep} disabled={step === 1}>
+        <Button variant="outline" onClick={prevStep} disabled={step === 1 || photoBusy}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
@@ -595,7 +576,7 @@ export default function EditListingPage() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button onClick={handleSubmit} disabled={submitting || photoBusy}>
             {submitting ? "Saving…" : "Save Changes"}
           </Button>
         )}

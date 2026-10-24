@@ -25,6 +25,7 @@ import type * as lib_housing from "../lib/housing.js";
 import type * as lib_listingIds from "../lib/listingIds.js";
 import type * as lib_messageAccess from "../lib/messageAccess.js";
 import type * as lib_messaging from "../lib/messaging.js";
+import type * as lib_photos from "../lib/photos.js";
 import type * as lib_search from "../lib/search.js";
 import type * as listings from "../listings.js";
 import type * as messageEmails from "../messageEmails.js";
@@ -47,6 +48,7 @@ import type * as validators_calendars from "../validators/calendars.js";
 import type * as validators_housing from "../validators/housing.js";
 import type * as validators_listingDetails from "../validators/listingDetails.js";
 import type * as validators_messaging from "../validators/messaging.js";
+import type * as validators_photos from "../validators/photos.js";
 import type * as validators_search from "../validators/search.js";
 import type * as validators_support from "../validators/support.js";
 
@@ -74,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "lib/listingIds": typeof lib_listingIds;
   "lib/messageAccess": typeof lib_messageAccess;
   "lib/messaging": typeof lib_messaging;
+  "lib/photos": typeof lib_photos;
   "lib/search": typeof lib_search;
   listings: typeof listings;
   messageEmails: typeof messageEmails;
@@ -96,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   "validators/housing": typeof validators_housing;
   "validators/listingDetails": typeof validators_listingDetails;
   "validators/messaging": typeof validators_messaging;
+  "validators/photos": typeof validators_photos;
   "validators/search": typeof validators_search;
   "validators/support": typeof validators_support;
 }>;

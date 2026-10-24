@@ -1,3 +1,4 @@
+import { listingPhotos } from "./lib/photos";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -114,7 +115,7 @@ export const getSaved = query({
     const enriched = await Promise.all(
       saved.map(async (entry) => {
         const listing = await ctx.db.get(entry.listingId);
-        return { ...entry, listing: listing ?? null };
+        return { ...entry, listing: listing ? await listingPhotos(ctx, listing) : null };
       })
     );
 

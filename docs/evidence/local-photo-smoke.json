@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-24T22:43:26.020Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "authentication": "Privileged local development identities via the SDK's admin auth format, not a real Clerk browser/JWT session",
+  "listingId": "k976qqsxcmrs93kjzm1g132q4h8gxzx1",
+  "storageIds": [
+    "kg2ec7q2pdmemn488x5c7rtb5n8gwxbh",
+    "kg25gym4hv7p8yn2mwjy0hj7k58gw11p"
+  ],
+  "photos": [
+    "http://127.0.0.1:3210/api/storage/39321976-781e-4484-a0c4-582ba970eef0",
+    "http://127.0.0.1:3210/api/storage/1d180d5f-c5cc-46a5-9f5e-c8acfe4cb3e9"
+  ],
+  "exactStoredBytesVerified": true,
+  "orderAndCaptionPersisted": true,
+  "unrelatedPrivateLookupRejected": true,
+  "anonymousUploadRejected": true,
+  "invalidImageRejected": true,
+  "realCustomerDataChanged": false
+}

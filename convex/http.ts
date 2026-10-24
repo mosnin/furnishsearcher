@@ -3,6 +3,8 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
+import { uploadPhoto, uploadOptions } from "./files";
+
 type CreemWebhookEvent = {
   id: string;
   type: string;
@@ -222,6 +224,8 @@ const handleCreemWebhook = httpAction(async (ctx, request) => {
 });
 
 const http = httpRouter();
+http.route({ path: "/photos/upload", method: "POST", handler: uploadPhoto });
+http.route({ path: "/photos/upload", method: "OPTIONS", handler: uploadOptions });
 
 http.route({
   path: "/webhooks/creem",

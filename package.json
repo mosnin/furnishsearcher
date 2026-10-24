@@ -10,7 +10,8 @@
     "convex:dev": "convex dev",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:local-search": "node scripts/local-search-smoke.mjs"
+    "test:local-search": "node scripts/local-search-smoke.mjs",
+    "test:local-photos": "node scripts/local-photo-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

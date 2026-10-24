@@ -1,6 +1,7 @@
 import type { Id, Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireUser } from "./auth";
+import { listingPhotos } from "./photos";
 type Ctx = QueryCtx | MutationCtx;
 export function conversationKey(a: string, b: string, listing: string) {
   return [a, b].sort().join("_") + "_" + listing;
@@ -85,7 +86,7 @@ export async function enrichConversation(
       ? {
           _id: listing._id,
           title: listing.title,
-          photos: listing.photos.slice(0, 1),
+          photos: (await listingPhotos(ctx, listing)).photos.slice(0, 1),
         }
       : null,
     otherUser: other

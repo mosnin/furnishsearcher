@@ -32,7 +32,8 @@ import {
   Star,
   ImageIcon,
 } from "lucide-react";
-import { PhotoUpload } from "@/components/photo-upload";
+import { ListingPhotoEditor } from "@/components/listing-photo-editor";
+import { photoAssetsFromDrafts, type PhotoDraft } from "@/lib/photos";
 
 import { ListingDetailsEditor } from "@/components/listing-details-editor";
 import { emptyListingDetails, validateListingDetails, type ListingDetails } from "@/lib/listing-details";
@@ -61,7 +62,7 @@ interface FormData {
   utilitiesIncluded: boolean;
   parkingIncluded: boolean;
   // Step 5
-  photos: string[];
+  photos: PhotoDraft[];
 }
 
 const STEPS = [
@@ -93,7 +94,7 @@ const initialForm: FormData = {
   petFriendly: false,
   utilitiesIncluded: false,
   parkingIncluded: false,
-  photos: [""],
+  photos: [],
 };
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
@@ -149,6 +150,7 @@ export default function NewListingPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const convexUser = useQuery(
     api.users.getByClerkId,
@@ -203,7 +205,7 @@ export default function NewListingPage() {
     }
     setSubmitting(true);
     try {
-      const cleanPhotos = form.photos.filter((p) => p.trim() !== "");
+      const photoAssets = photoAssetsFromDrafts(form.photos);
       await createListing({
         landlordId: convexUser._id,
         title: form.title.trim(),
@@ -224,7 +226,8 @@ export default function NewListingPage() {
         petFriendly: form.petFriendly,
         utilitiesIncluded: form.utilitiesIncluded,
         parkingIncluded: form.parkingIncluded,
-        photos: cleanPhotos,
+        photos: [],
+        photoAssets,
       });
       toast.success("Listing created! It will be reviewed shortly.");
       router.push("/dashboard/landlord");
@@ -521,28 +524,7 @@ export default function NewListingPage() {
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Photos</CardTitle>
               </CardHeader>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <PhotoUpload
-                    key={index}
-                    variant="listing"
-                    currentUrl={form.photos[index] || undefined}
-                    label={index === 0 ? "Cover photo" : `Photo ${index + 1}`}
-                    onUpload={(url) => {
-                      setForm((prev) => {
-                        const photos = [...prev.photos];
-                        // Grow array if needed
-                        while (photos.length <= index) photos.push("");
-                        photos[index] = url;
-                        return { ...prev, photos };
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-slate-400">
-                Up to 10 photos. The first photo will be used as the cover image.
-              </p>
+              <ListingPhotoEditor photos={form.photos} onChange={photos => update("photos", photos)} busy={photoBusy} onBusyChange={setPhotoBusy} />
             </div>
           )}
         </CardContent>
@@ -553,7 +535,7 @@ export default function NewListingPage() {
         <Button
           variant="outline"
           onClick={prevStep}
-          disabled={step === 1}
+          disabled={step === 1 || photoBusy}
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
@@ -565,7 +547,7 @@ export default function NewListingPage() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button onClick={handleSubmit} disabled={submitting || photoBusy}>
             {submitting ? "Creating…" : "Create Listing"}
           </Button>
         )}

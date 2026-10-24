@@ -265,7 +265,7 @@ export default function ListingDetailPage({ params }: PageProps) {
         </nav>
 
         {/* Photo gallery */}
-        <PhotoGallery photos={photos} title={title} className="mb-8" />
+        <PhotoGallery captions={listing.photoCaptions} photos={photos} title={title} className="mb-8" />
 
         {/* Two-column layout */}
         <div className="flex flex-col lg:flex-row gap-8">

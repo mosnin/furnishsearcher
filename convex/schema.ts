@@ -8,7 +8,10 @@ import { calendarFeedFields } from "./validators/calendars";
 
 import { listingDetails } from "./validators/listingDetails";
 
+import { photoAsset } from "./validators/photos";
+
 export default defineSchema({
+  photoUploads: defineTable({ storageId: v.id("_storage"), ownerId: v.id("users"), createdAt: v.number() }).index("by_storage", ["storageId"]).index("by_owner_time", ["ownerId", "createdAt"]),
   counters: defineTable({ name: v.string(), value: v.number() }).index("by_name", ["name"]),
   dataMigrations: defineTable({ name: v.string(), cursor: v.union(v.string(), v.null()), complete: v.boolean() }).index("by_name", ["name"]),
   savedSearchDeliveries: defineTable({ searchId: v.id("savedSearches"), listingId: v.id("listings"), createdAt: v.number(), status: searchDeliveryStatus, lastAttemptAt: v.number() })
@@ -73,6 +76,7 @@ export default defineSchema({
     propertyType: v.string(),
     amenities: v.array(v.string()),
     photos: v.array(v.string()),
+    photoAssets: v.optional(v.array(photoAsset)),
     petFriendly: v.boolean(),
     utilitiesIncluded: v.boolean(),
     parkingIncluded: v.boolean(),
