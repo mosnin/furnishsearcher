@@ -1,3 +1,4 @@
+import { convexSiteUrl } from "@/lib/photos";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -21,15 +22,55 @@ export async function POST(req: NextRequest) {
   if (!convexUrl) {
     return NextResponse.json(
       { error: "Convex URL not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   // Convex HTTP actions live on the .convex.site domain
   const httpEndpoint =
-    convexUrl.replace(".convex.cloud", ".convex.site") + "/webhooks/creem";
+    convexSiteUrl(convexUrl, process.env.NEXT_PUBLIC_CONVEX_SITE_URL) +
+    "/webhooks/creem";
 
-  const rawBody = await req.text();
+  const limit = 256 * 1024;
+  if (Number(req.headers.get("content-length")) > limit)
+    return NextResponse.json(
+      { error: "Webhook body too large" },
+      { status: 413 },
+    );
+  const reader = req.body?.getReader();
+  if (!reader)
+    return NextResponse.json(
+      { error: "Missing webhook body" },
+      { status: 400 },
+    );
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      length += value.length;
+      if (length > limit) {
+        await reader.cancel();
+        return NextResponse.json(
+          { error: "Webhook body too large" },
+          { status: 413 },
+        );
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid webhook body" },
+      { status: 400 },
+    );
+  }
+  const rawBody = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    rawBody.set(chunk, offset);
+    offset += chunk.length;
+  }
   const headers = new Headers();
   // Forward only the headers Creem + our handler care about
   const signature =
@@ -37,11 +78,20 @@ export async function POST(req: NextRequest) {
   if (signature) headers.set("creem-signature", signature);
   headers.set("content-type", "application/json");
 
-  const upstream = await fetch(httpEndpoint, {
-    method: "POST",
-    headers,
-    body: rawBody,
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(httpEndpoint, {
+      method: "POST",
+      headers,
+      body: rawBody,
+      signal: AbortSignal.timeout(20000),
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Billing webhook is temporarily unavailable" },
+      { status: 503 },
+    );
+  }
 
   const text = await upstream.text();
   return new NextResponse(text, {

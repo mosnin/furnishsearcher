@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-24T23:02:53.253Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "realCreemTransaction": false,
+  "providerEvents": "Synthetic documented event shapes signed with an isolated local-only secret",
+  "authentication": "Privileged local development identities; not Clerk browser/JWT acceptance",
+  "checkoutId": "ch_QAbd39bd77b45a4fcca61947639905ffb5",
+  "subscriptionId": "sub_QAbd39bd77b45a4fcca61947639905ffb5",
+  "checkoutAloneDoesNotGrantAccess": true,
+  "paidPeriodGrantsAccess": true,
+  "concurrentDuplicateDeduplicated": true,
+  "privateBillingReadRejected": true,
+  "scheduledCancellationKeepsPaidPeriod": true,
+  "cancellationRevokesAccess": true,
+  "staleGrantRejected": true,
+  "invalidSignatureRejected": true,
+  "externalProviderApiCalls": 0
+}

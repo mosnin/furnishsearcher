@@ -10,6 +10,7 @@
 
 import type * as analytics from "../analytics.js";
 import type * as availability from "../availability.js";
+import type * as billingWebhook from "../billingWebhook.js";
 import type * as calendarFeeds from "../calendarFeeds.js";
 import type * as creem from "../creem.js";
 import type * as crons from "../crons.js";
@@ -20,6 +21,7 @@ import type * as housingRequests from "../housingRequests.js";
 import type * as http from "../http.js";
 import type * as inquiries from "../inquiries.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_billing from "../lib/billing.js";
 import type * as lib_calendarFeeds from "../lib/calendarFeeds.js";
 import type * as lib_housing from "../lib/housing.js";
 import type * as lib_listingIds from "../lib/listingIds.js";
@@ -44,6 +46,7 @@ import type * as support from "../support.js";
 import type * as supportEmails from "../supportEmails.js";
 import type * as syncCalendars from "../syncCalendars.js";
 import type * as users from "../users.js";
+import type * as validators_billing from "../validators/billing.js";
 import type * as validators_calendars from "../validators/calendars.js";
 import type * as validators_housing from "../validators/housing.js";
 import type * as validators_listingDetails from "../validators/listingDetails.js";
@@ -61,6 +64,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   availability: typeof availability;
+  billingWebhook: typeof billingWebhook;
   calendarFeeds: typeof calendarFeeds;
   creem: typeof creem;
   crons: typeof crons;
@@ -71,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inquiries: typeof inquiries;
   "lib/auth": typeof lib_auth;
+  "lib/billing": typeof lib_billing;
   "lib/calendarFeeds": typeof lib_calendarFeeds;
   "lib/housing": typeof lib_housing;
   "lib/listingIds": typeof lib_listingIds;
@@ -95,6 +100,7 @@ declare const fullApi: ApiFromModules<{
   supportEmails: typeof supportEmails;
   syncCalendars: typeof syncCalendars;
   users: typeof users;
+  "validators/billing": typeof validators_billing;
   "validators/calendars": typeof validators_calendars;
   "validators/housing": typeof validators_housing;
   "validators/listingDetails": typeof validators_listingDetails;

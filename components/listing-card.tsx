@@ -8,6 +8,7 @@ import { cn, formatPrice, formatStayDate } from "@/lib/utils";
 
 export interface ListingCardData {
   _id: string;
+  featured?: boolean;
   title: string;
   city: string;
   state: string;
@@ -43,6 +44,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
       <div className="relative aspect-[4/3] w-full bg-muted overflow-hidden">
         {firstPhoto ? (
           <Image
+            unoptimized={firstPhoto.startsWith("http://")}
             src={firstPhoto}
             alt={listing.title}
             fill
@@ -60,6 +62,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
           <Badge variant="secondary" className="bg-white/90 text-foreground text-xs backdrop-blur-sm">
             {listing.propertyType}
           </Badge>
+          {listing.featured && <Badge variant="secondary" className="bg-white/90 text-foreground text-xs">Sponsored</Badge>}
           {listing.utilitiesIncluded && (
             <Badge variant="success" className="text-xs backdrop-blur-sm">
               Utilities Incl.

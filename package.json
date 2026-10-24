@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:local-search": "node scripts/local-search-smoke.mjs",
-    "test:local-photos": "node scripts/local-photo-smoke.mjs"
+    "test:local-photos": "node scripts/local-photo-smoke.mjs",
+    "test:local-billing": "node scripts/local-billing-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",

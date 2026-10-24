@@ -1,3 +1,4 @@
+import { verifiedFeature } from "./billing";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 type Asset = {
@@ -43,9 +44,11 @@ export async function listingPhotos<T extends Doc<"listings">>(
   ctx: QueryCtx,
   listing: T,
 ) {
+  const featured = await verifiedFeature(ctx, listing);
   if (!listing.photoAssets)
     return {
       ...listing,
+      featured,
       photoCaptions: listing.photos.map(() => ""),
       photoDrafts: listing.photos.map((url) => ({
         url,
@@ -73,6 +76,7 @@ export async function listingPhotos<T extends Doc<"listings">>(
   );
   return {
     ...listing,
+    featured,
     photos: existing.map((p) => p.url),
     photoCaptions: existing.map((p) => p.caption),
     photoDrafts: existing,

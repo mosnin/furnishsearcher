@@ -9,6 +9,7 @@ import { removeFeed } from "./lib/calendarFeeds";
 import { listingDetails } from "./validators/listingDetails";
 import { validateListingDetails } from "../lib/listing-details";
 
+import { billingMode } from "../lib/billing";
 import { photoAsset } from "./validators/photos";
 import { listingPhotos, validatePhotoAssets } from "./lib/photos";
 
@@ -339,19 +340,13 @@ export const getByLandlord = query({
 export const getFeatured = query({
   args: {},
   handler: async (ctx) => {
-    const activeListings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-
-    if (activeListings.length <= 6) return Promise.all(activeListings.filter(l => !l.moderationHold).map(l => listingPhotos(ctx, l)));
-
-    const shuffled = [...activeListings];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return Promise.all(shuffled.filter(l => !l.moderationHold).slice(0, 6).map(l => listingPhotos(ctx, l)));
+    let mode: "test" | "prod" | null; try { mode=billingMode(); } catch { mode=null; }
+    const promoted=mode?await ctx.db.query("listings").withIndex("by_featured_mode",q=>q.eq("featuredMode",mode!).eq("featured",true).gt("featuredUntil",Date.now())).filter(q=>q.and(q.eq(q.field("status"),"active"),q.neq(q.field("moderationHold"),true))).order("desc").take(12):[];
+    const recent=await ctx.db.query("listings").withIndex("by_search_newest",q=>q.eq("status","active")).filter(q=>q.neq(q.field("moderationHold"),true)).order("desc").take(12);
+    const hydrated=await Promise.all([...new Map([...promoted,...recent].map(listing=>[listing._id,listing])).values()].map(listing=>listingPhotos(ctx,listing)));
+    const paid=hydrated.filter(listing=>listing.featured),others=hydrated.filter(listing=>!listing.featured);
+    for(let i=paid.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[paid[i],paid[j]]=[paid[j],paid[i]];}
+    return [...paid,...others].slice(0,6);
   },
 });
 

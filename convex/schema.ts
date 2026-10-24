@@ -10,7 +10,11 @@ import { listingDetails } from "./validators/listingDetails";
 
 import { photoAsset } from "./validators/photos";
 
+import { subscriptionStatus } from "./validators/billing";
+
 export default defineSchema({
+  billingAdjustments: defineTable({ transactionId: v.string(), mode: v.union(v.literal("test"),v.literal("prod")), refundedAmount: v.number(), paidAmount: v.number(), disputed: v.boolean(), updatedAt: v.number() }).index("by_transaction_mode", ["transactionId", "mode"]),
+  billingCustomers: defineTable({ userId: v.id("users"), customerId: v.string(), mode: v.union(v.literal("test"),v.literal("prod")), verifiedAt: v.number() }).index("by_user", ["userId", "verifiedAt"]).index("by_customer_mode", ["customerId", "mode"]),
   photoUploads: defineTable({ storageId: v.id("_storage"), ownerId: v.id("users"), createdAt: v.number() }).index("by_storage", ["storageId"]).index("by_owner_time", ["ownerId", "createdAt"]),
   counters: defineTable({ name: v.string(), value: v.number() }).index("by_name", ["name"]),
   dataMigrations: defineTable({ name: v.string(), cursor: v.union(v.string(), v.null()), complete: v.boolean() }).index("by_name", ["name"]),
@@ -90,6 +94,8 @@ export default defineSchema({
     // Featured listing (paid boost via Creem.io)
     featured: v.optional(v.boolean()),
     featuredUntil: v.optional(v.number()),
+    featuredPaymentId: v.optional(v.id("payments")),
+    featuredMode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
   })
     .index("by_landlord", ["landlordId"])
     .index("by_landlord_status", ["landlordId", "status"])
@@ -97,6 +103,7 @@ export default defineSchema({
     .index("by_city_state", ["city", "state"])
     .index("by_status_city", ["status", "city"])
     .index("by_featured", ["featured", "featuredUntil"])
+    .index("by_featured_mode", ["featuredMode", "featured", "featuredUntil"])
     .index("by_publicId", ["publicId"])
     .index("by_search_newest", ["status", "createdAt"])
     .index("by_search_price", ["status", "price"])
@@ -160,13 +167,15 @@ export default defineSchema({
       v.literal("landlord_premium"),
       v.literal("tenant_plus")
     ),
-    status: v.union(
-      v.literal("active"),
-      v.literal("trialing"),
-      v.literal("paused"),
-      v.literal("canceled"),
-      v.literal("expired")
-    ),
+    status: subscriptionStatus,
+    verifiedAt: v.optional(v.number()),
+    paidThrough: v.optional(v.number()),
+    lastPaidTransactionId: v.optional(v.string()),
+    billingHold: v.optional(v.boolean()),
+    entitlementExpiresAt: v.optional(v.number()),
+    entitlementCheckedAt: v.optional(v.number()),
+    lastEventAt: v.optional(v.number()),
+    mode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
     cancelAtPeriodEnd: v.optional(v.boolean()),
@@ -174,11 +183,20 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_paid", ["userId", "mode", "status", "paidThrough"])
+    .index("by_user_updated", ["userId", "updatedAt"])
     .index("by_creem_subscription", ["creemSubscriptionId"])
     .index("by_status", ["status"]),
 
   // One-time payments (featured listing boosts, security deposits, etc.)
   payments: defineTable({
+    refundedAmountCents: v.optional(v.number()),
+    trustedCheckout: v.optional(v.boolean()),
+    requestId: v.optional(v.string()),
+    plan: v.optional(v.union(v.literal("landlord_pro"),v.literal("landlord_premium"),v.literal("tenant_plus"))),
+    checkoutUrl: v.optional(v.string()),
+    returnUrl: v.optional(v.string()),
+    mode: v.optional(v.union(v.literal("test"),v.literal("prod"))),
     userId: v.id("users"),
     creemCustomerId: v.optional(v.string()),
     creemCheckoutId: v.string(),
@@ -197,13 +215,17 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("completed"),
       v.literal("failed"),
-      v.literal("refunded")
+      v.literal("refunded"),
+      v.literal("partially_refunded"),
+      v.literal("disputed")
     ),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_request", ["requestId"])
     .index("by_creem_checkout", ["creemCheckoutId"])
     .index("by_listing", ["listingId"])
     .index("by_status", ["status"]),
