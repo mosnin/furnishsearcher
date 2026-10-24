@@ -9,6 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CalendarFeeds } from "@/components/calendar-feeds";
 import { AvailabilityCalendar } from "@/components/availability-calendar";
 import { toast } from "sonner";
 import { CalendarDays, ChevronLeft } from "lucide-react";
@@ -79,7 +80,7 @@ export default function AvailabilityPage({ params }: PageProps) {
     );
   }
 
-  const isOwner = convexUser?._id === listing.landlordId;
+  const isOwner = convexUser?._id === listing.landlordId || convexUser?.role === "admin";
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -117,12 +118,14 @@ export default function AvailabilityPage({ params }: PageProps) {
         <CardContent>
           <AvailabilityCalendar
             blocks={blocks ?? []}
+            syncThrough={listing.calendarSyncThrough}
             onAddBlock={isOwner ? handleAddBlock : undefined}
             onRemoveBlock={isOwner ? handleRemoveBlock : undefined}
             editable={isOwner}
           />
         </CardContent>
       </Card>
+      {isOwner && <CalendarFeeds listingId={listing._id} />}
     </div>
   );
 }

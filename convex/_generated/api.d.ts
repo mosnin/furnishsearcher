@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as analytics from "../analytics.js";
 import type * as availability from "../availability.js";
+import type * as calendarFeeds from "../calendarFeeds.js";
 import type * as creem from "../creem.js";
 import type * as emails from "../emails.js";
 import type * as files from "../files.js";
@@ -29,6 +30,7 @@ import type * as referrals from "../referrals.js";
 import type * as reviews from "../reviews.js";
 import type * as saved from "../saved.js";
 import type * as savedSearches from "../savedSearches.js";
+import type * as syncCalendars from "../syncCalendars.js";
 import type * as users from "../users.js";
 
 /**
@@ -42,6 +44,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   availability: typeof availability;
+  calendarFeeds: typeof calendarFeeds;
   creem: typeof creem;
   emails: typeof emails;
   files: typeof files;
@@ -56,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   saved: typeof saved;
   savedSearches: typeof savedSearches;
+  syncCalendars: typeof syncCalendars;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

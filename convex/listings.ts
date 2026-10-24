@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { isAvailable, validateStay } from "../lib/stays";
+import { removeFeed } from "./lib/calendarFeeds";
 
 export const create = mutation({
   args: {
@@ -200,6 +201,9 @@ export const deleteListing = mutation({
       .filter((q) => q.eq(q.field("listingId"), args.id))
       .collect();
 
+    const feeds = await ctx.db.query("calendarFeeds").withIndex("by_listingId_and_provider", q => q.eq("listingId", args.id)).take(3);
+    if (feeds.length > 2) throw new Error("This property's calendar links require review.");
+    for (const feed of feeds) await removeFeed(ctx, feed);
     await Promise.all(savedEntries.map((s) => ctx.db.delete(s._id)));
     await ctx.db.delete(args.id);
   },

@@ -382,7 +382,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
                   <p className="text-[14px] font-medium text-slate-900">
-                    Available from {formatDate(availableFrom)}
+                    {listing.calendarSyncThrough === 0 ? "Waiting for calendar availability confirmation" : `Available from ${formatDate(availableFrom)}`}
                   </p>
                   <p className="text-[12px] text-slate-500">
                     Minimum stay: {minStay} month{minStay === 1 ? "" : "s"}
@@ -391,9 +391,10 @@ export default function ListingDetailPage({ params }: PageProps) {
               </div>
               {availabilityBlocks === undefined ? (
                 <Skeleton className="h-64 w-full rounded-xl" />
-              ) : availabilityBlocks.length > 0 ? (
+              ) : availabilityBlocks.length > 0 || listing.calendarSyncThrough !== undefined ? (
                 <AvailabilityCalendar
                   blocks={availabilityBlocks}
+                  syncThrough={listing.calendarSyncThrough}
                   editable={false}
                 />
               ) : null}

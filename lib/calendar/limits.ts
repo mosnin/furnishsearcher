@@ -1,0 +1,2 @@
+export const MAX_CALENDAR_BYTES = 1024 * 1024;
+export const MAX_IMPORTED_BLOCKS = 1000;

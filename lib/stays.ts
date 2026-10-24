@@ -16,12 +16,13 @@ export function overlaps(a: number, b: number, c: number, d: number) {
 }
 
 export function isAvailable(
-  listing: { availableFrom: number; minStay: number },
+  listing: { availableFrom: number; minStay: number; calendarSyncThrough?: number },
   blocks: { startDate: number; endDate: number }[],
   start: number,
   end: number,
 ) {
-  return start >= listing.availableFrom &&
+  return (listing.calendarSyncThrough === undefined || end <= listing.calendarSyncThrough) &&
+    start >= listing.availableFrom &&
     end - start >= Math.max(1, listing.minStay) * 30 * DAY &&
     !blocks.some(block => overlaps(start, end, block.startDate, block.endDate));
 }

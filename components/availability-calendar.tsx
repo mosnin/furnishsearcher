@@ -10,37 +10,50 @@ type AvailabilityBlock = Doc<"availabilityBlocks">;
 
 interface AvailabilityCalendarProps {
   blocks: AvailabilityBlock[];
-  onAddBlock?: (startDate: number, endDate: number, type: "unavailable" | "booked") => void;
+  onAddBlock?: (
+    startDate: number,
+    endDate: number,
+    type: "unavailable" | "booked",
+  ) => void;
   onRemoveBlock?: (id: string) => void;
   editable?: boolean;
+  syncThrough?: number;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }
 
 function getFirstDayOfMonth(year: number, month: number): number {
-  return new Date(year, month, 1).getDay();
+  return new Date(Date.UTC(year, month, 1)).getUTCDay();
 }
 
 function dateToTs(year: number, month: number, day: number): number {
-  return new Date(year, month, day).getTime();
+  return Date.UTC(year, month, day);
 }
 
 function getBlockForDate(
   blocks: AvailabilityBlock[],
-  ts: number
+  ts: number,
 ): AvailabilityBlock | null {
   return (
-    blocks.find(
-      (b) => ts >= b.startDate && ts < b.endDate
-    ) ?? null
+    blocks.find((b) => ts < b.endDate && b.startDate < ts + 86400000) ?? null
   );
 }
 
@@ -49,25 +62,32 @@ export function AvailabilityCalendar({
   onAddBlock,
   onRemoveBlock,
   editable = false,
+  syncThrough,
 }: AvailabilityCalendarProps) {
   const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [viewYear, setViewYear] = useState(today.getUTCFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getUTCMonth());
   const [selStart, setSelStart] = useState<number | null>(null);
   const [selEnd, setSelEnd] = useState<number | null>(null);
-  const [blockType, setBlockType] = useState<"unavailable" | "booked">("unavailable");
+  const [blockType, setBlockType] = useState<"unavailable" | "booked">(
+    "unavailable",
+  );
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
 
   const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else setViewMonth((m) => m - 1);
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else setViewMonth((m) => m - 1);
   };
 
   const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else setViewMonth((m) => m + 1);
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else setViewMonth((m) => m + 1);
   };
 
   const handleDayClick = (day: number) => {
@@ -78,7 +98,7 @@ export function AvailabilityCalendar({
       setSelEnd(null);
     } else {
       if (ts < selStart) {
-        setSelEnd(selStart);
+        setSelEnd(selStart + 86400000);
         setSelStart(ts);
       } else {
         setSelEnd(ts + 86400000); // end of day
@@ -135,29 +155,35 @@ export function AvailabilityCalendar({
           if (!cell) return <div key={`empty-${i}`} />;
 
           const block = getBlockForDate(blocks, cell.ts);
-          const todayTs = dateToTs(today.getFullYear(), today.getMonth(), today.getDate());
+          const todayTs = dateToTs(
+            today.getUTCFullYear(),
+            today.getUTCMonth(),
+            today.getUTCDate(),
+          );
           const isPast = cell.ts < todayTs;
+          const unconfirmed =
+            syncThrough !== undefined && cell.ts + 86400000 > syncThrough;
           const isSelected =
-            selStart &&
-            selEnd &&
-            cell.ts >= selStart &&
-            cell.ts < selEnd;
+            selStart && selEnd && cell.ts >= selStart && cell.ts < selEnd;
           const isSelStart = selStart && cell.ts === selStart && !selEnd;
 
           return (
             <button
               key={cell.day}
+              aria-label={`${MONTHS[viewMonth]} ${cell.day}, ${viewYear}: ${block ? block.type : unconfirmed ? "availability not confirmed" : "available"}`}
               onClick={() => handleDayClick(cell.day)}
               disabled={isPast && editable}
               className={cn(
                 "h-9 w-full rounded text-sm font-medium transition-colors",
-                isPast && "text-slate-300 cursor-default",
-                !isPast && "text-slate-700 hover:bg-slate-100",
-                block?.type === "unavailable" && "bg-red-100 text-red-700 hover:bg-red-200",
-                block?.type === "booked" && "bg-amber-100 text-amber-700 hover:bg-amber-200",
+                (isPast || unconfirmed) && "text-slate-400 cursor-default",
+                !isPast && !unconfirmed && "text-slate-700 hover:bg-slate-100",
+                block?.type === "unavailable" &&
+                  "bg-red-100 text-red-700 hover:bg-red-200",
+                block?.type === "booked" &&
+                  "bg-amber-100 text-amber-700 hover:bg-amber-200",
                 isSelected && "bg-[#0f2044]/20 text-[#0f2044]",
                 isSelStart && "bg-[#0f2044] text-white",
-                editable && !isPast && !block && "cursor-pointer"
+                editable && !isPast && !block && "cursor-pointer",
               )}
             >
               {cell.day}
@@ -165,6 +191,14 @@ export function AvailabilityCalendar({
           );
         })}
       </div>
+
+      {syncThrough !== undefined && (
+        <p className="mt-3 text-xs text-slate-600">
+          {syncThrough === 0
+            ? "Waiting for the linked calendar to sync. Availability is not yet confirmed."
+            : `Linked calendar availability is confirmed through ${new Date(syncThrough - 1).toLocaleDateString("en-US", { timeZone: "UTC" })}. Later dates need confirmation from the owner.`}
+        </p>
+      )}
 
       {/* Legend */}
       <div className="flex items-center gap-4 mt-4 text-xs text-slate-500">
@@ -190,7 +224,9 @@ export function AvailabilityCalendar({
               size="sm"
               variant={blockType === "unavailable" ? "default" : "outline"}
               onClick={() => setBlockType("unavailable")}
-              className={blockType === "unavailable" ? "bg-red-600 hover:bg-red-700" : ""}
+              className={
+                blockType === "unavailable" ? "bg-red-600 hover:bg-red-700" : ""
+              }
             >
               Unavailable
             </Button>
@@ -198,7 +234,9 @@ export function AvailabilityCalendar({
               size="sm"
               variant={blockType === "booked" ? "default" : "outline"}
               onClick={() => setBlockType("booked")}
-              className={blockType === "booked" ? "bg-amber-500 hover:bg-amber-600" : ""}
+              className={
+                blockType === "booked" ? "bg-amber-500 hover:bg-amber-600" : ""
+              }
             >
               Booked
             </Button>
@@ -212,8 +250,13 @@ export function AvailabilityCalendar({
           {selStart && selEnd && (
             <div className="flex items-center gap-3">
               <p className="text-sm text-slate-600">
-                {new Date(selStart).toLocaleDateString()} →{" "}
-                {new Date(selEnd - 1).toLocaleDateString()}
+                {new Date(selStart).toLocaleDateString("en-US", {
+                  timeZone: "UTC",
+                })}{" "}
+                →{" "}
+                {new Date(selEnd - 1).toLocaleDateString("en-US", {
+                  timeZone: "UTC",
+                })}
               </p>
               <Button size="sm" onClick={handleAddBlock} className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
@@ -222,7 +265,10 @@ export function AvailabilityCalendar({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => { setSelStart(null); setSelEnd(null); }}
+                onClick={() => {
+                  setSelStart(null);
+                  setSelEnd(null);
+                }}
               >
                 Cancel
               </Button>
@@ -246,20 +292,30 @@ export function AvailabilityCalendar({
                         "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border",
                         block.type === "booked"
                           ? "bg-amber-100 text-amber-700 border-amber-200"
-                          : "bg-red-100 text-red-700 border-red-200"
+                          : "bg-red-100 text-red-700 border-red-200",
                       )}
                     >
                       {block.type}
                     </span>
                     <span className="text-sm text-slate-600">
-                      {new Date(block.startDate).toLocaleDateString()} –{" "}
-                      {new Date(block.endDate - 1).toLocaleDateString()}
+                      {new Date(block.startDate).toLocaleDateString("en-US", {
+                        timeZone: "UTC",
+                      })}{" "}
+                      –{" "}
+                      {new Date(block.endDate - 1).toLocaleDateString("en-US", {
+                        timeZone: "UTC",
+                      })}
                     </span>
                     {block.note && (
-                      <span className="text-xs text-slate-400">{block.note}</span>
+                      <span className="text-xs text-slate-400">
+                        {block.note}
+                      </span>
                     )}
                   </div>
-                  {onRemoveBlock && (
+                  {block.calendarFeedId && (
+                    <span className="text-xs text-slate-500">Imported</span>
+                  )}
+                  {onRemoveBlock && !block.calendarFeedId && (
                     <Button
                       variant="ghost"
                       size="icon"

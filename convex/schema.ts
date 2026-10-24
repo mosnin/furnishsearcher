@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
+import { calendarFeedFields } from "./validators/calendars";
 
 export default defineSchema({
   users: defineTable({
@@ -51,6 +52,7 @@ export default defineSchema({
     utilitiesIncluded: v.boolean(),
     parkingIncluded: v.boolean(),
     availableFrom: v.number(),
+    calendarSyncThrough: v.optional(v.number()),
     minStay: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive"), v.literal("pending"), v.literal("rejected")),
     createdAt: v.number(),
@@ -212,6 +214,10 @@ export default defineSchema({
   }).index("by_requestId_and_landlordId", ["requestId", "landlordId"])
     .index("by_landlordId", ["landlordId"]),
 
+  calendarFeeds: defineTable(calendarFeedFields)
+    .index("by_listingId_and_provider", ["listingId", "provider"])
+    .index("by_nextSyncAt", ["nextSyncAt"]),
+
   // Landlord availability calendar blocks
   availabilityBlocks: defineTable({
     listingId: v.id("listings"),
@@ -219,10 +225,12 @@ export default defineSchema({
     endDate: v.number(),
     type: v.union(v.literal("unavailable"), v.literal("booked")),
     note: v.optional(v.string()),
+    calendarFeedId: v.optional(v.id("calendarFeeds")),
     createdAt: v.number(),
   })
     .index("by_listing", ["listingId"])
-    .index("by_listing_start", ["listingId", "startDate"]),
+    .index("by_listing_start", ["listingId", "startDate"])
+    .index("by_calendarFeedId", ["calendarFeedId"]),
 
   bookingInquiries: defineTable({
     listingId: v.id("listings"),
