@@ -1,3 +1,5 @@
+import { geo } from "./lib/geo";
+import { radiusBounds } from "../lib/geo";
 import {
   paginationOptsValidator,
   paginationResultValidator,
@@ -42,6 +44,44 @@ export const listings = query({
             .unique();
       const match = listing ? await matchSearch(ctx, listing, filters) : null;
       return { page: match ? [match] : [], isDone: true, continueCursor: "" };
+    }
+    if (filters.mapBounds || filters.nearLatitude !== undefined) {
+      const rectangle =
+        filters.mapBounds ??
+        radiusBounds(
+          {
+            latitude: filters.nearLatitude!,
+            longitude: filters.nearLongitude!,
+          },
+          filters.radiusMiles!,
+        );
+      const result = await geo.query(
+        ctx,
+        {
+          shape: { type: "rectangle", rectangle },
+          filter: (q) =>
+            q.eq("sort", filters.sort ?? "newest").eq("status", "active"),
+          limit: Math.max(1, Math.min(24, paginationOpts.numItems)),
+        },
+        paginationOpts.cursor ?? undefined,
+      );
+      const page = [];
+      for (const row of result.results) {
+        const id = ctx.db.normalizeId(
+          "listings",
+          row.key.slice(row.key.indexOf(":") + 1),
+        );
+        const listing = id ? await ctx.db.get(id) : null;
+        if (listing) {
+          const match = await matchSearch(ctx, listing, filters);
+          if (match) page.push(match);
+        }
+      }
+      return {
+        page,
+        isDone: !result.nextCursor,
+        continueCursor: result.nextCursor ?? "",
+      };
     }
     const ready = await ctx.db
       .query("dataMigrations")

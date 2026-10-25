@@ -206,7 +206,7 @@ export default function NewListingPage() {
     setSubmitting(true);
     try {
       const photoAssets = photoAssetsFromDrafts(form.photos);
-      await createListing({
+      const listingId=await createListing({
         landlordId: convexUser._id,
         title: form.title.trim(),
         description: form.description.trim(),
@@ -229,8 +229,8 @@ export default function NewListingPage() {
         photos: [],
         photoAssets,
       });
-      toast.success("Listing created! It will be reviewed shortly.");
-      router.push("/dashboard/landlord");
+      toast.success("Draft created. Confirm the address match and request publication when ready.");
+      router.push(`/dashboard/landlord/listings/${listingId}/location`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create listing. Please try again.");
     } finally {

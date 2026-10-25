@@ -25,9 +25,12 @@ import {
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRentalSearch } from "@/components/use-rental-search";
 import LeafletMap from "@/components/leaflet-map";
 import type { MapListing } from "@/components/map-view";
-import { TOP_CITIES } from "@/lib/cities";
+import { radiusBounds } from "@/lib/geo";
+import type { Bounds } from "@/lib/geo";
+import { LocationSearch } from "@/components/location-search";
 import {
   parseSearchParams,
   buildSearchUrl,
@@ -106,9 +109,7 @@ function SearchPageInner() {
     results: listings,
     status,
     loadMore,
-  } = usePaginatedQuery(api.search.listings, parsed.error ? "skip" : applied, {
-    initialNumItems: 24,
-  });
+  } = useRentalSearch(applied, !!parsed.error);
   function apply() {
     try {
       const original =
@@ -126,6 +127,11 @@ function SearchPageInner() {
             }
           : {
               location: location.trim() || undefined,
+              mapBounds: undefined,
+              nearLatitude: undefined,
+              nearLongitude: undefined,
+              radiusMiles: undefined,
+              nearLabel: undefined,
               city: undefined,
               state: undefined,
               propertyId: undefined,
@@ -160,34 +166,33 @@ function SearchPageInner() {
   }
   const locationLabel = applied.propertyId
     ? `Property ${applied.propertyId}`
-    : applied.location ||
+    : applied.nearLabel ||
+      (applied.mapBounds ? "Selected map area" : undefined) ||
+      applied.location ||
       [applied.city, applied.state].filter(Boolean).join(", ") ||
       "All locations";
+  const [viewport, setViewport] = useState<Bounds | null>(null);
   const mapListings: MapListing[] = useMemo(
     () =>
-      listings.flatMap((l) => {
-        const city = TOP_CITIES.find(
-          (c) =>
-            c.name.toLowerCase() === l.city.toLowerCase() &&
-            (c.stateCode === l.state || c.state === l.state),
-        );
-        return city
+      listings.flatMap((l) =>
+        l.mapLatitude !== undefined && l.mapLongitude !== undefined
           ? [
               {
                 id: l._id,
                 title: l.title,
                 price: l.price,
-                lat: city.lat,
-                lng: city.lng,
+                lat: l.mapLatitude,
+                lng: l.mapLongitude,
                 city: l.city,
                 state: l.state,
                 bedrooms: l.bedrooms,
                 bathrooms: l.bathrooms,
                 photos: l.photos,
+                href: `/listings/${l._id}${l.matchedMoveIn !== undefined ? `?moveIn=${date(l.matchedMoveIn)}&moveOut=${date(l.matchedMoveOut)}` : ""}`,
               },
             ]
-          : [];
-      }),
+          : [],
+      ),
     [listings],
   );
   const more = status === "CanLoadMore",
@@ -424,14 +429,22 @@ function SearchPageInner() {
           </select>
         </label>
       </div>
+      <div className="mx-auto max-w-screen-2xl w-full px-4 pb-4">
+        <LocationSearch
+          filters={applied}
+          onChange={(filters) => router.push(buildSearchUrl(filters))}
+        />
+      </div>
       <main className="flex-1 max-w-screen-2xl mx-auto w-full px-4 pb-8">
         {viewMode === "list" ? (
           grid
         ) : (
           <>
             <p className="text-xs text-slate-500 mb-3">
-              City overview of loaded matches. Pins show city centers. Confirm
-              each property’s location with its owner.
+              Approximate property areas for {mapListings.length} loaded
+              matches. {listings.length - mapListings.length} loaded listings
+              have no confirmed map location. Pins may group nearby listings.
+              Distances use these approximate areas, not travel routes.
             </p>
             <div
               className="flex flex-col md:flex-row gap-4"
@@ -439,7 +452,62 @@ function SearchPageInner() {
             >
               {viewMode === "split" && <div className="md:w-[52%]">{grid}</div>}
               <div className="flex-1 h-[60vh] md:sticky md:top-48">
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    variant="outline"
+                    disabled={!viewport}
+                    onClick={() =>
+                      viewport &&
+                      router.push(
+                        buildSearchUrl({
+                          ...applied,
+                          mapBounds: viewport,
+                          city: undefined,
+                          state: undefined,
+                          location: undefined,
+                          propertyId: undefined,
+                        }),
+                      )
+                    }
+                  >
+                    Search this map area
+                  </Button>
+                  {applied.mapBounds && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        router.push(
+                          buildSearchUrl({ ...applied, mapBounds: undefined }),
+                        )
+                      }
+                    >
+                      Clear map area
+                    </Button>
+                  )}
+                </div>
                 <LeafletMap
+                  fitKey={query}
+                  bounds={
+                    applied.mapBounds ??
+                    (applied.nearLatitude !== undefined
+                      ? radiusBounds(
+                          {
+                            latitude: applied.nearLatitude,
+                            longitude: applied.nearLongitude!,
+                          },
+                          applied.radiusMiles!,
+                        )
+                      : undefined)
+                  }
+                  reference={
+                    applied.nearLatitude !== undefined
+                      ? {
+                          latitude: applied.nearLatitude,
+                          longitude: applied.nearLongitude!,
+                        }
+                      : undefined
+                  }
+                  onViewport={setViewport}
                   listings={mapListings}
                   selectedId={selectedListingId}
                   onSelectListing={setSelectedListingId}
@@ -606,7 +674,12 @@ function SearchListingCard({
     >
       <div className="relative h-52 bg-slate-100">
         <button
-          aria-label={`Show ${l.title} on the city overview`}
+          aria-label={
+            l.mapLatitude !== undefined
+              ? `Show ${l.title} on the map`
+              : `Map location unavailable for ${l.title}`
+          }
+          disabled={l.mapLatitude === undefined}
           onClick={onSelect}
           className="w-full h-full"
         >
@@ -659,6 +732,12 @@ function SearchListingCard({
         <p className="text-xs text-slate-500 mt-1">
           {l.city}, {l.state}
         </p>
+        {l.distanceMiles !== undefined && (
+          <p className="text-xs text-slate-600 mt-1">
+            About {l.distanceMiles.toFixed(1)} miles from your reference ·
+            straight-line area estimate
+          </p>
+        )}
         <p className="text-xs text-slate-400 mt-1 break-all">
           Property ID: {l.publicId ?? l._id}
         </p>

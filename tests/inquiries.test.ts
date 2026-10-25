@@ -1,5 +1,4 @@
 import { seedPublishedFixtures } from "./helpers/publication";
-declare global { interface ImportMeta { glob(pattern: string): Record<string, () => Promise<unknown>>; } }
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import schema from "../convex/schema";

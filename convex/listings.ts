@@ -1,3 +1,5 @@
+import { syncGeo, removeGeo } from "./lib/geo";
+import { addressKey } from "../lib/geo";
 import {
   contentIssues,
   publiclyVisible,
@@ -193,6 +195,20 @@ export const update = mutation({
         ? { maxOccupancy: maxOccupancy ?? undefined }
         : {}),
     };
+    const locationChanged =
+      addressKey({ ...listing, ...patch }) !== addressKey(listing);
+    if (locationChanged && listing.firstPublishedAt)
+      throw new Error(
+        "A published property's address is locked. Contact support for a minor correction; use a new listing for a different property.",
+      );
+    if (locationChanged) {
+      await removeGeo(ctx, listing);
+      const location = await ctx.db
+        .query("listingLocations")
+        .withIndex("by_listing", (q) => q.eq("listingId", id))
+        .unique();
+      if (location) await ctx.db.delete(location._id);
+    }
     const changed = Object.entries(patch).some(([key, value]) => {
       if (key === "photos" && assets) return false;
       const previous =
@@ -206,6 +222,13 @@ export const update = mutation({
     });
     await ctx.db.patch(id, {
       ...patch,
+      ...(locationChanged
+        ? {
+            mapLatitude: undefined,
+            mapLongitude: undefined,
+            locationConfirmedAt: undefined,
+          }
+        : {}),
       ...(changed
         ? {
             revision: (listing.revision ?? 0) + 1,
@@ -221,6 +244,8 @@ export const update = mutation({
         ? { searchState: normalizeState(args.state) }
         : {}),
     });
+    if (!locationChanged && listing.mapLatitude !== undefined)
+      await syncGeo(ctx, (await ctx.db.get(id))!);
     if (changed)
       await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, {
         listingId: id,
@@ -291,6 +316,7 @@ export const unpublish = mutation({
       status: "inactive",
       publicationRequested: false,
     });
+    await syncGeo(ctx, { ...listing, status: "inactive" });
   },
 });
 
@@ -325,6 +351,12 @@ export const deleteListing = mutation({
       throw new Error("This property's calendar links require review.");
     for (const feed of feeds) await removeFeed(ctx, feed);
     await Promise.all(savedEntries.map((s) => ctx.db.delete(s._id)));
+    await removeGeo(ctx, listing);
+    const privateLocation = await ctx.db
+      .query("listingLocations")
+      .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+      .unique();
+    if (privateLocation) await ctx.db.delete(privateLocation._id);
     await ctx.db.delete(args.id);
   },
 });
@@ -470,7 +502,12 @@ export const search = query({
       return b.createdAt - a.createdAt;
     });
 
-    return Promise.all(listings.map((listing) => listingPhotos(ctx, listing)));
+    return Promise.all(
+      listings.map(async (listing) => ({
+        ...(await listingPhotos(ctx, listing)),
+        address: "",
+      })),
+    );
   },
 });
 
@@ -572,7 +609,10 @@ export const getFeatured = query({
         .filter(
           (listing): listing is NonNullable<typeof listing> => listing !== null,
         )
-        .map((listing) => listingPhotos(ctx, listing)),
+        .map(async (listing) => ({
+          ...(await listingPhotos(ctx, listing)),
+          address: "",
+        })),
     );
     const paid = hydrated.filter((listing) => listing.featured),
       others = hydrated.filter((listing) => !listing.featured);
@@ -590,6 +630,7 @@ export const incrementViews = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
     await ctx.db.patch(args.id, { views: listing.views + 1 });
+    await syncGeo(ctx, { ...listing, views: listing.views + 1 }, true);
   },
 });
 
@@ -697,6 +738,7 @@ export const rejectListing = mutation({
       approvalStatus: "rejected",
       approvedRevision: undefined,
     });
+    await syncGeo(ctx, { ...listing, status: "rejected" });
 
     if (landlord) {
       await ctx.scheduler.runAfter(

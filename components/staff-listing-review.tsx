@@ -135,6 +135,14 @@ export function StaffListingReview({ id }: { id: Id<"listings"> }) {
           >
             Open private property preview
           </a>
+          <a
+            className="underline text-sm"
+            href={`/dashboard/landlord/listings/${id}/location`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Inspect private address and map location
+          </a>
           <PublicationStatus state={state} />
           {stale && (
             <p role="alert" className="text-sm text-red-700">

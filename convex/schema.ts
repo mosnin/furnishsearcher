@@ -22,6 +22,7 @@ import { photoAsset } from "./validators/photos";
 import { subscriptionStatus } from "./validators/billing";
 
 import { reviewStatus, reviewKind } from "./validators/reviews";
+import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
@@ -163,7 +164,42 @@ export default defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_referral_code", ["referralCode"]),
 
+  listingLocations: defineTable({
+    listingId: v.id("listings"),
+    addressKey: v.string(),
+    generation: v.number(),
+    status: v.union(
+      v.literal("looking_up"),
+      v.literal("candidate"),
+      v.literal("confirmed"),
+      v.literal("failed"),
+    ),
+    candidates: v.array(placeCandidate),
+    exactLatitude: v.optional(v.number()),
+    exactLongitude: v.optional(v.number()),
+    provider: v.optional(v.string()),
+    matchedAddress: v.optional(v.string()),
+    confirmedBy: v.optional(v.id("users")),
+    updatedAt: v.number(),
+  }).index("by_listing", ["listingId"]),
+  geoRequests: defineTable({
+    userId: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_time", ["createdAt"]),
+  locationAudit: defineTable({
+    listingId: v.id("listings"),
+    actorId: v.id("users"),
+    action: v.string(),
+    note: v.string(),
+    createdAt: v.number(),
+  }).index("by_listing", ["listingId"]),
   listings: defineTable({
+    mapLatitude: v.optional(v.number()),
+    mapLongitude: v.optional(v.number()),
+    locationConfirmedAt: v.optional(v.number()),
+    locationGeneration: v.optional(v.number()),
     firstPublishedAt: v.optional(v.number()),
     publicationRequested: v.optional(v.boolean()),
     revision: v.optional(v.number()),

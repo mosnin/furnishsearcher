@@ -1,3 +1,4 @@
+import { syncGeo } from "./geo";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -117,6 +118,7 @@ export async function reconcileListing(
       ? { firstPublishedAt: Date.now() }
       : {}),
   });
+  if (listing.status !== status) await syncGeo(ctx, { ...listing, status });
   if (activating) {
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, {
       listingId: listing._id,

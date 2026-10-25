@@ -1,7 +1,19 @@
+import {
+  validatePoint,
+  validateBounds,
+  contains,
+  distanceMiles,
+  type Bounds,
+} from "./geo";
 import { DAY, validateStay, searchDateRange } from "./stays";
 import { normalizeCity, normalizeState, US_STATES } from "./locations";
 import { AMENITIES, PROPERTY_TYPES, SORT_OPTIONS } from "./search-options";
 export type SearchFilters = {
+  mapBounds?: Bounds;
+  nearLatitude?: number;
+  nearLongitude?: number;
+  radiusMiles?: number;
+  nearLabel?: string;
   location?: string;
   city?: string;
   state?: string;
@@ -23,6 +35,11 @@ export type SearchFilters = {
   sort?: (typeof SORT_OPTIONS)[number];
 };
 export const SEARCH_KEYS = [
+  "mapBounds",
+  "nearLatitude",
+  "nearLongitude",
+  "radiusMiles",
+  "nearLabel",
   "location",
   "city",
   "state",
@@ -56,6 +73,39 @@ export function parseDate(value: string) {
 }
 export function normalizeSearch(input: SearchFilters): SearchFilters {
   const result: SearchFilters = {};
+  if (input.mapBounds) result.mapBounds = validateBounds(input.mapBounds);
+  if (
+    input.nearLatitude !== undefined ||
+    input.nearLongitude !== undefined ||
+    input.radiusMiles !== undefined ||
+    input.nearLabel
+  ) {
+    if (
+      input.nearLatitude === undefined ||
+      input.nearLongitude === undefined ||
+      input.radiusMiles === undefined
+    )
+      throw new Error("Choose a reference location and distance together.");
+    validatePoint({
+      latitude: input.nearLatitude,
+      longitude: input.nearLongitude,
+    });
+    if (
+      !Number.isFinite(input.radiusMiles) ||
+      input.radiusMiles < 0.5 ||
+      input.radiusMiles > 100
+    )
+      throw new Error("Choose a distance from 0.5 to 100 miles.");
+    result.nearLatitude = input.nearLatitude;
+    result.nearLongitude = input.nearLongitude;
+    result.radiusMiles = input.radiusMiles;
+    if (input.nearLabel) {
+      if (input.nearLabel.length > 200)
+        throw new Error("Reference location label is too long.");
+      result.nearLabel = input.nearLabel.trim();
+    }
+  }
+
   for (const key of ["location", "city", "state", "propertyId"] as const) {
     const value = input[key]?.trim().replace(/\s+/g, " ");
     if (value && value.length > (key === "location" ? 200 : 128))
@@ -191,6 +241,23 @@ export function parseSearchParams(
   now = new Date(),
 ): SearchFilters {
   const input: SearchFilters = {};
+  const bounds = params.get("bounds");
+  if (bounds) {
+    const values = bounds.split(",").map(Number);
+    if (values.length !== 4) throw new Error("Choose valid map bounds.");
+    input.mapBounds = {
+      south: values[0],
+      west: values[1],
+      north: values[2],
+      east: values[3],
+    };
+  }
+  for (const key of ["nearLatitude", "nearLongitude", "radiusMiles"] as const) {
+    const value = params.get(key);
+    if (value !== null && value !== "") input[key] = Number(value);
+  }
+  input.nearLabel = params.get("nearLabel") || undefined;
+
   for (const key of ["location", "city", "state", "propertyId"] as const)
     input[key] = params.get(key) || undefined;
   for (const key of [
@@ -253,6 +320,23 @@ export function searchParams(filters: SearchFilters) {
     "flexibleDays",
   ] as const)
     if (f[key] !== undefined) params.set(key, String(f[key]));
+  for (const key of [
+    "nearLatitude",
+    "nearLongitude",
+    "radiusMiles",
+    "nearLabel",
+  ] as const)
+    if (f[key] !== undefined) params.set(key, String(f[key]));
+  if (f.mapBounds)
+    params.set(
+      "bounds",
+      [
+        f.mapBounds.south,
+        f.mapBounds.west,
+        f.mapBounds.north,
+        f.mapBounds.east,
+      ].join(","),
+    );
   if (f.moveIn !== undefined) {
     params.set("moveIn", new Date(f.moveIn).toISOString().slice(0, 10));
     params.set("moveOut", new Date(f.moveOut!).toISOString().slice(0, 10));
@@ -273,6 +357,8 @@ export function criteriaOnly(value: SearchFilters): SearchFilters {
 }
 
 type Listing = {
+  mapLatitude?: number;
+  mapLongitude?: number;
   _id?: string;
   city: string;
   state: string;
@@ -289,6 +375,24 @@ type Listing = {
   parkingIncluded: boolean;
 };
 export function matchesSearch(listing: Listing, f: SearchFilters) {
+  if (f.mapBounds || f.nearLatitude !== undefined) {
+    if (listing.mapLatitude === undefined || listing.mapLongitude === undefined)
+      return false;
+    const p = {
+      latitude: listing.mapLatitude,
+      longitude: listing.mapLongitude,
+    };
+    if (f.mapBounds && !contains(f.mapBounds, p)) return false;
+    if (
+      f.nearLatitude !== undefined &&
+      distanceMiles(
+        { latitude: f.nearLatitude, longitude: f.nearLongitude! },
+        p,
+      ) > f.radiusMiles!
+    )
+      return false;
+  }
+
   if (f.city && normalizeCity(listing.city) !== normalizeCity(f.city))
     return false;
   if (f.state && normalizeState(listing.state) !== normalizeState(f.state))

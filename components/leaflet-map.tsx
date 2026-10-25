@@ -1,5 +1,6 @@
 "use client";
 
+import type { Bounds, Point } from "@/lib/geo";
 import dynamic from "next/dynamic";
 import type { MapListing } from "@/components/map-view";
 
@@ -12,6 +13,10 @@ const LeafletMapInner = dynamic(() => import("./leaflet-map-inner"), {
 
 export default function LeafletMap(props: {
   listings: MapListing[];
+  onViewport?: (bounds: Bounds | null) => void;
+  fitKey?: string;
+  bounds?: Bounds;
+  reference?: Point;
   selectedId?: string | null;
   onSelectListing?: (id: string | null) => void;
 }) {

@@ -361,10 +361,13 @@ export default function EditListingPage() {
             <div className="space-y-5">
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Location</CardTitle>
+                {listing?.firstPublishedAt&&<p className="text-sm text-slate-600">A published property’s address is locked. Contact support for corrections. A different property needs a new listing.</p>}
+                <Link className="underline text-sm" href={`/dashboard/landlord/listings/${listingId}/location`}>Confirm or review the map location</Link>
               </CardHeader>
               <div className="space-y-2">
                 <Label htmlFor="address">Street Address *</Label>
                 <Input
+                  disabled={!!listing?.firstPublishedAt}
                   id="address"
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
@@ -376,6 +379,7 @@ export default function EditListingPage() {
                   <Input
                     id="city"
                     value={form.city}
+                    disabled={!!listing?.firstPublishedAt}
                     onChange={(e) => update("city", e.target.value)}
                   />
                 </div>
@@ -392,6 +396,7 @@ export default function EditListingPage() {
               <div className="space-y-2 max-w-xs">
                 <Label htmlFor="zip">ZIP Code *</Label>
                 <Input
+                  disabled={!!listing?.firstPublishedAt}
                   id="zip"
                   maxLength={10}
                   value={form.zip}

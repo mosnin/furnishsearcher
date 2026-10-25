@@ -14,10 +14,12 @@
     "test:local-photos": "node scripts/local-photo-smoke.mjs",
     "test:local-billing": "node scripts/local-billing-smoke.mjs",
     "test:local-publication": "node scripts/local-publication-smoke.mjs",
-    "test:local-reviews": "node scripts/local-review-smoke.mjs"
+    "test:local-reviews": "node scripts/local-review-smoke.mjs",
+    "test:local-geo": "node scripts/local-geo-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.12.0",
+    "@convex-dev/geospatial": "^0.2.1",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-avatar": "^1.1.2",

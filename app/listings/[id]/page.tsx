@@ -45,6 +45,7 @@ import { ReportDialog } from "@/components/report-dialog";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
+import LeafletMap from "@/components/leaflet-map";
 import { PublicReviews } from "@/components/public-reviews";
 import { ReviewForm } from "@/components/review-form";
 import { LandlordBadges } from "@/components/landlord-badges";
@@ -581,6 +582,43 @@ export default function ListingDetailPage({ params }: PageProps) {
           </section>
         )}
 
+        <section className="mt-10 space-y-3">
+          <h2 className="text-lg font-semibold">Approximate location</h2>
+          {listing.mapLatitude !== undefined &&
+          listing.mapLongitude !== undefined ? (
+            <>
+              <p className="text-sm text-slate-600">
+                The map shows a general property area. The exact address is
+                private; confirm the location and commute with the owner.
+              </p>
+              <div className="h-80">
+                <LeafletMap
+                  fitKey={listing._id}
+                  selectedId={listing._id}
+                  listings={[
+                    {
+                      id: listing._id,
+                      title: listing.title,
+                      price: listing.price,
+                      lat: listing.mapLatitude,
+                      lng: listing.mapLongitude,
+                      city: listing.city,
+                      state: listing.state,
+                      bedrooms: listing.bedrooms,
+                      bathrooms: listing.bathrooms,
+                      photos: listing.photos,
+                    },
+                  ]}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-600">
+              A property-area map has not been confirmed. Ask the owner about
+              the location before committing.
+            </p>
+          )}
+        </section>
         {/* Reviews section */}
         <section className="mt-14">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">

@@ -1,3 +1,4 @@
+import { distanceMiles } from "../../lib/geo";
 import { publiclyVisible } from "./publication";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -16,7 +17,7 @@ export async function matchSearch(
   if (
     listing.status !== "active" ||
     listing.moderationHold ||
-    !await publiclyVisible(ctx,listing) ||
+    !(await publiclyVisible(ctx, listing)) ||
     !matchesSearch(listing, filters)
   )
     return null;
@@ -47,6 +48,27 @@ export async function matchSearch(
   }
   return {
     _id: listing._id,
+    mapLatitude: listing.mapLatitude,
+    mapLongitude: listing.mapLongitude,
+    ...(filters.nearLatitude !== undefined &&
+    listing.mapLatitude !== undefined &&
+    listing.mapLongitude !== undefined
+      ? {
+          distanceMiles:
+            Math.round(
+              distanceMiles(
+                {
+                  latitude: filters.nearLatitude,
+                  longitude: filters.nearLongitude!,
+                },
+                {
+                  latitude: listing.mapLatitude,
+                  longitude: listing.mapLongitude,
+                },
+              ) * 10,
+            ) / 10,
+        }
+      : {}),
     publicId: listing.publicId,
     title: listing.title,
     city: listing.city,

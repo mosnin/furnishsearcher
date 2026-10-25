@@ -22,7 +22,7 @@ export const save = mutation({
     const existing = await ctx.db
       .query("savedListings")
       .withIndex("by_tenant_listing", (q) =>
-        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId)
+        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId),
       )
       .unique();
 
@@ -58,7 +58,7 @@ export const unsave = mutation({
     const existing = await ctx.db
       .query("savedListings")
       .withIndex("by_tenant_listing", (q) =>
-        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId)
+        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId),
       )
       .unique();
 
@@ -87,7 +87,7 @@ export const isSaved = query({
     const existing = await ctx.db
       .query("savedListings")
       .withIndex("by_tenant_listing", (q) =>
-        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId)
+        q.eq("tenantId", args.tenantId).eq("listingId", args.listingId),
       )
       .unique();
     return existing !== null;
@@ -116,8 +116,14 @@ export const getSaved = query({
     const enriched = await Promise.all(
       saved.map(async (entry) => {
         const listing = await ctx.db.get(entry.listingId);
-        return { ...entry, listing: listing && await publiclyVisible(ctx,listing) ? await listingPhotos(ctx, listing) : null };
-      })
+        return {
+          ...entry,
+          listing:
+            listing && (await publiclyVisible(ctx, listing))
+              ? { ...(await listingPhotos(ctx, listing)), address: "" }
+              : null,
+        };
+      }),
     );
 
     return enriched.filter((e) => e.listing !== null);

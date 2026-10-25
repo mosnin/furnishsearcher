@@ -1,5 +1,11 @@
+import { bounds } from "./geo";
 import { v } from "convex/values";
 export const searchFields = {
+  mapBounds: v.optional(bounds),
+  nearLatitude: v.optional(v.number()),
+  nearLongitude: v.optional(v.number()),
+  radiusMiles: v.optional(v.number()),
+  nearLabel: v.optional(v.string()),
   location: v.optional(v.string()),
   city: v.optional(v.string()),
   state: v.optional(v.string()),
@@ -28,6 +34,9 @@ export const searchFields = {
   ),
 };
 export const searchResult = v.object({
+  mapLatitude: v.optional(v.number()),
+  mapLongitude: v.optional(v.number()),
+  distanceMiles: v.optional(v.number()),
   _id: v.id("listings"),
   publicId: v.optional(v.string()),
   title: v.string(),
