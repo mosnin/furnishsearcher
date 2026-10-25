@@ -1,239 +1,152 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { requireUser } from "./lib/auth";
+import { currentSupply } from "./lib/market";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
-/**
- * Returns the average price per city from all active listings.
- * Results are grouped by (city, state) and sorted by avgPrice descending.
- */
 export const getPricesByCity = query({
   args: {},
+  returns: v.array(
+    v.object({
+      city: v.string(),
+      state: v.string(),
+      avgPrice: v.number(),
+      count: v.number(),
+    }),
+  ),
   handler: async (ctx) => {
-    const activeListings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-
-    // Group by "city|state" key
-    const cityMap = new Map<
-      string,
-      { city: string; state: string; total: number; count: number }
-    >();
-
-    for (const listing of activeListings) {
-      const key = `${listing.city.toLowerCase()}|${listing.state.toLowerCase()}`;
-      if (!cityMap.has(key)) {
-        cityMap.set(key, {
-          city: listing.city,
-          state: listing.state,
-          total: 0,
-          count: 0,
-        });
-      }
-      const entry = cityMap.get(key)!;
-      entry.total += listing.price;
-      entry.count += 1;
-    }
-
-    const result = [...cityMap.values()].map((entry) => ({
-      city: entry.city,
-      state: entry.state,
-      avgPrice: Math.round(entry.total / entry.count),
-      count: entry.count,
-    }));
-
-    result.sort((a, b) => b.avgPrice - a.avgPrice);
-
-    return result;
+    const { run } = await currentSupply(ctx);
+    if (!run) return [];
+    const rows = await ctx.db
+      .query("marketSupply")
+      .withIndex("by_price", (q) => q.eq("runId", run._id))
+      .order("desc")
+      .take(21);
+    return rows
+      .filter((x) => x.scope !== "all")
+      .slice(0, 20)
+      .map((x) => ({
+        city: x.city!,
+        state: x.state!,
+        avgPrice: x.avgCents / 100,
+        count: x.count,
+      }));
   },
 });
-
-/**
- * Returns analytics stats for a specific landlord's listings.
- * Counts conversations (messages) by joining against the conversations table.
- */
-export const getListingStats = query({
-  args: {
-    landlordId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const listings = await ctx.db
-      .query("listings")
-      .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
-      .collect();
-
-    const totalListings = listings.length;
-    const activeListings = listings.filter((l) => l.status === "active").length;
-    const totalViews = listings.reduce((sum, l) => sum + l.views, 0);
-    const avgPrice =
-      listings.length > 0
-        ? Math.round(
-            listings.reduce((sum, l) => sum + l.price, 0) / listings.length
-          )
-        : 0;
-
-    // Count total conversations (inquiries) for this landlord
-    const conversations = await ctx.db
-      .query("conversations")
-      .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
-      .collect();
-    const totalMessages = conversations.length;
-
-    // Count saved listings for each listing owned by this landlord
-    const listingIds = new Set(listings.map((l) => l._id));
-    const allSaved = await ctx.db.query("savedListings").collect();
-    const savedCount = allSaved.filter((s) => listingIds.has(s.listingId)).length;
-
-    return {
-      totalListings,
-      activeListings,
-      totalViews,
-      totalMessages,
-      avgPrice,
-      savedCount,
-    };
-  },
-});
-
-/**
- * Returns overall platform statistics for the Market Insights page.
- */
 export const getPlatformStats = query({
   args: {},
+  returns: v.object({
+    totalListings: v.number(),
+    totalLandlords: v.number(),
+    avgPrice: v.number(),
+    cities: v.number(),
+  }),
   handler: async (ctx) => {
-    const allListings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-
-    const totalListings = allListings.length;
-
-    // Distinct landlords with active listings
-    const landlordIds = new Set(allListings.map((l) => l.landlordId));
-    const totalLandlords = landlordIds.size;
-
-    const avgPrice =
-      totalListings > 0
-        ? Math.round(
-            allListings.reduce((sum, l) => sum + l.price, 0) / totalListings
-          )
-        : 0;
-
-    // Distinct cities
-    const cityKeys = new Set(
-      allListings.map((l) => `${l.city.toLowerCase()}|${l.state.toLowerCase()}`)
-    );
-    const cities = cityKeys.size;
-
+    const { row } = await currentSupply(ctx);
     return {
-      totalListings,
-      totalLandlords,
-      avgPrice,
-      cities,
+      totalListings: row?.count ?? 0,
+      totalLandlords: row?.owners ?? 0,
+      avgPrice: (row?.avgCents ?? 0) / 100,
+      cities: row?.cities ?? 0,
     };
   },
 });
-
-/**
- * Returns property type distribution for active listings.
- */
 export const getPropertyTypeDistribution = query({
   args: {},
+  returns: v.array(v.object({ type: v.string(), count: v.number() })),
   handler: async (ctx) => {
-    const activeListings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-
-    const typeMap = new Map<string, number>();
-    for (const listing of activeListings) {
-      const type = listing.propertyType || "Other";
-      typeMap.set(type, (typeMap.get(type) ?? 0) + 1);
-    }
-
-    return [...typeMap.entries()]
-      .map(([type, count]) => ({ type, count }))
+    const { row } = await currentSupply(ctx);
+    return (row?.buckets ?? [])
+      .filter((x) => x.dimension === "type")
+      .map((x) => ({ type: x.key, count: x.count }))
       .sort((a, b) => b.count - a.count);
   },
 });
-
-/**
- * Returns the most common amenities across all active listings.
- */
 export const getTopAmenities = query({
   args: {},
+  returns: v.array(v.object({ amenity: v.string(), count: v.number() })),
   handler: async (ctx) => {
-    const activeListings = await ctx.db
-      .query("listings")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-
-    const amenityMap = new Map<string, number>();
-    for (const listing of activeListings) {
-      for (const amenity of listing.amenities) {
-        amenityMap.set(amenity, (amenityMap.get(amenity) ?? 0) + 1);
-      }
-    }
-
-    return [...amenityMap.entries()]
-      .map(([amenity, count]) => ({ amenity, count }))
+    const { row } = await currentSupply(ctx);
+    return (row?.buckets ?? [])
+      .filter((x) => x.dimension === "amenity")
+      .map((x) => ({ amenity: x.key, count: x.count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
   },
 });
-
-/**
- * Returns per-listing stats for a landlord (views, saved count, conversation count).
- */
-export const getListingPerformance = query({
-  args: {
-    landlordId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const listings = await ctx.db
-      .query("listings")
-      .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
-      .collect();
-
-    if (listings.length === 0) return [];
-
-    const listingIds = new Set(listings.map((l) => l._id));
-
-    // Fetch all conversations for this landlord
+async function ownerPerformance(ctx: QueryCtx, landlordId: Id<"users">) {
+  const user = await requireUser(ctx);
+  if (user._id !== landlordId && user.role !== "admin")
+    throw new Error("Not authorized to read these listing statistics.");
+  const listings = await ctx.db
+    .query("listings")
+    .withIndex("by_landlord", (q) => q.eq("landlordId", landlordId))
+    .collect();
+  const out = [];
+  for (const listing of listings) {
     const conversations = await ctx.db
       .query("conversations")
-      .withIndex("by_landlord", (q) => q.eq("landlordId", args.landlordId))
+      .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
       .collect();
-
-    // Fetch all saves for this landlord's listings
-    const allSaved = await ctx.db.query("savedListings").collect();
-
-    const conversationsByListing = new Map<string, number>();
-    for (const conv of conversations) {
-      const key = conv.listingId;
-      conversationsByListing.set(key, (conversationsByListing.get(key) ?? 0) + 1);
-    }
-
-    const savedByListing = new Map<string, number>();
-    for (const s of allSaved) {
-      if (listingIds.has(s.listingId)) {
-        savedByListing.set(
-          s.listingId,
-          (savedByListing.get(s.listingId) ?? 0) + 1
-        );
-      }
-    }
-
-    return listings
-      .map((l) => ({
-        _id: l._id,
-        title: l.title,
-        status: l.status,
-        price: l.price,
-        views: l.views,
-        messages: conversationsByListing.get(l._id) ?? 0,
-        saved: savedByListing.get(l._id) ?? 0,
-        createdAt: l.createdAt,
-      }))
-      .sort((a, b) => b.views - a.views);
+    const saved = await ctx.db
+      .query("savedListings")
+      .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+      .collect();
+    out.push({
+      _id: listing._id,
+      title: listing.title,
+      status: listing.status,
+      price: listing.price,
+      views: listing.views,
+      messages: conversations.filter((c) => c.landlordId === landlordId).length,
+      saved: saved.length,
+      createdAt: listing.createdAt,
+    });
+  }
+  return out.sort((a, b) => b.views - a.views);
+}
+const performance = v.object({
+  _id: v.id("listings"),
+  title: v.string(),
+  status: v.union(
+    v.literal("active"),
+    v.literal("inactive"),
+    v.literal("pending"),
+    v.literal("rejected"),
+  ),
+  price: v.number(),
+  views: v.number(),
+  messages: v.number(),
+  saved: v.number(),
+  createdAt: v.number(),
+});
+export const getListingPerformance = query({
+  args: { landlordId: v.id("users") },
+  returns: v.array(performance),
+  handler: async (ctx, args) => ownerPerformance(ctx, args.landlordId),
+});
+export const getListingStats = query({
+  args: { landlordId: v.id("users") },
+  returns: v.object({
+    totalListings: v.number(),
+    activeListings: v.number(),
+    totalViews: v.number(),
+    totalMessages: v.number(),
+    avgPrice: v.number(),
+    savedCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const rows = await ownerPerformance(ctx, args.landlordId);
+    return {
+      totalListings: rows.length,
+      activeListings: rows.filter((x) => x.status === "active").length,
+      totalViews: rows.reduce((n, x) => n + x.views, 0),
+      totalMessages: rows.reduce((n, x) => n + x.messages, 0),
+      avgPrice: rows.length
+        ? rows.reduce((n, x) => n + x.price, 0) / rows.length
+        : 0,
+      savedCount: rows.reduce((n, x) => n + x.saved, 0),
+    };
   },
 });

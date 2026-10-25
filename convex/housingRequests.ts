@@ -1,5 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { recordDemand } from "./lib/market";
+import { demandShape } from "../lib/market-insights";
 import {
   mutation,
   query,
@@ -45,6 +47,22 @@ async function insertRequest(
       "Verify your phone number before sharing it, or choose platform messages.",
     );
   }
+  await recordDemand(
+    ctx,
+    "housing_request",
+    `account:${userId}`,
+    demandShape({
+      city: prepared.city,
+      state: prepared.state,
+      bedrooms: prepared.bedrooms,
+      maxPrice: prepared.maxBudget,
+      petFriendly: prepared.petFriendly,
+      moveIn: prepared.moveInDate,
+      moveOut:
+        prepared.moveOutDate ??
+        prepared.moveInDate + prepared.duration * 30 * 86400000,
+    }),
+  );
   const requestId = await ctx.db.insert("housingRequests", {
     ...prepared,
     userId,

@@ -5,6 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { SearchFilters } from "@/lib/search";
 import { retainedSpatialPages } from "@/lib/spatial-pages";
+import { useMarketSearch } from "./use-market-search";
 type Page = FunctionReturnType<typeof api.search.listings>;
 /** The spatial component has its own cursors, so do not pass Convex endCursor semantics to it. */
 export function useRentalSearch(filters: SearchFilters, skip: boolean) {
@@ -51,6 +52,13 @@ export function useRentalSearch(filters: SearchFilters, skip: boolean) {
     if (state.key !== key || count < cursors.length)
       setState({ key, cursors: cursors.slice(0, count) });
   }, [key, JSON.stringify(signatures), count, spatial, skip]);
+  useMarketSearch(
+    filters,
+    skip,
+    spatial
+      ? !!pages[0] && !(pages[0] instanceof Error)
+      : ordinary.status !== "LoadingFirstPage",
+  );
   if (!spatial) return ordinary;
   for (const page of pages.slice(0, count))
     if (page instanceof Error) throw page;

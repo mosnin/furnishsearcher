@@ -22,17 +22,19 @@ export default function PrivacyPage() {
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
             Privacy Policy
           </h1>
-          <p className="mt-3 text-blue-200 text-base">Last updated: April 2026</p>
+          <p className="mt-3 text-blue-200 text-base">
+            Last updated: April 2026
+          </p>
         </div>
       </section>
 
       {/* Content */}
       <section className="max-w-4xl mx-auto px-4 py-16">
         <p className="text-slate-600 leading-relaxed mb-12 text-lg border-l-4 border-[#1e3a8a] pl-4">
-          FurnishFinder, Inc. (&quot;FurnishFinder,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to
-          protecting your privacy. This Privacy Policy explains how we collect,
-          use, disclose, and safeguard your information when you use our
-          marketplace platform.
+          FurnishFinder, Inc. (&quot;FurnishFinder,&quot; &quot;we,&quot;
+          &quot;us,&quot; or &quot;our&quot;) is committed to protecting your
+          privacy. This Privacy Policy explains how we collect, use, disclose,
+          and safeguard your information when you use our marketplace platform.
         </p>
 
         <div className="space-y-12">
@@ -50,24 +52,44 @@ export default function PrivacyPage() {
                 for identity verification.
               </p>
               <p>
-                <strong className="text-slate-800">Listing Data:</strong> Landlords
-                who create listings provide property descriptions, photos, pricing,
-                availability, and amenities. This information is displayed publicly
-                on the platform.
+                <strong className="text-slate-800">Listing Data:</strong>{" "}
+                Landlords who create listings provide property descriptions,
+                photos, pricing, availability, and amenities. This information
+                is displayed publicly on the platform.
               </p>
               <p>
                 <strong className="text-slate-800">Usage Data:</strong> We
-                automatically collect information about your interactions with the
-                Service, including pages visited, search queries, filters applied,
-                listings viewed, and messages sent. We also collect device
-                information such as IP address, browser type, operating system,
-                and referring URLs.
+                automatically collect information about your interactions with
+                the Service, including pages visited, search queries, filters
+                applied, listings viewed, and messages sent. We also collect
+                device information such as IP address, browser type, operating
+                system, and referring URLs.
+              </p>
+              <p>
+                <strong className="text-slate-800">Market insights:</strong> Our
+                market-insights records use coarse search preferences and counts
+                of native inquiries, new traveler conversations and housing
+                requests. They do not contain message text, raw location
+                queries, exact reference coordinates or requested stay dates.
+                Browser observations use a random reference held in page memory,
+                without an analytics cookie or local storage. Private hashed
+                references help deduplicate observations and hide demand
+                categories with fewer than ten contributing account or
+                page-session references. These references are not verified
+                unique people. Browser search observations respect Do Not Track
+                and Global Privacy Control. Coarse daily activity and inactive
+                contributor references become eligible for scheduled cleanup
+                when their recorded day is older than 45 days; search
+                deduplication rows when their day is older than two days.
+                Bounded cleanup may take additional time. These limits describe
+                market analytics records, rather than retention of your separate
+                rental account, messages or requests.
               </p>
               <p>
                 <strong className="text-slate-800">Communications:</strong> When
                 you contact us or communicate with other users through our
-                messaging system, we store those communications to facilitate the
-                service, resolve disputes, and improve user safety.
+                messaging system, we store those communications to facilitate
+                the service, resolve disputes, and improve user safety.
               </p>
             </div>
           </div>
@@ -90,8 +112,8 @@ export default function PrivacyPage() {
               </li>
               <li>
                 To send transactional emails, service announcements, and, where
-                you have opted in, promotional communications about FurnishFinder
-                features and offers.
+                you have opted in, promotional communications about
+                FurnishFinder features and offers.
               </li>
               <li>
                 To detect, investigate, and prevent fraudulent activity, abuse,
@@ -116,38 +138,38 @@ export default function PrivacyPage() {
             </h2>
             <div className="space-y-4 text-slate-600 leading-relaxed">
               <p>
-                We do not sell, rent, or trade your personal information to third
-                parties for their own marketing purposes. We share information only
-                as described in this policy.
+                We do not sell, rent, or trade your personal information to
+                third parties for their own marketing purposes. We share
+                information only as described in this policy.
               </p>
               <p>
-                <strong className="text-slate-800">Between Users:</strong> When a
-                renter contacts a landlord about a listing, certain profile
-                information (name, profile photo, and message content) is shared to
-                facilitate that communication. Landlords&apos; property information is
-                publicly visible to all users of the Service.
+                <strong className="text-slate-800">Between Users:</strong> When
+                a renter contacts a landlord about a listing, certain profile
+                information (name, profile photo, and message content) is shared
+                to facilitate that communication. Landlords&apos; property
+                information is publicly visible to all users of the Service.
               </p>
               <p>
-                <strong className="text-slate-800">Service Providers:</strong> We
-                share data with trusted third-party vendors who assist us in
+                <strong className="text-slate-800">Service Providers:</strong>{" "}
+                We share data with trusted third-party vendors who assist us in
                 operating the platform, including cloud hosting providers, email
-                delivery services, analytics providers, customer support tools, and
-                payment processors. These parties are contractually obligated to
-                protect your information and use it only for the services they
-                provide to us.
+                delivery services, analytics providers, customer support tools,
+                and payment processors. These parties are contractually
+                obligated to protect your information and use it only for the
+                services they provide to us.
               </p>
               <p>
-                <strong className="text-slate-800">Legal Requirements:</strong> We
-                may disclose your information if required to do so by law or in
-                response to valid requests by public authorities (e.g., a court
-                order or government agency subpoena).
+                <strong className="text-slate-800">Legal Requirements:</strong>{" "}
+                We may disclose your information if required to do so by law or
+                in response to valid requests by public authorities (e.g., a
+                court order or government agency subpoena).
               </p>
               <p>
-                <strong className="text-slate-800">Business Transfers:</strong> In
-                the event of a merger, acquisition, or sale of all or a portion of
-                our assets, your information may be transferred as part of that
-                transaction. We will notify you via email or prominent notice on
-                our website before such a transfer occurs.
+                <strong className="text-slate-800">Business Transfers:</strong>{" "}
+                In the event of a merger, acquisition, or sale of all or a
+                portion of our assets, your information may be transferred as
+                part of that transaction. We will notify you via email or
+                prominent notice on our website before such a transfer occurs.
               </p>
             </div>
           </div>
@@ -159,10 +181,13 @@ export default function PrivacyPage() {
               We use cookies and similar tracking technologies to operate the
               Service, remember your preferences, analyze usage, and support our
               marketing efforts. Essential cookies are necessary for the site to
-              function and cannot be disabled. Analytics cookies help us understand
-              how users interact with the platform. You may manage non-essential
-              cookies through your browser settings or our{" "}
-              <Link href="/cookies" className="text-[#1e3a8a] font-semibold hover:underline">
+              function and cannot be disabled. Analytics cookies help us
+              understand how users interact with the platform. You may manage
+              non-essential cookies through your browser settings or our{" "}
+              <Link
+                href="/cookies"
+                className="text-[#1e3a8a] font-semibold hover:underline"
+              >
                 Cookie Policy
               </Link>
               .
@@ -175,15 +200,15 @@ export default function PrivacyPage() {
               Data Security
             </h2>
             <p className="text-slate-600 leading-relaxed">
-              We implement industry-standard technical and organizational measures
-              to protect your personal information against unauthorized access,
-              alteration, disclosure, or destruction. These measures include
-              encryption of data in transit (TLS 1.2+) and at rest, strict access
-              controls, regular security audits, and employee training on data
-              privacy best practices. While we strive to use commercially
-              acceptable means to protect your information, no method of
-              transmission over the Internet or electronic storage is 100% secure,
-              and we cannot guarantee absolute security.
+              We implement industry-standard technical and organizational
+              measures to protect your personal information against unauthorized
+              access, alteration, disclosure, or destruction. These measures
+              include encryption of data in transit (TLS 1.2+) and at rest,
+              strict access controls, regular security audits, and employee
+              training on data privacy best practices. While we strive to use
+              commercially acceptable means to protect your information, no
+              method of transmission over the Internet or electronic storage is
+              100% secure, and we cannot guarantee absolute security.
             </p>
           </div>
 
@@ -194,22 +219,25 @@ export default function PrivacyPage() {
             </h2>
             <p className="text-slate-600 leading-relaxed">
               We retain your personal information for as long as your account is
-              active or as needed to provide the Service. If you close your account,
-              we will delete or anonymize your personal data within 90 days, except
-              where we are required to retain it for legal or compliance purposes,
-              such as records of completed transactions, fraud prevention data, or
-              information subject to a legal hold. Listing data may be retained in
-              anonymized form for analytics purposes.
+              active or as needed to provide the Service. If you close your
+              account, we will delete or anonymize your personal data within 90
+              days, except where we are required to retain it for legal or
+              compliance purposes, such as records of completed transactions,
+              fraud prevention data, or information subject to a legal hold.
+              Listing data may be retained in anonymized form for analytics
+              purposes.
             </p>
           </div>
 
           {/* Section 7 */}
           <div>
-            <h2 className="text-xl font-bold text-[#1e3a8a] mb-4">Your Rights</h2>
+            <h2 className="text-xl font-bold text-[#1e3a8a] mb-4">
+              Your Rights
+            </h2>
             <div className="space-y-4 text-slate-600 leading-relaxed">
               <p>
-                Depending on your jurisdiction, you may have the following rights
-                with respect to your personal information:
+                Depending on your jurisdiction, you may have the following
+                rights with respect to your personal information:
               </p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>
@@ -217,21 +245,23 @@ export default function PrivacyPage() {
                   copy of the personal data we hold about you.
                 </li>
                 <li>
-                  <strong className="text-slate-800">Rectification:</strong> Request
-                  that we correct inaccurate or incomplete personal data.
+                  <strong className="text-slate-800">Rectification:</strong>{" "}
+                  Request that we correct inaccurate or incomplete personal
+                  data.
                 </li>
                 <li>
                   <strong className="text-slate-800">Erasure:</strong> Request
                   deletion of your personal data, subject to certain exceptions.
                 </li>
                 <li>
-                  <strong className="text-slate-800">Portability:</strong> Receive
-                  your personal data in a structured, machine-readable format.
+                  <strong className="text-slate-800">Portability:</strong>{" "}
+                  Receive your personal data in a structured, machine-readable
+                  format.
                 </li>
                 <li>
-                  <strong className="text-slate-800">Opt-Out:</strong> Unsubscribe
-                  from marketing communications at any time by clicking
-                  &quot;unsubscribe&quot; in any email we send.
+                  <strong className="text-slate-800">Opt-Out:</strong>{" "}
+                  Unsubscribe from marketing communications at any time by
+                  clicking &quot;unsubscribe&quot; in any email we send.
                 </li>
               </ul>
               <p>
@@ -249,7 +279,9 @@ export default function PrivacyPage() {
 
           {/* Section 8 */}
           <div>
-            <h2 className="text-xl font-bold text-[#1e3a8a] mb-4">Contact Us</h2>
+            <h2 className="text-xl font-bold text-[#1e3a8a] mb-4">
+              Contact Us
+            </h2>
             <p className="text-slate-600 leading-relaxed">
               If you have questions, concerns, or complaints about this Privacy
               Policy or our data practices, please contact our Privacy Team at{" "}
@@ -260,9 +292,9 @@ export default function PrivacyPage() {
                 privacy@furnishfinder.com
               </a>{" "}
               or by writing to FurnishFinder, Inc., Attn: Privacy Team. You also
-              have the right to lodge a complaint with your local data protection
-              authority if you believe we have not handled your information in
-              compliance with applicable law.
+              have the right to lodge a complaint with your local data
+              protection authority if you believe we have not handled your
+              information in compliance with applicable law.
             </p>
           </div>
         </div>
@@ -270,11 +302,17 @@ export default function PrivacyPage() {
         <div className="mt-16 pt-8 border-t border-gray-200">
           <p className="text-slate-500 text-sm">
             Also see our{" "}
-            <Link href="/terms" className="text-[#1e3a8a] font-semibold hover:underline">
+            <Link
+              href="/terms"
+              className="text-[#1e3a8a] font-semibold hover:underline"
+            >
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/cookies" className="text-[#1e3a8a] font-semibold hover:underline">
+            <Link
+              href="/cookies"
+              className="text-[#1e3a8a] font-semibold hover:underline"
+            >
               Cookie Policy
             </Link>
             .

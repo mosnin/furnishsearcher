@@ -24,7 +24,8 @@
     "test:local-inbox": "node scripts/local-inbox-smoke.mjs",
     "test:local-thread-context": "node scripts/local-thread-context-smoke.mjs",
     "test:local-message-search": "node scripts/local-message-search-smoke.mjs",
-    "test:local-email-contacts": "node scripts/local-email-contact-smoke.mjs"
+    "test:local-email-contacts": "node scripts/local-email-contact-smoke.mjs",
+    "test:local-market": "node scripts/local-market-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

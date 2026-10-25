@@ -1,4 +1,6 @@
 import { syncInbox } from "./inbox";
+import { recordDemand } from "./market";
+import { demandShape } from "../../lib/market-insights";
 import { monthlyRateCents } from "./threadContext";
 import { publiclyVisible } from "./publication";
 import type { Id } from "../_generated/dataModel";
@@ -132,6 +134,19 @@ export async function sendListingMessage(
           }
         : undefined,
     });
+  if (!existing && !senderIsLandlord)
+    await recordDemand(
+      ctx,
+      "conversation",
+      `account:${sender._id}`,
+      demandShape({
+        city: listing.city,
+        state: listing.state,
+        bedrooms: listing.bedrooms,
+        maxPrice: listing.price,
+        propertyType: listing.propertyType,
+      }),
+    );
   if (inquiry) {
     if (
       inquiry.landlordId !== listing.landlordId ||

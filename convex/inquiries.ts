@@ -8,6 +8,8 @@ import { sendListingMessage } from "./lib/messaging";
 import { publiclyVisible } from "./lib/publication";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { recordDemand } from "./lib/market";
+import { demandShape } from "../lib/market-insights";
 import { mutation, query } from "./_generated/server";
 import { requireMessagingAllowed } from "./lib/messageAccess";
 import { requireUser } from "./lib/auth";
@@ -94,6 +96,21 @@ export const create = mutation({
       .first();
     if (pending)
       throw new Error("You have already sent an inquiry for these dates.");
+    await recordDemand(
+      ctx,
+      "inquiry",
+      `account:${tenant._id}`,
+      demandShape({
+        city: listing.city,
+        state: listing.state,
+        bedrooms: listing.bedrooms,
+        maxPrice: listing.price,
+        propertyType: listing.propertyType,
+        petFriendly: args.pets,
+        moveIn: args.moveIn,
+        moveOut: args.moveOut,
+      }),
+    );
     const id = await ctx.db.insert("bookingInquiries", {
       ...args,
       message,

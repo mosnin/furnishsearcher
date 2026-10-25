@@ -13,6 +13,7 @@ import {
 } from "./validators/bookings";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { bucket as marketBucket, demandKind } from "./validators/market";
 import { housingRequestFields } from "./validators/housing";
 import {
   caseFields,
@@ -195,6 +196,69 @@ export default defineSchema({
     .index("by_email", ["emailId"])
     .index("by_due", ["state", "dueAt"])
     .index("by_user", ["userId"]),
+  marketState: defineTable({
+    key: v.string(),
+    collectedSince: v.number(),
+    latestSupplyId: v.optional(v.id("marketSupplyRuns")),
+    buildingSupplyId: v.optional(v.id("marketSupplyRuns")),
+  }).index("by_key", ["key"]),
+  marketSupplyRuns: defineTable({
+    state: v.union(
+      v.literal("building"),
+      v.literal("complete"),
+      v.literal("failed"),
+    ),
+    cursor: v.union(v.string(), v.null()),
+    startedAt: v.number(),
+    updatedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+  }).index("by_started", ["startedAt"]),
+  marketSupply: defineTable({
+    runId: v.id("marketSupplyRuns"),
+    scope: v.string(),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    count: v.number(),
+    sumCents: v.number(),
+    avgCents: v.number(),
+    owners: v.number(),
+    cities: v.number(),
+    buckets: v.array(marketBucket),
+  })
+    .index("by_scope", ["runId", "scope"])
+    .index("by_price", ["runId", "avgCents"]),
+  marketSupplyOwners: defineTable({
+    runId: v.id("marketSupplyRuns"),
+    ownerId: v.id("users"),
+  })
+    .index("by_owner", ["runId", "ownerId"])
+    .index("by_run", ["runId"]),
+  marketDemandDays: defineTable({
+    scope: v.string(),
+    kind: demandKind,
+    day: v.number(),
+    count: v.number(),
+    buckets: v.array(marketBucket),
+  })
+    .index("by_scope", ["scope", "kind", "day"])
+    .index("by_day", ["day"]),
+  marketContributors: defineTable({
+    scope: v.string(),
+    kind: demandKind,
+    actor: v.string(),
+    lastSeen: v.number(),
+  })
+    .index("by_actor", ["scope", "kind", "actor"])
+    .index("by_recent", ["scope", "kind", "lastSeen"])
+    .index("by_time", ["lastSeen"]),
+  marketSearchLimits: defineTable({
+    actor: v.string(),
+    day: v.number(),
+    fingerprints: v.array(v.string()),
+  })
+    .index("by_actor", ["actor", "day"])
+    .index("by_day", ["day"]),
   users: defineTable({
     identityCheckId: v.optional(v.id("identityChecks")),
     identityHold: v.optional(v.boolean()),
@@ -398,6 +462,7 @@ export default defineSchema({
     savedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
+    .index("by_listing", ["listingId"])
     .index("by_tenant_listing", ["tenantId", "listingId"]),
 
   userBlocks: defineTable({
@@ -429,6 +494,7 @@ export default defineSchema({
     ])
     .index("by_conversation_read", ["conversationId", "read"]),
   conversations: defineTable(conversationFields)
+    .index("by_listing", ["listingId"])
     .index("by_tenant_latest", ["tenantId", "lastMessageAt"])
     .index("by_landlord_latest", ["landlordId", "lastMessageAt"])
     .index("by_key", ["key"])

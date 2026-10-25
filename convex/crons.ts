@@ -63,7 +63,6 @@ crons.interval(
   internal.messageSearch.retryNames,
   {},
 );
-export default crons;
 crons.interval(
   "recover inbound email work",
   { minutes: 5 },
@@ -76,3 +75,28 @@ crons.interval(
   internal.inboundEmails.cleanupBindings,
   {},
 );
+crons.interval(
+  "refresh eligible market inventory",
+  { hours: 24 },
+  internal.marketSupply.refresh,
+  {},
+);
+crons.interval(
+  "recover market inventory collection",
+  { minutes: 15 },
+  internal.marketSupply.recover,
+  {},
+);
+crons.interval(
+  "clean old market inventory snapshots",
+  { hours: 24 },
+  internal.marketSupply.cleanup,
+  {},
+);
+crons.interval(
+  "expire market activity references",
+  { hours: 24 },
+  internal.marketInsights.cleanup,
+  {},
+);
+export default crons;
