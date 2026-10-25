@@ -12,14 +12,21 @@ import type { Id } from "@/convex/_generated/dataModel";
 function useContactClock(expiresAt: number | null | undefined) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    if (!expiresAt || expiresAt <= Date.now()) return;
-    const timer = setTimeout(
-      () => setNow(Date.now()),
-      Math.min(expiresAt - Date.now() + 10, 2147483647),
-    );
-    return () => clearTimeout(timer);
-  }, [expiresAt, now]);
-  return now;
+    if (!expiresAt) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    function refresh() {
+      const current = Date.now();
+      setNow(current);
+      const remaining = expiresAt! - current;
+      if (remaining > 0)
+        timer = setTimeout(refresh, Math.min(remaining + 10, 2147483647));
+    }
+    refresh();
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [expiresAt]);
+  return Math.max(now, Date.now());
 }
 export function OwnerPhoneSettings({
   phoneMatches,
