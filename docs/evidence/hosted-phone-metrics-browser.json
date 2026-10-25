@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-25T19:46:32.326864+00:00",
+  "sourceSha": "993cf99a2f7799b62bd28e6fde359f73a62d52c7",
+  "deploymentId": "dpl_33RA8rUFbL57W8KMxzWvZrWYtYp9",
+  "syntheticSignedInBrowser": true,
+  "observed": [
+    "Separate Phone number reveals card shows Unavailable for absent history",
+    "Seven-day period and phone chart option select successfully",
+    "Daily table contains seven dates with unavailable phone values",
+    "Actual UI CSV download inspected for explicit phone coverage and blank unknown counts",
+    "390px document and main widths equal viewport; phone metric card fits",
+    "Horizontal table scroll reaches phone-reveal column on mobile",
+    "Default viewport restored"
+  ],
+  "csv": {
+    "checkedAt": "2026-10-25T19:45:00.129342+00:00",
+    "dailyRows": 7,
+    "sha256": "fd377d486e6eb0ece4f2f0f94f41ac8ed7e0c7e3af0255d0f17f514cb11c6bcb",
+    "phoneCoverageExplicit": true,
+    "unknownPhoneCountsBlank": true,
+    "environment": "test",
+    "privateContactsOrCallerIdentifiersExported": false
+  },
+  "nonzeroHostedPhoneChartAccepted": false,
+  "successfulHostedReveal": false,
+  "actualPhoneOrSms": false,
+  "tests": 293,
+  "testFiles": 30,
+  "productionChanged": false,
+  "wholeProductAccepted": false
+}
