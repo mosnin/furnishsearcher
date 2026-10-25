@@ -25,9 +25,6 @@ type NavItem = {
 };
 
 function getNavItems(role: Role): NavItem[] {
-  const savedHref =
-    role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
-
   return [
     {
       label: "Dashboard",
@@ -52,7 +49,7 @@ function getNavItems(role: Role): NavItem[] {
     },
     {
       label: "Saved",
-      href: savedHref,
+      href: "/dashboard/tenant/saved",
       icon: Heart,
     },
     {
@@ -109,23 +106,23 @@ export default function MobileNav({ role }: { role: Role }) {
 
   return (
     <nav
+      aria-label="Mobile navigation"
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
       style={{ boxShadow: "0 -2px 12px rgba(0,0,0,0.08)" }}
     >
       <div className="flex items-stretch h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
-          // Determine active state: exact match for dashboard roots, prefix for others
           const isActive =
-            item.href === pathname ||
-            (item.href !== "/search" &&
-              item.href !== "/" &&
-              pathname.startsWith(item.href));
+            item.label === "Dashboard"
+              ? item.href === pathname
+              : item.href === pathname || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
                 isActive
