@@ -1,3 +1,4 @@
+import { performanceCounts } from "./validators/performance";
 import { toolFields } from "./validators/rentalTools";
 import {
   documentFields,
@@ -40,6 +41,41 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  ownerPerformanceState: defineTable({
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    startedAt: v.number(),
+  }).index("by_owner_mode", ["ownerId", "mode"]),
+  ownerPerformanceDays: defineTable({
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    day: v.number(),
+    ...performanceCounts,
+  })
+    .index("by_owner_day", ["ownerId", "mode", "day"])
+    .index("by_day", ["day"]),
+  listingPerformanceState: defineTable({
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    startedAt: v.number(),
+  }).index("by_listing_owner_mode", ["listingId", "ownerId", "mode"]),
+  listingPerformanceDays: defineTable({
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    day: v.number(),
+    ...performanceCounts,
+  })
+    .index("by_listing_day", ["listingId", "ownerId", "mode", "day"])
+    .index("by_day", ["day"]),
+  listingObservationLimits: defineTable({
+    actor: v.string(),
+    day: v.number(),
+    keys: v.array(v.string()),
+  })
+    .index("by_actor_day", ["actor", "day"])
+    .index("by_day", ["day"]),
   guidedSearchLimits: defineTable({
     key: v.string(),
     day: v.number(),

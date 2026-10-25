@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-25T04:41:03.845Z",
+  "checkedAt": "2026-10-25T18:53:14.846Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "mode": "test",
@@ -13,7 +13,7 @@
   "equivalentSearchDeduplicated": true,
   "publicReportOmitsSessionReferences": true,
   "completeSnapshotMatchesPagedPublicInventory": true,
-  "eligibleRentalSpaces": 2,
+  "eligibleRentalSpaces": 3,
   "exactCentAverageMatchesPublicInventory": true,
   "syntheticSearchProfilesRetainedUntilNormalExpiry": 10,
   "providerEffects": false

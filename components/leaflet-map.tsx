@@ -13,6 +13,7 @@ const LeafletMapInner = dynamic(() => import("./leaflet-map-inner"), {
 
 export default function LeafletMap(props: {
   listings: MapListing[];
+  observeSearch?: boolean;
   onViewport?: (bounds: Bounds | null) => void;
   fitKey?: string;
   bounds?: Bounds;

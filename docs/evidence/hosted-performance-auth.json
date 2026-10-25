@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-25T18:54:14.443Z",
+  "deployment": "cheerful-ferret-182",
+  "identity": "actual Clerk development JWT for existing synthetic QA account",
+  "ownerProfileRole": "landlord",
+  "fixture": "synthetic unpublished listing; owner publication intent off; no paid or identity prerequisites seeded",
+  "savedStatus": "pending",
+  "publicationRequested": false,
+  "publiclyLive": false,
+  "ownPrivateReportAccepted": true,
+  "privatePropertyHiddenFromAnonymous": true,
+  "anonymousPrivateReportDenied": true,
+  "hiddenPropertyObservationIgnored": true,
+  "unknownHistoryNotFabricated": true,
+  "portfolioAccepted": true,
+  "humanSignInOrRenderedPrivateChartAccepted": false,
+  "liveTrafficAccepted": false,
+  "productionChanged": false
+}

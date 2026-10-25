@@ -1,3 +1,4 @@
+import { recordPerformance } from "./lib/performance";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { recordDemand } from "./lib/market";
@@ -193,6 +194,7 @@ async function saveMatch(
     )
     .unique();
   if (!existing) {
+    await recordPerformance(ctx, listing, "matchedLeads");
     await ctx.db.insert("housingRequestMatches", {
       requestId: request._id,
       listingId: listing._id,

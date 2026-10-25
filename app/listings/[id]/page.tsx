@@ -51,6 +51,10 @@ import { PublicReviews } from "@/components/public-reviews";
 import { ReviewForm } from "@/components/review-form";
 import { LandlordBadges } from "@/components/landlord-badges";
 import { AvailabilityCalendar } from "@/components/availability-calendar";
+import {
+  useListingPageView,
+  useListingObservation,
+} from "@/components/use-listing-observation";
 import { cn, formatPrice, formatStayDate } from "@/lib/utils";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
@@ -105,7 +109,8 @@ export default function ListingDetailPage({ params }: PageProps) {
   // Mutations
   const saveListing = useMutation(api.saved.save);
   const unsaveListing = useMutation(api.saved.unsave);
-  const incrementViews = useMutation(api.listings.incrementViews);
+  useListingPageView(listing?._id);
+  const recordShare = useListingObservation("shares");
 
   // Featured listings for "Similar" section
   const featuredListings = useQuery(api.listings.getFeatured);
@@ -131,15 +136,6 @@ export default function ListingDetailPage({ params }: PageProps) {
       setSaveOptimistic(null);
     }
   }, [savedStatus]);
-
-  // Increment view count once on mount
-  useEffect(() => {
-    if (listing?._id) {
-      incrementViews({ id: listing._id }).catch(() => {});
-    }
-    // Only run on initial listing load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listing?._id]);
 
   const displaySaved = saveOptimistic !== null ? saveOptimistic : isSaved;
 
@@ -188,11 +184,13 @@ export default function ListingDetailPage({ params }: PageProps) {
           title: listing?.title ?? "FurnishFinder listing",
           url,
         });
+        if (listing) recordShare([listing._id]);
       } catch {
         // User cancelled — that's fine
       }
     } else {
       await navigator.clipboard.writeText(url);
+      if (listing) recordShare([listing._id]);
       toast.success("Link copied to clipboard");
     }
   };

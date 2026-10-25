@@ -1,3 +1,4 @@
+import { recordPerformance } from "./lib/performance";
 import { publiclyVisible } from "./lib/publication";
 import { listingPhotos } from "./lib/photos";
 import { v } from "convex/values";
@@ -31,6 +32,10 @@ export const save = mutation({
     const listing = await ctx.db.get(args.listingId);
     if (!listing) throw new Error(`Listing ${args.listingId} not found`);
 
+    if (!(await publiclyVisible(ctx, listing)))
+      throw new Error("This listing is unavailable.");
+    if (caller._id !== listing.landlordId && caller.role !== "admin")
+      await recordPerformance(ctx, listing, "saves");
     return await ctx.db.insert("savedListings", {
       tenantId: args.tenantId,
       listingId: args.listingId,
@@ -64,6 +69,9 @@ export const unsave = mutation({
 
     if (!existing) return null;
 
+    const listing = await ctx.db.get(args.listingId);
+    if (listing && caller._id !== listing.landlordId && caller.role !== "admin")
+      await recordPerformance(ctx, listing, "unsaves");
     await ctx.db.delete(existing._id);
     return existing._id;
   },

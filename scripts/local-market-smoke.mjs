@@ -64,10 +64,10 @@ assert(me && me.email === "qa-owner@example.test");
 await assert.rejects(
   call(anonymous, "query", "analytics:getListingStats", { landlordId: me._id }),
 );
-const own = await call(owner, "query", "analytics:getListingStats", {
-  landlordId: me._id,
+const own = await call(owner, "query", "listingPerformance:properties", {
+  paginationOpts: { cursor: null, numItems: 30 },
 });
-assert(own.totalListings > 0);
+assert(own.page.length > 0);
 const city = `QA Market ${randomUUID().slice(0, 8)}`,
   state = "TX",
   sessions = Array.from({ length: 10 }, () => randomUUID());

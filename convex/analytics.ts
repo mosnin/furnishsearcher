@@ -82,17 +82,25 @@ async function ownerPerformance(ctx: QueryCtx, landlordId: Id<"users">) {
   const listings = await ctx.db
     .query("listings")
     .withIndex("by_landlord", (q) => q.eq("landlordId", landlordId))
-    .collect();
+    .take(51);
+  if (listings.length > 50)
+    throw new Error(
+      "Use the paginated listing-performance report for this account.",
+    );
   const out = [];
   for (const listing of listings) {
     const conversations = await ctx.db
       .query("conversations")
       .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
-      .collect();
+      .take(1001);
     const saved = await ctx.db
       .query("savedListings")
       .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
-      .collect();
+      .take(1001);
+    if (conversations.length > 1000 || saved.length > 1000)
+      throw new Error(
+        "Use the dated listing-performance report for this property.",
+      );
     out.push({
       _id: listing._id,
       title: listing.title,

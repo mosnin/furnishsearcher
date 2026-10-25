@@ -717,14 +717,11 @@ export const getFeatured = query({
   },
 });
 
+// Kept for old clients. Unattributed calls must not inflate private/public counters.
 export const incrementViews = mutation({
   args: { id: v.id("listings") },
-  handler: async (ctx, args) => {
-    const listing = await ctx.db.get(args.id);
-    if (!listing) throw new Error(`Listing ${args.id} not found`);
-    await ctx.db.patch(args.id, { views: listing.views + 1 });
-    await syncGeo(ctx, { ...listing, views: listing.views + 1 }, true);
-  },
+  returns: v.null(),
+  handler: async () => null,
 });
 
 export const approveListing = mutation({

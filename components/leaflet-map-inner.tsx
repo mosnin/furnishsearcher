@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useEffect, useRef, useMemo } from "react";
 import {
   MapContainer,
@@ -15,9 +16,14 @@ import type { MapListing } from "./map-view";
 import { wrapLongitude } from "@/lib/geo";
 import type { Bounds, Point } from "@/lib/geo";
 import { formatPrice } from "@/lib/utils";
+import {
+  useListingObservation,
+  observationsAllowed,
+} from "./use-listing-observation";
 import { Button } from "./ui/button";
 type Props = {
   listings: MapListing[];
+  observeSearch?: boolean;
   selectedId?: string | null;
   onSelectListing?: (id: string | null) => void;
   onViewport?: (bounds: Bounds | null) => void;
@@ -89,6 +95,71 @@ function Viewport({
   }, [map, listings, bounds, reference, fitKey]);
   return null;
 }
+function MapAppearances({
+  listings,
+  selectedId,
+}: {
+  listings: MapListing[];
+  selectedId?: string | null;
+}) {
+  const map = useMap(),
+    record = useListingObservation("impressions"),
+    [revision, setRevision] = useState(0);
+  const inView = useRef(false);
+  useEffect(() => {
+    const refresh = () => setRevision((n) => n + 1);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inView.current = entries.some(
+          (e) => e.isIntersecting && e.intersectionRatio >= 0.5,
+        );
+        refresh();
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(map.getContainer());
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [map]);
+  useMapEvents({
+    moveend: () => setRevision((n) => n + 1),
+    zoomend: () => setRevision((n) => n + 1),
+  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!inView.current || !observationsAllowed()) return;
+      const rectangle = map.getContainer().getBoundingClientRect();
+      if (
+        rectangle.width <= 0 ||
+        rectangle.height <= 0 ||
+        rectangle.bottom <= 0 ||
+        rectangle.top >= window.innerHeight ||
+        rectangle.right <= 0 ||
+        rectangle.left >= window.innerWidth
+      )
+        return;
+      const counts = new Map<string, number>();
+      for (const l of listings) {
+        const key = `${l.lat},${l.lng}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      record(
+        listings
+          .filter(
+            (l) =>
+              (counts.get(`${l.lat},${l.lng}`) === 1 || l.id === selectedId) &&
+              map.getBounds().contains([l.lat, l.lng]),
+          )
+          .map((l) => l.id),
+      );
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [map, listings, selectedId, revision, record]);
+  return null;
+}
 export default function LeafletMapInner(p: Props) {
   const groups = useMemo(() => {
     const groups = new Map<string, MapListing[]>();
@@ -118,6 +189,9 @@ export default function LeafletMapInner(p: Props) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
+      {p.observeSearch && (
+        <MapAppearances listings={p.listings} selectedId={p.selectedId} />
+      )}
       <Viewport
         listings={p.listings}
         onViewport={p.onViewport}

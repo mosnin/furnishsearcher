@@ -1,3 +1,4 @@
+import { recordPerformance } from "./lib/performance";
 import { inquiryStatus } from "./validators/bookings";
 import {
   recordBookingEvent,
@@ -111,6 +112,7 @@ export const create = mutation({
         moveOut: args.moveOut,
       }),
     );
+    await recordPerformance(ctx, listing, "bookingRequests");
     const id = await ctx.db.insert("bookingInquiries", {
       ...args,
       message,

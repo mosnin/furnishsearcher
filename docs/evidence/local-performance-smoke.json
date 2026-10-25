@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-10-25T18:46:39.007Z",
+  "target": "http://127.0.0.1:3210",
+  "fixture": "isolated local synthetic publication/identity/payment prerequisites; privileged QA identities",
+  "listingId": "k97bpcgq4160t86qtan7t8zr3x8gzvsh",
+  "mode": "test",
+  "metrics": {
+    "bookingRequests": 1,
+    "day": 1792886400000,
+    "impressions": 1,
+    "matchedLeads": 1,
+    "saves": 1,
+    "shares": 1,
+    "threads": 1,
+    "unsaves": 1,
+    "views": 1
+  },
+  "legacyViews": 1,
+  "anonymousPrivateReadDenied": true,
+  "foreignOwnerReadDenied": true,
+  "ownerPreviewExcluded": true,
+  "duplicateObservationsSuppressed": true,
+  "nativeSaveInquiryThreadAndScheduledMatchAccepted": true,
+  "portfolioAccepted": true,
+  "realEmailSent": false,
+  "providerOrHumanAcceptance": false
+}

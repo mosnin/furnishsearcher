@@ -86,6 +86,25 @@ export default function PrivacyPage() {
                 rental account, messages or requests.
               </p>
               <p>
+                <strong className="text-slate-800">Listing performance:</strong>{" "}
+                Owners can see daily aggregate search appearances, page views,
+                successful share/copy actions and counts of native saves,
+                requests, new traveler threads and housing matches. Browser
+                observations use an in-memory reference and respect Do Not Track
+                and Global Privacy Control. Private deduplication records store
+                a hashed account or page reference, date and bounded
+                listing/activity keys; they do not store IP addresses, raw
+                messages, search criteria or precise location. Deduplication
+                rows become eligible for bounded cleanup after two earlier full
+                UTC days, and daily counts before the ninety-day UTC reporting
+                window. First-collection metadata remains without visitor
+                references. Native transaction counts are recorded when you
+                explicitly save, inquire, message or request housing; browser
+                analytics preferences do not suppress those operational counts.
+                Owners see aggregates rather than visitor/account identifiers.
+                Browser observations are not verified unique people.
+              </p>
+              <p>
                 <strong className="text-slate-800">Optional AI search:</strong>{" "}
                 If you choose AI interpretation, your description and current
                 search filters are sent through the Convex AI Gateway to its

@@ -105,4 +105,10 @@ crons.interval(
   internal.guidedSearch.cleanup,
   {},
 );
+crons.interval(
+  "expire listing performance activity",
+  { hours: 24 },
+  internal.listingPerformance.cleanup,
+  {},
+);
 export default crons;

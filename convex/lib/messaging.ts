@@ -1,3 +1,4 @@
+import { recordPerformance } from "./performance";
 import { syncInbox } from "./inbox";
 import { recordDemand } from "./market";
 import { demandShape } from "../../lib/market-insights";
@@ -134,6 +135,8 @@ export async function sendListingMessage(
           }
         : undefined,
     });
+  if (!existing && !senderIsLandlord)
+    await recordPerformance(ctx, listing, "threads");
   if (!existing && !senderIsLandlord)
     await recordDemand(
       ctx,

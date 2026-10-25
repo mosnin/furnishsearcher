@@ -47,6 +47,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useSearchAppearance } from "@/components/use-listing-observation";
 import { AppliedSearchSummary } from "@/components/applied-search-summary";
 import { DAY } from "@/lib/stays";
 type Listing = FunctionReturnType<typeof api.search.listings>["page"][number];
@@ -491,6 +492,7 @@ function SearchPageInner() {
                   )}
                 </div>
                 <LeafletMap
+                  observeSearch
                   fitKey={query}
                   bounds={
                     applied.mapBounds ??
@@ -658,6 +660,7 @@ function SearchListingCard({
   userId?: Id<"users">;
 }) {
   const router = useRouter();
+  const appearanceRef = useSearchAppearance(l._id);
   const saved = useQuery(
       api.saved.isSaved,
       userId ? { tenantId: userId, listingId: l._id } : "skip",
@@ -672,6 +675,7 @@ function SearchListingCard({
   }
   return (
     <article
+      ref={appearanceRef}
       className={cn(
         "bg-white rounded-2xl overflow-hidden shadow-sm ring-1",
         selected ? "ring-[#0f2044] ring-2" : "ring-black/[0.06]",
