@@ -334,7 +334,7 @@ function PersonalInfoTab({
           </Field>
           {convexUser.role === "landlord" && (
             <OwnerPhoneSettings
-              phoneMatches={form.phone === convexUser.phone}
+              phoneMatches={form.phone === (convexUser.phone ?? "")}
             />
           )}
           <PhoneVerifyDialog
