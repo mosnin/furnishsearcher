@@ -1,5 +1,3 @@
 {
-  "project": "furnishsearcher",
-  "team": "your-team-name",
-  "prodUrl": "https://your-project.convex.cloud"
+  "functions": "convex/"
 }

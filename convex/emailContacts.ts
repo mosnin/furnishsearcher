@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { MutationCtx } from "./_generated/server";
 import { requireUser } from "./lib/auth";
 import { emailContactMode } from "./lib/emailContact";
 import {
@@ -51,49 +52,67 @@ export const setMessageEmails = mutation({
       });
       return null;
     }
-    const identity = (await ctx.auth.getUserIdentity())!,
-      now = Date.now(),
-      issued = identity.iat;
-    if (
-      identity.emailVerified !== true ||
-      typeof identity.email !== "string" ||
-      typeof issued !== "number" ||
-      !Number.isFinite(issued) ||
-      issued * 1000 > now ||
-      issued * 1000 < now - 120000 ||
-      issued < (user.notificationEmailProofAfter ?? 0)
-    )
-      throw new Error(
-        "Confirm your primary email in your sign-in account, then refresh confirmation. Contact support if it is unavailable.",
-      );
-    const email = canonicalEmail(identity.email),
-      mode = emailContactMode();
-    if (
-      mode === "prod" &&
-      new URL(identity.issuer).hostname.endsWith(".clerk.accounts.dev")
-    )
-      throw new Error(
-        "Development sign-in accounts cannot establish production email confirmation.",
-      );
-    await ctx.db.patch(user._id, {
-      messageEmailsEnabled: true,
-      notificationEmail: email,
-      notificationEmailVerifiedAt: now,
-      notificationEmailExpiresAt: now + EMAIL_PROOF_LIFETIME,
-      notificationEmailMode: mode,
-      notificationEmailRevision: (user.notificationEmailRevision ?? 0) + 1,
-    });
-    await ctx.scheduler.runAt(
-      now + EMAIL_PROOF_LIFETIME,
-      internal.emailContacts.expire,
-      {
-        userId: user._id,
-        expiresAt: now + EMAIL_PROOF_LIFETIME,
-      },
-    );
-    return null;
+    const identity = (await ctx.auth.getUserIdentity())!;
+    return confirmEmail(ctx, clerkId, identity.iat);
   },
 });
+
+// Only the HTTP action may supply issuance time from its natively verified JWT.
+export const confirmFromHttp = internalMutation({
+  args: { clerkId: v.string(), issuedAt: v.number() },
+  returns: v.null(),
+  handler: (ctx, args) => confirmEmail(ctx, args.clerkId, args.issuedAt),
+});
+
+async function confirmEmail(
+  ctx: MutationCtx,
+  clerkId: string,
+  issued: unknown,
+) {
+  const user = await requireUser(ctx);
+  if (user.clerkId !== clerkId)
+    throw new Error("Your account changed. Reload and try again.");
+  const identity = (await ctx.auth.getUserIdentity())!,
+    now = Date.now();
+  if (
+    identity.emailVerified !== true ||
+    typeof identity.email !== "string" ||
+    typeof issued !== "number" ||
+    !Number.isFinite(issued) ||
+    issued * 1000 > now ||
+    issued * 1000 < now - 120000 ||
+    issued < (user.notificationEmailProofAfter ?? 0)
+  )
+    throw new Error(
+      "Confirm your primary email in your sign-in account, then refresh confirmation. Contact support if it is unavailable.",
+    );
+  const email = canonicalEmail(identity.email),
+    mode = emailContactMode();
+  if (
+    mode === "prod" &&
+    new URL(identity.issuer).hostname.endsWith(".clerk.accounts.dev")
+  )
+    throw new Error(
+      "Development sign-in accounts cannot establish production email confirmation.",
+    );
+  await ctx.db.patch(user._id, {
+    messageEmailsEnabled: true,
+    notificationEmail: email,
+    notificationEmailVerifiedAt: now,
+    notificationEmailExpiresAt: now + EMAIL_PROOF_LIFETIME,
+    notificationEmailMode: mode,
+    notificationEmailRevision: (user.notificationEmailRevision ?? 0) + 1,
+  });
+  await ctx.scheduler.runAt(
+    now + EMAIL_PROOF_LIFETIME,
+    internal.emailContacts.expire,
+    {
+      userId: user._id,
+      expiresAt: now + EMAIL_PROOF_LIFETIME,
+    },
+  );
+  return null;
+}
 
 export const expire = internalMutation({
   args: { userId: v.id("users"), expiresAt: v.number() },

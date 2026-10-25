@@ -1,3 +1,4 @@
+import type { MutationCtx } from "./_generated/server";
 import { billingMode } from "../lib/billing";
 import { identityPassed } from "./lib/publication";
 import { v } from "convex/values";
@@ -196,49 +197,64 @@ export const updateProfile = mutation({
 export const confirmPhone = mutation({
   args: { phone: v.string() },
   returns: v.object({ phone: v.string(), expiresAt: v.number() }),
-  handler: async (ctx, args) => {
-    const user = await requireUser(ctx),
-      identity = (await ctx.auth.getUserIdentity())!;
-    const phone = canonicalPhone(args.phone),
-      issued = identity.iat,
-      now = Date.now();
-    if (
-      identity.phoneNumberVerified !== true ||
-      identity.phoneNumber !== phone ||
-      typeof issued !== "number" ||
-      !Number.isFinite(issued) ||
-      issued * 1000 > now ||
-      issued * 1000 < now - 120000 ||
-      issued < (user.phoneProofAfter ?? 0)
-    )
-      throw new Error(
-        "Your sign-in account has not confirmed this number. Verify it and refresh your account confirmation. Contact support if confirmation is unavailable.",
-      );
-    const mode = contactMode();
-    if (
-      mode === "prod" &&
-      new URL(identity.issuer).hostname.endsWith(".clerk.accounts.dev")
-    )
-      throw new Error(
-        "Development sign-in accounts cannot establish production phone confirmation.",
-      );
-    const expiresAt = now + PHONE_PROOF_LIFETIME;
-    await ctx.db.patch(user._id, {
-      phone,
-      phoneVerified: true,
-      phoneVerificationSource: "clerk",
-      phoneVerificationMode: mode,
-      phoneVerifiedAt: now,
-      phoneVerificationExpiresAt: expiresAt,
-      phoneRevision: (user.phoneRevision ?? 0) + (user.phone === phone ? 0 : 1),
-    });
-    await ctx.scheduler.runAt(expiresAt, internal.users.expirePhone, {
-      userId: user._id,
-      expiresAt,
-    });
-    return { phone, expiresAt };
-  },
+  handler: async (ctx, args) =>
+    confirmPhoneProof(ctx, args.phone, (await ctx.auth.getUserIdentity())?.iat),
 });
+
+export const confirmPhoneFromHttp = internalMutation({
+  args: { phone: v.string(), clerkId: v.string(), issuedAt: v.number() },
+  returns: v.object({ phone: v.string(), expiresAt: v.number() }),
+  handler: (ctx, args) =>
+    confirmPhoneProof(ctx, args.phone, args.issuedAt, args.clerkId),
+});
+async function confirmPhoneProof(
+  ctx: MutationCtx,
+  number: string,
+  issued: unknown,
+  clerkId?: string,
+) {
+  const user = await requireUser(ctx),
+    identity = (await ctx.auth.getUserIdentity())!;
+  if (clerkId !== undefined && user.clerkId !== clerkId)
+    throw new Error("Your account changed. Reload and try again.");
+  const phone = canonicalPhone(number),
+    now = Date.now();
+  if (
+    identity.phoneNumberVerified !== true ||
+    identity.phoneNumber !== phone ||
+    typeof issued !== "number" ||
+    !Number.isFinite(issued) ||
+    issued * 1000 > now ||
+    issued * 1000 < now - 120000 ||
+    issued < (user.phoneProofAfter ?? 0)
+  )
+    throw new Error(
+      "Your sign-in account has not confirmed this number. Verify it and refresh your account confirmation. Contact support if confirmation is unavailable.",
+    );
+  const mode = contactMode();
+  if (
+    mode === "prod" &&
+    new URL(identity.issuer).hostname.endsWith(".clerk.accounts.dev")
+  )
+    throw new Error(
+      "Development sign-in accounts cannot establish production phone confirmation.",
+    );
+  const expiresAt = now + PHONE_PROOF_LIFETIME;
+  await ctx.db.patch(user._id, {
+    phone,
+    phoneVerified: true,
+    phoneVerificationSource: "clerk",
+    phoneVerificationMode: mode,
+    phoneVerifiedAt: now,
+    phoneVerificationExpiresAt: expiresAt,
+    phoneRevision: (user.phoneRevision ?? 0) + (user.phone === phone ? 0 : 1),
+  });
+  await ctx.scheduler.runAt(expiresAt, internal.users.expirePhone, {
+    userId: user._id,
+    expiresAt,
+  });
+  return { phone, expiresAt };
+}
 
 export const expirePhone = internalMutation({
   args: { userId: v.id("users"), expiresAt: v.number() },

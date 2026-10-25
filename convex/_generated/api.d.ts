@@ -14,6 +14,7 @@ import type * as billingWebhook from "../billingWebhook.js";
 import type * as bookingEmails from "../bookingEmails.js";
 import type * as bookings from "../bookings.js";
 import type * as calendarFeeds from "../calendarFeeds.js";
+import type * as contactHttp from "../contactHttp.js";
 import type * as creem from "../creem.js";
 import type * as crons from "../crons.js";
 import type * as documentFiles from "../documentFiles.js";
@@ -117,6 +118,7 @@ declare const fullApi: ApiFromModules<{
   bookingEmails: typeof bookingEmails;
   bookings: typeof bookings;
   calendarFeeds: typeof calendarFeeds;
+  contactHttp: typeof contactHttp;
   creem: typeof creem;
   crons: typeof crons;
   documentFiles: typeof documentFiles;

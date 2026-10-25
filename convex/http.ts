@@ -1,4 +1,8 @@
 import {
+  confirm as confirmContact,
+  options as contactOptions,
+} from "./contactHttp";
+import {
   upload as uploadDocument,
   download as downloadDocument,
   options as documentOptions,
@@ -147,5 +151,15 @@ http.route({
   path: "/profile-images/upload",
   method: "OPTIONS",
   handler: profileImageOptions,
+});
+http.route({
+  path: "/contacts/confirm",
+  method: "POST",
+  handler: confirmContact,
+});
+http.route({
+  path: "/contacts/confirm",
+  method: "OPTIONS",
+  handler: contactOptions,
 });
 export default http;

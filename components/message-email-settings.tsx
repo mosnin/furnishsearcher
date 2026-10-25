@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 import Link from "next/link";
-import { ConvexHttpClient } from "convex/browser";
+import { confirmContact } from "@/lib/confirm-contact";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 
@@ -32,17 +32,8 @@ function AccountEmailSettings() {
           "Confirm your primary email using Manage account email, then try again.",
         );
       const token = await getToken({ template: "convex", skipCache: true });
-      const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-      if (!token || !url)
-        throw new Error(
-          "Email confirmation is unavailable. Please sign in again or contact support.",
-        );
-      const client = new ConvexHttpClient(url);
-      client.setAuth(token);
-      await client.mutation(api.emailContacts.setMessageEmails, {
-        clerkId: user.id,
-        enabled: true,
-      });
+      if (!token) throw new Error("Please sign in again.");
+      await confirmContact(token, { kind: "email", clerkId: user.id });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not save email settings.",

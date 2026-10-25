@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth, useUser, useReverification } from "@clerk/nextjs";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
+import { confirmContact } from "@/lib/confirm-contact";
 import { canonicalPhone } from "@/lib/contact-verification";
 import {
   Dialog,
@@ -63,14 +62,13 @@ export default function PhoneVerifyDialog({
     await user.reload();
     const token = await getToken({ template: "convex", skipCache: true });
     if (!token) throw new Error("Please sign in again.");
-    const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!url)
-      throw new Error("Account confirmation is unavailable. Contact support.");
-    const client = new ConvexHttpClient(url);
-    client.setAuth(token);
-    const result = await client.mutation(api.users.confirmPhone, {
+    const result = await confirmContact(token, {
+      kind: "phone",
+      clerkId: user.id,
       phone: number,
     });
+    if (!result.phone)
+      throw new Error("Phone confirmation could not be saved.");
     if (run === attempt.current) {
       onVerified(result.phone);
       onClose();
