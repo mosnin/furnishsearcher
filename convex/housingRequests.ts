@@ -223,6 +223,9 @@ async function saveMatch(
     classification.kind === "matched" &&
     (!existing ||
       (existing.kind === "unmatched" && existing.matchedAt === undefined));
+  const firstPartial =
+    classification.kind === "unmatched" &&
+    (!existing || existing.unmatchedAt === undefined);
   const now = Date.now();
   if (!existing)
     await ctx.db.insert("housingRequestMatches", {
@@ -247,6 +250,7 @@ async function saveMatch(
         ? { unmatchedAt: now }
         : {}),
     });
+  if (firstPartial) await recordPerformance(ctx, listing, "unmatchedLeads");
   if (firstExact) {
     await recordPerformance(ctx, listing, "matchedLeads");
     const current = await ctx.db.get(request._id);

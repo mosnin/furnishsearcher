@@ -188,6 +188,26 @@ try {
     return page.page.find((p) => p.listingId === listingId);
   });
   assert.equal(property.kind, "unmatched");
+  const firstReport = await call(owner, "query", "listingPerformance:report", {
+    listingId,
+    days: 7,
+  });
+  assert(
+    firstReport.unmatchedStartedAt &&
+      firstReport.rows.reduce((n, r) => n + r.unmatchedLeads, 0) === 1,
+    "One new partial match must be counted",
+  );
+  const portfolioReport = await call(
+    owner,
+    "query",
+    "listingPerformance:report",
+    { days: 7 },
+  );
+  assert(
+    portfolioReport.unmatchedStartedAt &&
+      portfolioReport.rows.reduce((n, r) => n + r.unmatchedLeads, 0) >= 1,
+  );
+
   assert(property.differences.some((d) => d.field === "Monthly budget"));
   assert(property.differences.some((d) => d.field === "Pets"));
   assert.equal(
@@ -277,6 +297,8 @@ try {
         travelerAlternativeConsentRequired: true,
         ownerUnmatchedOptInRequired: true,
         currentDifferencesShown: true,
+        nativeUnmatchedCount: 1,
+        propertyAndPortfolioUnmatchedCoverageAccepted: true,
         phoneWithheld: true,
         anonymousAndForeignOwnerDenied: true,
         missingAndStaleAcknowledgementDenied: true,

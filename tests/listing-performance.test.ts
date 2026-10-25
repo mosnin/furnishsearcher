@@ -127,12 +127,13 @@ it("records browser events once per UTC day and keeps legacy history separate", 
   const csv = performanceCsv(series, "test");
   expect(csv).toContain("Environment");
   const unavailable = csv.split("\r\n")[1].split(",");
-  expect(unavailable.slice(1, 4)).toEqual([
+  expect(unavailable.slice(1, 5)).toEqual([
     "test",
     "unavailable",
     "unavailable",
+    "unavailable",
   ]);
-  expect(unavailable.slice(4).every((value) => value === "")).toBe(true);
+  expect(unavailable.slice(5).every((value) => value === "")).toBe(true);
 });
 it("excludes owners and staff, rejects malformed/bulk observations, and prevents legacy inflation", async () => {
   const f = await fixture();

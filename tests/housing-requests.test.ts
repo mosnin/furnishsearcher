@@ -8,6 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
 import { DAY } from "../lib/stays";
+import {
+  performanceSeries,
+  performanceCsv,
+  metricRecorded,
+} from "../lib/listing-performance";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const start = Date.UTC(2027, 2, 1),
@@ -982,4 +987,277 @@ it("pages all backfilled unmatched requests instead of stopping at the first sca
   expect(
     (await f.owner.query(api.housingRequests.leadPreferences, {})).emailEnabled,
   ).toBe(false);
+});
+
+describe("dated unmatched lead metrics", () => {
+  it("counts a first partial match once per rental space with independent legacy-row coverage", async () => {
+    const f = await fixture(),
+      began = Date.now(),
+      day = Math.floor(began / DAY) * DAY;
+    const counts = {
+      impressions: 0,
+      views: 4,
+      shares: 0,
+      saves: 0,
+      unsaves: 0,
+      bookingRequests: 0,
+      threads: 0,
+      matchedLeads: 0,
+      phoneReveals: 3,
+    };
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.ids.owner, { receiveUnmatchedLeads: true });
+      await ctx.db.insert("listingPerformanceState", {
+        listingId: f.ids.listing,
+        ownerId: f.ids.owner,
+        mode: "test",
+        startedAt: began - 3 * DAY,
+        phoneStartedAt: began - 2 * DAY,
+      });
+      await ctx.db.insert("ownerPerformanceState", {
+        ownerId: f.ids.owner,
+        mode: "test",
+        startedAt: began - 3 * DAY,
+        phoneStartedAt: began - 2 * DAY,
+      });
+      for (const d of [day - DAY, day]) {
+        await ctx.db.insert("listingPerformanceDays", {
+          listingId: f.ids.listing,
+          ownerId: f.ids.owner,
+          mode: "test",
+          day: d,
+          ...counts,
+        });
+        await ctx.db.insert("ownerPerformanceDays", {
+          ownerId: f.ids.owner,
+          mode: "test",
+          day: d,
+          ...counts,
+        });
+      }
+    });
+    expect(
+      (
+        await f.owner.query(api.listingPerformance.report, {
+          listingId: f.ids.listing,
+          days: 7,
+        })
+      ).unmatchedStartedAt,
+    ).toBeNull();
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await Promise.all([
+      f.t.mutation(internal.housingRequests.scanRequest, {
+        requestId,
+        cursor: null,
+      }),
+      f.t.mutation(internal.housingRequests.scanRequest, {
+        requestId,
+        cursor: null,
+      }),
+    ]);
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const report = await f.owner.query(api.listingPerformance.report, {
+        listingId: f.ids.listing,
+        days: 7,
+      }),
+      portfolio = await f.owner.query(api.listingPerformance.report, {
+        days: 7,
+      });
+    expect(report.startedAt).toBe(began - 3 * DAY);
+    expect(report.phoneStartedAt).toBe(began - 2 * DAY);
+    expect(report.unmatchedStartedAt).toBeGreaterThanOrEqual(began);
+    expect(report.unmatchedStartedAt).toBeLessThan(began + 1000);
+    expect(report.rows[1]).toMatchObject({
+      views: 4,
+      phoneReveals: 3,
+      unmatchedLeads: 1,
+    });
+    expect(portfolio.rows[1].unmatchedLeads).toBe(3);
+    const rows = performanceSeries(
+      report.rows,
+      7,
+      report.startedAt,
+      Date.now(),
+      report.phoneStartedAt,
+      report.unmatchedStartedAt,
+    );
+    expect(rows[5]).toMatchObject({
+      recorded: true,
+      phoneRecorded: true,
+      unmatchedRecorded: false,
+    });
+    expect(metricRecorded(rows[5], "unmatchedLeads")).toBe(false);
+    expect(metricRecorded(rows[5], "phoneReveals")).toBe(true);
+    const csv = performanceCsv(rows, "test")
+      .split("\r\n")
+      .map((line) => line.split(","));
+    const metric = csv[0].indexOf("Unmatched housing requests"),
+      coverage = csv[0].indexOf("Unmatched lead coverage");
+    expect(csv[6][metric]).toBe("");
+    expect(csv[6][coverage]).toBe("unavailable");
+    expect(csv[7][metric]).toBe("1");
+    expect(csv[7][coverage]).toBe("recorded");
+    expect(JSON.stringify(report)).not.toContain("owner@example.test");
+    expect(JSON.stringify(report)).not.toContain("+15555550123");
+  });
+  it("preserves unmatched history when a request later matches, then differs again on another day", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+      emailEnabled: false,
+    });
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const first = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+    for (const price of [900, 5000, 5000]) {
+      vi.setSystemTime(Date.now() + DAY);
+      await f.t.run((ctx) => ctx.db.patch(f.ids.listing, { price }));
+      await f.t.mutation(internal.housingRequests.scanListing, {
+        listingId: f.ids.listing,
+        cursor: null,
+      });
+    }
+    const report = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+    expect(report.rows.reduce((n, r) => n + r.unmatchedLeads, 0)).toBe(1);
+    expect(report.rows.reduce((n, r) => n + r.matchedLeads, 0)).toBe(1);
+    expect(report.unmatchedStartedAt).toBe(first.unmatchedStartedAt);
+    await f.tenant.mutation(api.housingRequests.close, { id: requestId });
+    expect(
+      (
+        await f.owner.query(api.listingPerformance.report, {
+          listingId: f.ids.listing,
+          days: 7,
+        })
+      ).rows.reduce((n, r) => n + r.unmatchedLeads, 0),
+    ).toBe(1);
+  });
+  it("does not count absent sharing permission, blocks, conflicts, or a public caller's claimed metric", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+      emailEnabled: false,
+    });
+    await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(
+      (
+        await f.owner.query(api.listingPerformance.report, {
+          listingId: f.ids.listing,
+          days: 7,
+        })
+      ).unmatchedStartedAt,
+    ).toBeNull();
+    await f.t.run((ctx) =>
+      ctx.db.insert("userBlocks", {
+        blockerId: f.ids.owner,
+        blockedId: f.ids.tenant,
+        createdAt: Date.now(),
+      }),
+    );
+    await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    await f.t.run(async (ctx) => {
+      const blocks = await ctx.db.query("userBlocks").collect();
+      for (const block of blocks) await ctx.db.delete(block._id);
+      await ctx.db.insert("availabilityBlocks", {
+        listingId: f.ids.listing,
+        startDate: start + DAY,
+        endDate: start + 2 * DAY,
+        type: "unavailable",
+        createdAt: Date.now(),
+      });
+    });
+    await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const result = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+    expect(result.unmatchedStartedAt).toBeNull();
+    expect(result.rows).toHaveLength(0);
+    await expect(
+      f.t.mutation(api.listingPerformance.observe, {
+        listingIds: [f.ids.listing],
+        kind: "unmatchedLeads" as "views",
+        clientId: "00000000-0000-4000-8000-000000000001",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      f.stranger.query(api.listingPerformance.report, {
+        listingId: f.ids.listing,
+        days: 7,
+      }),
+    ).rejects.toThrow(/authorized/);
+    vi.stubEnv("CREEM_API_KEY", "creem_synthetic_mode_only");
+    const prod = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+    expect(prod.mode).toBe("prod");
+    expect(prod.rows).toHaveLength(0);
+    expect(prod.unmatchedStartedAt).toBeNull();
+  });
+  it("does not reconstruct pre-existing unmatched candidates into new daily activity", async () => {
+    const f = await fixture();
+    const requestId = await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.ids.owner, { receiveUnmatchedLeads: true });
+      const requestId = await ctx.db.insert("housingRequests", {
+        ...f.criteria,
+        maxBudget: 1000,
+        allowUnmatched: true,
+        userId: f.ids.tenant,
+        status: "open",
+        createdAt: Date.now() - DAY,
+      });
+      await ctx.db.insert("housingRequestMatches", {
+        requestId,
+        listingId: f.ids.listing,
+        landlordId: f.ids.owner,
+        kind: "unmatched",
+        createdAt: Date.now() - DAY,
+        unmatchedAt: Date.now() - DAY,
+      });
+      return requestId;
+    });
+    await f.t.mutation(internal.housingRequests.scanRequest, {
+      requestId,
+      cursor: null,
+    });
+    const report = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+    expect(report.rows).toHaveLength(0);
+    expect(report.unmatchedStartedAt).toBeNull();
+  });
 });

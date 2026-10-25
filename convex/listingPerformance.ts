@@ -55,6 +55,7 @@ export const report = query({
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.union(v.number(), v.null()),
     phoneStartedAt: v.union(v.number(), v.null()),
+    unmatchedStartedAt: v.union(v.number(), v.null()),
     legacyViews: v.union(v.number(), v.null()),
     start: v.number(),
     end: v.number(),
@@ -116,6 +117,7 @@ export const report = query({
       mode,
       startedAt: state?.startedAt ?? null,
       phoneStartedAt: state?.phoneStartedAt ?? null,
+      unmatchedStartedAt: state?.unmatchedStartedAt ?? null,
       legacyViews: l?.views ?? null,
       start,
       end,
@@ -131,6 +133,7 @@ export const report = query({
           threads,
           matchedLeads,
           phoneReveals,
+          unmatchedLeads,
         }) => ({
           day,
           impressions,
@@ -142,6 +145,7 @@ export const report = query({
           threads,
           matchedLeads,
           phoneReveals: phoneReveals ?? 0,
+          unmatchedLeads: unmatchedLeads ?? 0,
         }),
       ),
     };

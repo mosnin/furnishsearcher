@@ -9,11 +9,13 @@ export const performanceCounts = {
   threads: v.number(),
   matchedLeads: v.number(),
   phoneReveals: v.number(),
+  unmatchedLeads: v.number(),
 };
-// Existing daily rows predate phone-reveal collection.
+// Older daily rows predate the separately collected metrics.
 export const storedPerformanceCounts = {
   ...performanceCounts,
   phoneReveals: v.optional(v.number()),
+  unmatchedLeads: v.optional(v.number()),
 };
 export const browserActivity = v.union(
   v.literal("impressions"),

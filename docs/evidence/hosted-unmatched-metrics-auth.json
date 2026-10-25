@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-25T20:25:58.940Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentJwt": true,
+  "syntheticAccount": true,
+  "privatePropertyAndPortfolioAccepted": true,
+  "independentUnavailableUnmatchedCoverage": true,
+  "anonymousReportDenied": true,
+  "unmatchedRequestOrPublicFixtureSeeded": false,
+  "successfulHostedProposal": false,
+  "nonzeroHostedGraph": false,
+  "realProviderEffects": false,
+  "productionChanged": false
+}

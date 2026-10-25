@@ -9,6 +9,7 @@ export const PERFORMANCE_METRICS = [
   "threads",
   "matchedLeads",
   "phoneReveals",
+  "unmatchedLeads",
 ] as const;
 export type PerformanceMetric = (typeof PERFORMANCE_METRICS)[number];
 export const metricLabels: Record<PerformanceMetric, string> = {
@@ -21,6 +22,7 @@ export const metricLabels: Record<PerformanceMetric, string> = {
   threads: "New traveler threads",
   matchedLeads: "Matched housing requests",
   phoneReveals: "Phone number reveals",
+  unmatchedLeads: "Unmatched housing requests",
 };
 export function emptyPerformance() {
   return Object.fromEntries(
@@ -41,6 +43,7 @@ export function performanceSeries(
   startedAt: number | null,
   now = Date.now(),
   phoneStartedAt: number | null = null,
+  unmatchedStartedAt: number | null = null,
 ) {
   const { start } = performanceWindow(days, now),
     byDay = new Map(rows.map((row) => [row.day, row]));
@@ -53,23 +56,34 @@ export function performanceSeries(
       day,
       recorded,
       phoneRecorded,
+      unmatchedRecorded:
+        unmatchedStartedAt !== null &&
+        day + PERFORMANCE_DAY > unmatchedStartedAt,
       ...emptyPerformance(),
       ...(byDay.get(day) ?? {}),
     };
   });
 }
 export function metricRecorded(
-  row: { recorded: boolean; phoneRecorded: boolean },
+  row: {
+    recorded: boolean;
+    phoneRecorded: boolean;
+    unmatchedRecorded: boolean;
+  },
   key: PerformanceMetric,
 ) {
-  return key === "phoneReveals" ? row.phoneRecorded : row.recorded;
+  return key === "phoneReveals"
+    ? row.phoneRecorded
+    : key === "unmatchedLeads"
+      ? row.unmatchedRecorded
+      : row.recorded;
 }
 export function performanceCsv(
   rows: ReturnType<typeof performanceSeries>,
   mode: "test" | "prod",
 ) {
   return [
-    "UTC date,Environment,Collection coverage,Phone reveal coverage," +
+    "UTC date,Environment,Collection coverage,Phone reveal coverage,Unmatched lead coverage," +
       PERFORMANCE_METRICS.map((k) => metricLabels[k]).join(","),
     ...rows.map((row) =>
       [
@@ -77,6 +91,7 @@ export function performanceCsv(
         mode,
         row.recorded ? "recorded" : "unavailable",
         row.phoneRecorded ? "recorded" : "unavailable",
+        row.unmatchedRecorded ? "recorded" : "unavailable",
         ...PERFORMANCE_METRICS.map((key) =>
           metricRecorded(row, key) ? row[key] : "",
         ),

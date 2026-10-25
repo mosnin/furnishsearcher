@@ -15,6 +15,12 @@ export async function recordPerformance(
     day = Math.floor(now / PERFORMANCE_DAY) * PERFORMANCE_DAY,
     mode = marketMode(),
     ownerId = listing.landlordId;
+  const separateStart =
+    kind === "phoneReveals"
+      ? "phoneStartedAt"
+      : kind === "unmatchedLeads"
+        ? "unmatchedStartedAt"
+        : null;
   const state = await ctx.db
     .query("listingPerformanceState")
     .withIndex("by_listing_owner_mode", (q) =>
@@ -27,10 +33,10 @@ export async function recordPerformance(
       ownerId,
       mode,
       startedAt: now,
-      ...(kind === "phoneReveals" ? { phoneStartedAt: now } : {}),
+      ...(separateStart ? { [separateStart]: now } : {}),
     });
-  if (state && kind === "phoneReveals" && state.phoneStartedAt === undefined)
-    await ctx.db.patch(state._id, { phoneStartedAt: now });
+  if (state && separateStart && state[separateStart] === undefined)
+    await ctx.db.patch(state._id, { [separateStart]: now });
   const row = await ctx.db
     .query("listingPerformanceDays")
     .withIndex("by_listing_day", (q) =>
@@ -62,14 +68,10 @@ export async function recordPerformance(
       ownerId,
       mode,
       startedAt: now,
-      ...(kind === "phoneReveals" ? { phoneStartedAt: now } : {}),
+      ...(separateStart ? { [separateStart]: now } : {}),
     });
-  if (
-    ownerState &&
-    kind === "phoneReveals" &&
-    ownerState.phoneStartedAt === undefined
-  )
-    await ctx.db.patch(ownerState._id, { phoneStartedAt: now });
+  if (ownerState && separateStart && ownerState[separateStart] === undefined)
+    await ctx.db.patch(ownerState._id, { [separateStart]: now });
   const ownerDay = await ctx.db
     .query("ownerPerformanceDays")
     .withIndex("by_owner_day", (q) =>

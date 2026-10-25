@@ -195,6 +195,12 @@ const portfolio = await call(owner, "query", "listingPerformance:report", {
 });
 assert.equal(portfolio.listingId, null);
 assert(portfolio.rows.reduce((n, r) => n + r.views, 0) >= 1);
+// This isolated fixture has completed its assertions; release its publication slot.
+await call(owner, "mutation", "listings:unpublish", { id: listingId });
+assert.equal(
+  await call(anonymous, "query", "listings:getById", { id: listingId }),
+  null,
+);
 writeFileSync(
   "docs/evidence/local-performance-smoke.json",
   JSON.stringify(
@@ -213,6 +219,7 @@ writeFileSync(
       duplicateObservationsSuppressed: true,
       nativeSaveInquiryThreadAndScheduledMatchAccepted: true,
       portfolioAccepted: true,
+      completedSyntheticFixtureHidden: true,
       realEmailSent: false,
       providerOrHumanAcceptance: false,
     },

@@ -63,6 +63,7 @@ function AccountPerformance() {
     report?.startedAt ?? null,
     Date.now(),
     report?.phoneStartedAt ?? null,
+    report?.unmatchedStartedAt ?? null,
   );
   const totals = rows.reduce((counts, row) => {
     for (const key of PERFORMANCE_METRICS)
@@ -178,6 +179,15 @@ function AccountPerformance() {
               account/rental space/UTC day. Staff and the owner are excluded.
               This records access to the number, not a completed call or text.
             </p>
+            <p className="text-sm text-slate-600">
+              {report.unmatchedStartedAt === null
+                ? "Unmatched lead history is unavailable until the first counted partial match."
+                : `Unmatched lead collection began ${new Date(report.unmatchedStartedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Earlier unmatched history is unavailable and its first day may be partial.`}{" "}
+              Lead counts are request/rental-space pairs; one request can count
+              for multiple spaces and later as matched. They record first
+              qualifying matches, rather than the number of currently open
+              leads.
+            </p>
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {PERFORMANCE_METRICS.map((key) => (
                 <Card key={key}>
@@ -186,7 +196,10 @@ function AccountPerformance() {
                       {metricLabels[key]}
                     </p>
                     <p className="text-2xl font-semibold mt-2">
-                      {key === "phoneReveals" && report.phoneStartedAt === null
+                      {(key === "phoneReveals" &&
+                        report.phoneStartedAt === null) ||
+                      (key === "unmatchedLeads" &&
+                        report.unmatchedStartedAt === null)
                         ? "Unavailable"
                         : totals[key].toLocaleString()}
                     </p>
@@ -216,7 +229,9 @@ function AccountPerformance() {
               </label>
               {(metric === "phoneReveals"
                 ? report.phoneStartedAt
-                : report.startedAt) === null ? (
+                : metric === "unmatchedLeads"
+                  ? report.unmatchedStartedAt
+                  : report.startedAt) === null ? (
                 <p>No dated activity to chart yet.</p>
               ) : (
                 <div className="h-64">
@@ -311,9 +326,10 @@ function AccountPerformance() {
                   ? "select a rental space"
                   : report.legacyViews.toLocaleString()}
                 . It predates the current checks and has no recoverable daily
-                history. It is excluded from this chart. Unmatched-lead analysis
-                and continuous map-eligibility days are not recorded by this
-                report. Current reviews remain available on the listing.{" "}
+                history. It is excluded from this chart. Current unmatched
+                criteria are available on the Tenant Requests page. Continuous
+                map-eligibility days are not recorded by this report. Current
+                reviews remain available on the listing.{" "}
                 {report.status
                   ? `Status “${report.status}” does not by itself prove current publication eligibility.`
                   : "Portfolio totals count activity attributed to this account when it owned the rental spaces. Per-space reports use the current owner."}

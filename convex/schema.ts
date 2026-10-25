@@ -53,6 +53,7 @@ export default defineSchema({
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.number(),
     phoneStartedAt: v.optional(v.number()),
+    unmatchedStartedAt: v.optional(v.number()),
   }).index("by_owner_mode", ["ownerId", "mode"]),
   ownerPerformanceDays: defineTable({
     ownerId: v.id("users"),
@@ -68,6 +69,7 @@ export default defineSchema({
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.number(),
     phoneStartedAt: v.optional(v.number()),
+    unmatchedStartedAt: v.optional(v.number()),
   }).index("by_listing_owner_mode", ["listingId", "ownerId", "mode"]),
   listingPerformanceDays: defineTable({
     listingId: v.id("listings"),
