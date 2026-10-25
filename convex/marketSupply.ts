@@ -1,3 +1,4 @@
+import { recordMapEligibility } from "./lib/mapEligibility";
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -75,6 +76,7 @@ export const scan = internalMutation({
       .query("listings")
       .paginate({ cursor: args.cursor, numItems: 30 });
     for (const listing of page.page) {
+      await recordMapEligibility(ctx, listing);
       if (!(await publiclyVisible(ctx, listing))) continue;
       let scope: string;
       try {

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { MapEligibilityPanel } from "@/components/map-eligibility-panel";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { usePaginatedQuery, useQuery, useConvexAuth } from "convex/react";
@@ -207,6 +208,11 @@ function AccountPerformance() {
                 </Card>
               ))}
             </div>
+            <MapEligibilityPanel
+              key={`${listingId ?? "all"}-${days}`}
+              listingId={listingId}
+              days={days}
+            />
             <section
               className="rounded-xl border bg-white p-4 space-y-4"
               aria-label="Daily listing activity"
@@ -327,9 +333,10 @@ function AccountPerformance() {
                   : report.legacyViews.toLocaleString()}
                 . It predates the current checks and has no recoverable daily
                 history. It is excluded from this chart. Current unmatched
-                criteria are available on the Tenant Requests page. Continuous
-                map-eligibility days are not recorded by this report. Current
-                reviews remain available on the listing.{" "}
+                criteria are available on the Tenant Requests page. Recorded map
+                eligibility checks are shown separately above; missing checks
+                cannot establish continuous eligibility. Current reviews remain
+                available on the listing.{" "}
                 {report.status
                   ? `Status “${report.status}” does not by itself prove current publication eligibility.`
                   : "Portfolio totals count activity attributed to this account when it owned the rental spaces. Per-space reports use the current owner."}

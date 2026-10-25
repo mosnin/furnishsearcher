@@ -325,6 +325,38 @@ export default defineSchema({
   })
     .index("by_actor", ["actor", "day"])
     .index("by_day", ["day"]),
+  mapEligibilityTotals: defineTable({
+    listingId: v.optional(v.id("listings")),
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    eligibleSpaceDays: v.number(),
+    observedSpaceDays: v.number(),
+    firstCheckedAt: v.number(),
+    lastCheckedAt: v.number(),
+  }).index("by_listing_owner_mode", ["listingId", "ownerId", "mode"]),
+  mapEligibilityDays: defineTable({
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    day: v.number(),
+    qualified: v.boolean(),
+    lastQualified: v.boolean(),
+    firstCheckedAt: v.number(),
+    lastCheckedAt: v.number(),
+  })
+    .index("by_listing_owner_mode_day", ["listingId", "ownerId", "mode", "day"])
+    .index("by_day", ["day"]),
+  ownerMapEligibilityDays: defineTable({
+    ownerId: v.id("users"),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    day: v.number(),
+    observedSpaces: v.number(),
+    eligibleSpaces: v.number(),
+    firstCheckedAt: v.number(),
+    lastCheckedAt: v.number(),
+  })
+    .index("by_owner_mode_day", ["ownerId", "mode", "day"])
+    .index("by_day", ["day"]),
   clerkContactSnapshots: defineTable({
     clerkId: v.string(),
     mode: v.union(v.literal("test"), v.literal("prod")),

@@ -1,3 +1,4 @@
+import { recordMapEligibility } from "./mapEligibility";
 import { GeospatialIndex } from "@convex-dev/geospatial";
 import { components } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -12,6 +13,7 @@ export async function syncGeo(
   l: Doc<"listings">,
   onlyViews = false,
 ) {
+  if (!onlyViews) await recordMapEligibility(ctx, l);
   if (l.mapLatitude === undefined || l.mapLongitude === undefined) return;
   for (const sort of onlyViews ? (["most_viewed"] as const) : SORT_OPTIONS) {
     const score =
@@ -32,6 +34,7 @@ export async function syncGeo(
   }
 }
 export async function removeGeo(ctx: MutationCtx, l: Doc<"listings">) {
+  await recordMapEligibility(ctx, l, true);
   if (l.mapLatitude === undefined) return;
   for (const sort of SORT_OPTIONS) await geo.remove(ctx, `${sort}:${l._id}`);
 }

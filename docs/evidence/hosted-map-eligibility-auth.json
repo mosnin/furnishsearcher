@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-25T21:34:47.767Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentJwt": true,
+  "syntheticAccount": true,
+  "nativeScheduledDailyCheckRecorded": true,
+  "unpublishedFixtureCurrentlyIneligible": true,
+  "observedEligibleDays": 0,
+  "earlierDaysNotBackfilled": true,
+  "privatePortfolioObserved": true,
+  "anonymousDenied": true,
+  "clientSuppliedEligibilityRejected": true,
+  "publicPaidIdentityFixtureFabricated": false,
+  "realEmailOrSmsSent": false,
+  "productionChanged": false,
+  "sinceCollectionTotalsAccepted": true,
+  "sinceCollectionEligibleDays": 0,
+  "sinceCollectionObservedDays": 1
+}

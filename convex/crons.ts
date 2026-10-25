@@ -123,4 +123,10 @@ crons.interval(
   internal.leadNotifications.recover,
   {},
 );
+crons.interval(
+  "expire map eligibility history",
+  { hours: 24 },
+  internal.mapEligibility.cleanup,
+  {},
+);
 export default crons;

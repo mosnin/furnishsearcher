@@ -1,3 +1,4 @@
+import { recordMapEligibility } from "./lib/mapEligibility";
 import { publiclyVisible } from "./lib/publication";
 import { listingPhotos } from "./lib/photos";
 import {
@@ -169,7 +170,7 @@ export const report = mutation({
       });
     } else {
       const listing = await ctx.db.get(args.listingId!);
-      if (!listing || !await publiclyVisible(ctx,listing))
+      if (!listing || !(await publiclyVisible(ctx, listing)))
         throw new Error("Listing unavailable. Use the contact form instead.");
       if (listing.landlordId === user._id)
         throw new Error("Use support for your own property.");
@@ -180,7 +181,9 @@ export const report = mutation({
         city: listing.city,
         state: listing.state,
         price: listing.price,
-        photos: (await listingPhotos(ctx, listing)).photos.slice(0, 30).map((url) => url.slice(0, 2048)),
+        photos: (await listingPhotos(ctx, listing)).photos
+          .slice(0, 30)
+          .map((url) => url.slice(0, 2048)),
       });
     }
     const previous = args.messageId
@@ -449,6 +452,7 @@ export const review = mutation({
           ? { status: "inactive" as const }
           : {}),
       });
+      await recordMapEligibility(ctx, (await ctx.db.get(listing._id))!);
     }
     await ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() });
     await ctx.db.insert("supportAudit", {

@@ -1,8 +1,8 @@
 {
-  "checkedAt": "2026-10-25T20:22:41.126Z",
+  "checkedAt": "2026-10-25T21:28:50.368Z",
   "target": "http://127.0.0.1:3210",
   "fixture": "isolated local synthetic publication/identity/payment prerequisites; privileged QA identities",
-  "listingId": "k9755m92gx3zaj7xkpby36ha9x8gzf9z",
+  "listingId": "k978h1pchdh228mpgry83hvwh98gzy1c",
   "mode": "test",
   "metrics": {
     "bookingRequests": 1,
