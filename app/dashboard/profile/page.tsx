@@ -25,6 +25,7 @@ import { Doc } from "@/convex/_generated/dataModel";
 import { PublicReviews } from "@/components/public-reviews";
 import { STATES } from "@/lib/cities";
 import { ProfileImageEditor } from "@/components/profile-image-editor";
+import { OwnerPhoneSettings } from "@/components/listing-phone-contact";
 import PhoneVerifyDialog from "@/components/phone-verify-dialog";
 import { MessageEmailSettings } from "@/components/message-email-settings";
 
@@ -309,7 +310,7 @@ function PersonalInfoTab({
                     try {
                       await revokePhone({});
                       toast.success(
-                        "Phone sharing stopped for existing requests.",
+                        "Phone sharing stopped for requests and listings.",
                       );
                     } catch {
                       toast.error("Could not stop phone sharing. Try again.");
@@ -328,9 +329,14 @@ function PersonalInfoTab({
                   : "Phone confirmed through your sign-in account. "
                 : "Phone not confirmed. "}
               Use the country code. Changing or removing a saved number stops
-              sharing on existing requests.
+              sharing on existing requests and listings.
             </p>
           </Field>
+          {convexUser.role === "landlord" && (
+            <OwnerPhoneSettings
+              phoneMatches={form.phone === convexUser.phone}
+            />
+          )}
           <PhoneVerifyDialog
             isOpen={verifyingPhone}
             onClose={() => setVerifyingPhone(false)}

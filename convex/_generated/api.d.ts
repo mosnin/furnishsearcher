@@ -68,6 +68,7 @@ import type * as messageTemplates from "../messageTemplates.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as payments from "../payments.js";
+import type * as phoneContacts from "../phoneContacts.js";
 import type * as profileImageFiles from "../profileImageFiles.js";
 import type * as profileImages from "../profileImages.js";
 import type * as publication from "../publication.js";
@@ -176,6 +177,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   migrations: typeof migrations;
   payments: typeof payments;
+  phoneContacts: typeof phoneContacts;
   profileImageFiles: typeof profileImageFiles;
   profileImages: typeof profileImages;
   publication: typeof publication;

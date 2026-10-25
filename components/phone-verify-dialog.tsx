@@ -150,8 +150,9 @@ export default function PhoneVerifyDialog({
           <DialogTitle>Confirm your phone number</DialogTitle>
           <DialogDescription>
             Confirm {phone} through your sign-in account. SMS charges may apply.
-            This becomes your primary sign-in phone; it is only shared with
-            matching owners when you choose phone contact on a housing request.
+            This becomes your primary sign-in phone; it is shared with matching
+            owners when you choose phone contact on a housing request, or with
+            signed-in travelers if you separately enable listing phone contact.
           </DialogDescription>
         </DialogHeader>
         <p className="text-sm text-slate-600">

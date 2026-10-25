@@ -111,4 +111,10 @@ crons.interval(
   internal.listingPerformance.cleanup,
   {},
 );
+crons.interval(
+  "expire phone contact rate metadata",
+  { hours: 24 },
+  internal.phoneContacts.cleanup,
+  {},
+);
 export default crons;

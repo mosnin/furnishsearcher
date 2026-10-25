@@ -26,7 +26,8 @@
     "test:local-message-search": "node scripts/local-message-search-smoke.mjs",
     "test:local-email-contacts": "node scripts/local-email-contact-smoke.mjs",
     "test:local-market": "node scripts/local-market-smoke.mjs",
-    "test:local-performance": "node scripts/local-performance-smoke.mjs"
+    "test:local-performance": "node scripts/local-performance-smoke.mjs",
+    "test:local-phone-contact": "node scripts/local-phone-contact-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

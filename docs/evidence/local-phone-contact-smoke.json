@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-25T19:26:22.023Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedSyntheticIdentity": true,
+  "actualClerkSms": false,
+  "defaultPrivate": true,
+  "verifiedOwnerOptInRequired": true,
+  "anonymousRevealDenied": true,
+  "concurrentRevealsAccepted": true,
+  "availabilityAndListingProjectionOmitPhone": true,
+  "optOutAndRevocationRechecked": true,
+  "realCallOrSmsPlaced": false
+}

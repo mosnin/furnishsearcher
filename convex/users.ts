@@ -178,6 +178,7 @@ export const updateProfile = mutation({
       const phone = args.phone.trim() ? canonicalPhone(args.phone) : "";
       patch.phone = phone;
       if (phone !== user.phone) {
+        patch.listingPhoneConsent = undefined;
         patch.phoneVerified = false;
         patch.phoneVerificationSource = undefined;
         patch.phoneVerificationMode = undefined;
@@ -277,6 +278,7 @@ export const revokePhone = mutation({
   handler: async (ctx) => {
     const user = await requireUser(ctx);
     await ctx.db.patch(user._id, {
+      listingPhoneConsent: undefined,
       phoneVerified: false,
       phoneVerificationSource: undefined,
       phoneVerificationMode: undefined,

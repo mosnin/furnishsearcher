@@ -41,6 +41,13 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  listingPhoneLimits: defineTable({
+    userId: v.id("users"),
+    day: v.number(),
+    listingIds: v.array(v.id("listings")),
+  })
+    .index("by_user_day", ["userId", "day"])
+    .index("by_day", ["day"]),
   ownerPerformanceState: defineTable({
     ownerId: v.id("users"),
     mode: v.union(v.literal("test"), v.literal("prod")),
@@ -345,6 +352,9 @@ export default defineSchema({
     phoneVerificationExpiresAt: v.optional(v.number()),
     phoneRevision: v.optional(v.number()),
     phoneProofAfter: v.optional(v.number()),
+    listingPhoneConsent: v.optional(
+      v.object({ revision: v.number(), expiresAt: v.number() }),
+    ),
     profilePhoto: v.optional(v.string()),
     profilePhotoStorageId: v.optional(v.id("_storage")),
     profilePhotoRevision: v.optional(v.number()),

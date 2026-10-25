@@ -1,5 +1,6 @@
 "use client";
 
+import { ListingPhoneContact } from "@/components/listing-phone-contact";
 import { PropertyUnits } from "@/components/property-units";
 import { ListingDetails } from "@/components/listing-details";
 import React, { use, useEffect, useState } from "react";
@@ -519,6 +520,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                   Contact Landlord
                 </button>
 
+                <ListingPhoneContact listingId={listing._id} />
                 <p className="text-xs text-slate-500 break-all">
                   Property ID: {listing.publicId ?? listing._id}
                 </p>
