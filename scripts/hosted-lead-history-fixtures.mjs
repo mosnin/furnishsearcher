@@ -8,7 +8,11 @@ import { makeFunctionReference } from "convex/server";
 const mode = process.argv[2],
   deployment = "cheerful-ferret-182",
   privatePath = "../hosted-lead-history.private.json";
-assert(["setup", "prepare-browser", "check", "cleanup"].includes(mode));
+assert(
+  ["setup", "prepare-browser", "check", "delete-lead", "cleanup"].includes(
+    mode,
+  ),
+);
 const credentials = JSON.parse(
   readFileSync(".clerk/.tmp/keyless.json", "utf8"),
 );
@@ -238,6 +242,103 @@ if (mode === "setup") {
       archived: false,
     });
     console.log("Own private synthetic history is reachable in the inbox.");
+  } else if (mode === "delete-lead") {
+    const listing = await call(owner, "query", "listings:getById", {
+      id: fixture.listingId,
+    });
+    assert(
+      listing.landlordId === me._id &&
+        listing.title === fixture.title &&
+        listing.publicationRequested === false,
+    );
+    const page = await call(owner, "query", "housingRequests:inbox", {
+      paginationOpts: { cursor: null, numItems: 25 },
+    });
+    const item = page.page.find((row) => row.request._id === fixture.requestId);
+    assert(item);
+    const traveler = new ConvexHttpClient(
+      `https://${deployment}.convex.cloud`,
+      { logger: false },
+    );
+    await refresh(traveler, fixture.tenantSessionId);
+    const before = await call(traveler, "query", "messages:listMessages", {
+      conversationId: fixture.conversationId,
+      paginationOpts: { cursor: null, numItems: 25 },
+    });
+    await assert.rejects(
+      call(traveler, "mutation", "housingRequests:deleteLead", {
+        deliveryId: item.deliveryId,
+      }),
+      /Not authorized/,
+    );
+    await call(owner, "mutation", "housingRequests:deleteLead", {
+      deliveryId: item.deliveryId,
+    });
+    await call(owner, "mutation", "housingRequests:deleteLead", {
+      deliveryId: item.deliveryId,
+    });
+    const after = await call(owner, "query", "housingRequests:inbox", {
+      paginationOpts: { cursor: null, numItems: 25 },
+    });
+    assert(!after.page.some((row) => row.request._id === fixture.requestId));
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:matchingProperties", {
+          requestId: fixture.requestId,
+          orderVersion: 1,
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.length,
+      0,
+    );
+    await assert.rejects(
+      call(owner, "mutation", "housingRequests:reply", {
+        requestId: fixture.requestId,
+        listingId: fixture.listingId,
+        message: "Must not send",
+      }),
+      /deleted/,
+    );
+    assert.deepEqual(
+      await call(traveler, "query", "messages:listMessages", {
+        conversationId: fixture.conversationId,
+        paginationOpts: { cursor: null, numItems: 25 },
+      }),
+      before,
+    );
+    assert(
+      (
+        await call(traveler, "query", "housingRequests:getMine", {
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.some(
+        (row) => row._id === fixture.requestId && row.status === "open",
+      ),
+    );
+    writeFileSync(
+      "docs/evidence/hosted-lead-deletion-native.json",
+      JSON.stringify(
+        {
+          checkedAt: new Date().toISOString(),
+          deployment,
+          actualOwnerAndTravelerClerkDevelopmentJwts: true,
+          privilegedPrivateHistoricalFixtureOnly: true,
+          foreignDeletionDenied: true,
+          ownerDeletionAndRetryAccepted: true,
+          removedFromOwnerInbox: true,
+          staleOptionsAndReplyDenied: true,
+          travelerRequestStillOpenAndMessagesRetained: true,
+          publicOfferCreationOrRealPhoneDisclosureAcceptance: false,
+          realMessageEmailOrSmsSent: false,
+          productionChanged: false,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    console.log(
+      "Actual Clerk lead deletion/retry, foreign denial and preserved traveler request/history passed.",
+    );
   } else if (mode === "cleanup") {
     if (fixture.tenantSessionId && fixture.requestId) {
       const tenant = new ConvexHttpClient(

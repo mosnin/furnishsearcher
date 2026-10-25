@@ -124,3 +124,16 @@ export async function existingLeadResponse(
     conversation.listingId === response.listingId;
   return { response: valid ? response : null, historyNeedsReview: !valid };
 }
+
+export async function ownerLeadDelivery(
+  ctx: Ctx,
+  requestId: Id<"housingRequests">,
+  ownerId: Id<"users">,
+) {
+  return ctx.db
+    .query("housingRequestDeliveries")
+    .withIndex("by_requestId_and_landlordId", (q) =>
+      q.eq("requestId", requestId).eq("landlordId", ownerId),
+    )
+    .unique();
+}

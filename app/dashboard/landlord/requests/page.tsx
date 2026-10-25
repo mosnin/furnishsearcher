@@ -15,6 +15,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useContactClock } from "@/components/listing-phone-contact";
+import { DeleteLeadDialog } from "@/components/delete-lead-dialog";
 import { LeadEmailPreferences } from "@/components/lead-email-preferences";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -181,9 +182,17 @@ function RequestCard({ item }: { item: InboxItem }) {
             conversations remain in Messages.
           </p>
         )}
-        <Button type="button" variant="outline" onClick={expand}>
-          {expanded ? "Hide properties" : "Review my properties"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={expand}>
+            {expanded ? "Hide properties" : "Review my properties"}
+          </Button>
+          <DeleteLeadDialog
+            deliveryId={item.deliveryId}
+            traveler={r.travelerName ?? item.name}
+            location={`${r.city}, ${r.state}`}
+            disabled={busy}
+          />
+        </div>
         {expanded && (
           <div className="space-y-4 border-t pt-4">
             {listingId && !chosen && status !== "LoadingFirstPage" && (

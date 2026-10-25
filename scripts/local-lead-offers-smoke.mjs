@@ -22,6 +22,7 @@ const cfg = JSON.parse(
   readFileSync(".convex/local/default/config.json", "utf8"),
 );
 assert.equal(Number(new URL(url).port), cfg.ports.cloud);
+const testDeletion = process.argv.includes("--delete-lead");
 const subject = `qa-lead-offers-${randomUUID()}`,
   phone = "+12025550123";
 const make = (clerkId, claims = {}) => {
@@ -242,12 +243,96 @@ try {
     }),
     null,
   );
+  if (testDeletion) {
+    await call(owner, "mutation", "listings:publish", { id: unit._id });
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:leadContact", {
+          requestId,
+          listingId: unit._id,
+        })
+      ).phone,
+      phone,
+    );
+    await assert.rejects(
+      call(other, "mutation", "housingRequests:deleteLead", {
+        deliveryId: item.deliveryId,
+      }),
+      /Not authorized/,
+    );
+    await call(owner, "mutation", "housingRequests:deleteLead", {
+      deliveryId: item.deliveryId,
+    });
+    await call(owner, "mutation", "housingRequests:deleteLead", {
+      deliveryId: item.deliveryId,
+    });
+    const admin = new ConvexHttpClient(url, { logger: false });
+    admin.setAdminAuth(cfg.adminKey);
+    await call(admin, "mutation", "housingRequests:scanRequest", {
+      requestId,
+      cursor: null,
+    });
+    assert(
+      !(
+        await call(owner, "query", "housingRequests:inbox", {
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.some((row) => row.request._id === requestId),
+    );
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:leadContact", {
+          requestId,
+          listingId: unit._id,
+        })
+      ).phone,
+      null,
+    );
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:matchingProperties", {
+          requestId,
+          orderVersion: 1,
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.length,
+      0,
+    );
+    await assert.rejects(
+      call(owner, "mutation", "housingRequests:reply", {
+        requestId,
+        listingId: unit._id,
+        message: "Must not send",
+      }),
+      /deleted/,
+    );
+    const retained = await call(traveler, "query", "messages:listMessages", {
+      conversationId,
+      paginationOpts: { cursor: null, numItems: 25 },
+    });
+    assert.deepEqual(retained.page, messages);
+    assert(
+      (
+        await call(traveler, "query", "housingRequests:getMine", {
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.some((row) => row._id === requestId && row.status === "open"),
+    );
+  }
   receipt = {
     checkedAt: new Date().toISOString(),
     target: url,
     hosted: false,
     authentication:
       "Privileged local development identities, synthetic signed-phone claims and explicit local paid/identity/staff publication prerequisites; not real Clerk/SMS/provider acceptance",
+    ...(testDeletion
+      ? {
+          nativeOwnerDeletionRetryAndForeignDenial: true,
+          removedLeadDoesNotReturnAfterNativeScan: true,
+          deletedLeadPhoneOptionsAndReplyDenied: true,
+          travelerRequestAndMessagesRetained: true,
+        }
+      : {}),
     actualNativeGroupedPublicOptions: true,
     offerLinkCarriesRequestedDatesAndHonorsVisibility: true,
     oneOwnerLeadForGroupedUnits: true,
@@ -278,7 +363,9 @@ try {
 }
 receipt.borrowedLocalQaCapacityRestored = true;
 writeFileSync(
-  "docs/evidence/local-lead-offers-smoke.json",
+  testDeletion
+    ? "docs/evidence/local-lead-deletion-smoke.json"
+    : "docs/evidence/local-lead-offers-smoke.json",
   JSON.stringify(receipt, null, 2) + "\n",
 );
 console.log(

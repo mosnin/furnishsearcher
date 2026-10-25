@@ -36,6 +36,7 @@ export async function leadEmailContext(
   if (
     !request ||
     !owner ||
+    delivery.deletedAt !== undefined ||
     !!delivery.response ||
     request.status !== "open" ||
     request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
@@ -80,6 +81,7 @@ export async function queueLeadEmail(
   force = false,
 ) {
   if (
+    delivery.deletedAt !== undefined ||
     !!delivery.response ||
     delivery.emailStatus === "sent" ||
     delivery.emailAttemptedAt !== undefined ||

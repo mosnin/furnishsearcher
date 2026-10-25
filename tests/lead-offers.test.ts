@@ -645,3 +645,352 @@ it("resumes pre-upgrade email selection with its original index cursor", async (
   ).toBe(old.target);
   await f.t.finishAllScheduledFunctions(vi.runAllTimers);
 });
+
+it("permanently removes only the owner's lead while preserving native inquiries, messages and traveler request", async () => {
+  const f = await fixture(),
+    requestId = await f.create(),
+    listingId = f.ids.listings[0];
+  const inquiryId = await f.tenant.mutation(api.inquiries.create, {
+    listingId,
+    moveIn: f.criteria.moveInDate,
+    moveOut: f.criteria.moveOutDate,
+    occupants: 1,
+    pets: false,
+    message: "Native dated inquiry",
+  });
+  const conversationId = await f.owner.mutation(api.housingRequests.reply, {
+    requestId,
+    listingId,
+    message: "Native response",
+  });
+  const before = await f.t.run(async (ctx) => ({
+    inquiry: await ctx.db.get(inquiryId),
+    conversation: await ctx.db.get(conversationId),
+    messages: await ctx.db.query("messages").collect(),
+    request: await ctx.db.get(requestId),
+  }));
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  expect(
+    (
+      await f.owner.query(api.housingRequests.leadContact, {
+        requestId,
+        listingId,
+      })
+    ).phone,
+  ).toBe("+12025550123");
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  expect(
+    (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+  ).toEqual([]);
+  expect((await f.options(requestId)).page).toEqual([]);
+  expect(
+    (
+      await f.owner.query(api.housingRequests.leadContact, {
+        requestId,
+        listingId,
+      })
+    ).phone,
+  ).toBeNull();
+  await expect(
+    f.owner.mutation(api.housingRequests.markRead, { deliveryId }),
+  ).rejects.toThrow("deleted");
+  await expect(
+    f.owner.mutation(api.housingRequests.reply, {
+      requestId,
+      listingId,
+      message: "Stale page",
+    }),
+  ).rejects.toThrow("deleted");
+  const after = await f.t.run(async (ctx) => ({
+    inquiry: await ctx.db.get(inquiryId),
+    conversation: await ctx.db.get(conversationId),
+    messages: await ctx.db.query("messages").collect(),
+    request: await ctx.db.get(requestId),
+  }));
+  expect(after).toEqual(before);
+  expect(
+    (await f.tenant.query(api.housingRequests.getMine, { paginationOpts }))
+      .page[0]._id,
+  ).toBe(requestId);
+  expect(
+    (
+      await f.tenant.query(api.messages.listMessages, {
+        conversationId,
+        paginationOpts,
+      })
+    ).page.length,
+  ).toBeGreaterThan(0);
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+});
+it("authorizes deletion by delivery ownership and retries without changing the first deletion time", async () => {
+  const f = await fixture(),
+    requestId = await f.create();
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  for (const caller of [
+    f.tenant,
+    f.stranger,
+    f.t.withIdentity({ subject: "unknown" }),
+  ])
+    await expect(
+      caller.mutation(api.housingRequests.deleteLead, { deliveryId }),
+    ).rejects.toThrow();
+  expect((await f.options(requestId)).page).toHaveLength(3);
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  const first = await f.t.run((ctx) => ctx.db.get(deliveryId));
+  vi.setSystemTime(now + 1000);
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  expect(await f.t.run((ctx) => ctx.db.get(deliveryId))).toEqual(first);
+});
+it("never redelivers a deleted lead after owner, request or newly added rental scans", async () => {
+  const f = await fixture(),
+    requestId = await f.create();
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  const before = await f.t.run(async (ctx) => ({
+    matches: await ctx.db.query("housingRequestMatches").collect(),
+    request: await ctx.db.get(requestId),
+  }));
+  const newListing = await f.t.run(async (ctx) => {
+    const { _id, _creationTime, ...data } = (await ctx.db.get(
+      f.ids.listings[0],
+    ))!;
+    return ctx.db.insert("listings", { ...data, title: "New eligible rental" });
+  });
+  await f.t.mutation(internal.housingRequests.scanRequest, {
+    requestId,
+    cursor: null,
+  });
+  await f.t.mutation(internal.housingRequests.scanListing, {
+    listingId: newListing,
+    cursor: null,
+  });
+  await f.t.mutation(internal.housingRequests.scanOwner, {
+    ownerId: f.ids.owner,
+    cursor: null,
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(
+    (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+  ).toHaveLength(0);
+  const after = await f.t.run(async (ctx) => ({
+    matches: await ctx.db.query("housingRequestMatches").collect(),
+    request: await ctx.db.get(requestId),
+  }));
+  expect(after).toEqual(before);
+  expect(
+    await f.t.run((ctx) => ctx.db.query("housingRequestDeliveries").collect()),
+  ).toHaveLength(1);
+});
+it("keeps other owners and new requests available after one owner deletes a lead", async () => {
+  const f = await fixture();
+  const foreignListing = await f.t.run(async (ctx) => {
+    const { _id, _creationTime, ...data } = (await ctx.db.get(
+      f.ids.listings[0],
+    ))!;
+    return ctx.db.insert("listings", {
+      ...data,
+      landlordId: f.ids.stranger,
+      propertyGroupId: undefined,
+      unitName: undefined,
+      unitNameKey: undefined,
+    });
+  });
+  await seedPublishedFixtures(f.t);
+  const requestId = await f.create();
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  expect(
+    (await f.stranger.query(api.housingRequests.inbox, { paginationOpts }))
+      .page[0].request._id,
+  ).toBe(requestId);
+  expect(
+    (
+      await f.stranger.query(api.housingRequests.leadContact, {
+        requestId,
+        listingId: foreignListing,
+      })
+    ).phone,
+  ).toBe("+12025550123");
+  const nextId = await f.create({ description: "Separate new request" });
+  const page = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page;
+  expect(page.map((row) => row.request._id)).toEqual([nextId]);
+});
+it("fences unclaimed queued notifications and legacy lookups while retaining account preferences", async () => {
+  const f = await fixture();
+  await f.t.run((ctx) =>
+    ctx.db.patch(f.ids.owner, {
+      housingLeadEmailsEnabled: true,
+      notificationEmail: "offers-owner@example.test",
+      notificationEmailMode: "test",
+      notificationEmailVerifiedAt: now,
+      notificationEmailExpiresAt: now + DAY,
+    }),
+  );
+  const requestId = await f.create();
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  await f.t.run((ctx) =>
+    ctx.db.patch(deliveryId, {
+      emailStatus: "queued",
+      emailGeneration: 4,
+      emailSelectionStartedAt: now,
+      notificationListingId: f.ids.listings[0],
+    }),
+  );
+  expect(
+    await f.t.query(internal.housingRequests.notificationDetails, {
+      deliveryId,
+    }),
+  ).not.toBeNull();
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  await f.t.mutation(internal.leadNotifications.selectProperty, {
+    deliveryId,
+    generation: 4,
+    cursor: null,
+  });
+  expect(
+    await f.t.mutation(internal.leadNotifications.prepareSend, {
+      deliveryId,
+      generation: 4,
+      configured: true,
+    }),
+  ).toBeNull();
+  expect(
+    await f.t.query(internal.housingRequests.notificationDetails, {
+      deliveryId,
+    }),
+  ).toBeNull();
+  await f.t.mutation(internal.leadNotifications.recover, {});
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  const delivery = await f.t.run((ctx) => ctx.db.get(deliveryId));
+  expect(delivery?.emailStatus).toBe("suppressed");
+  expect(delivery?.emailGeneration).toBe(5);
+  expect(delivery?.notificationListingId).toBeUndefined();
+  expect(delivery?.emailAttemptedAt).toBeUndefined();
+  expect(
+    (await f.t.run((ctx) => ctx.db.get(f.ids.owner)))?.housingLeadEmailsEnabled,
+  ).toBe(true);
+  expect((await f.options(requestId)).page).toHaveLength(0);
+});
+it("preserves the provider audit of an already claimed attempt while denying another claim after deletion", async () => {
+  const f = await fixture();
+  await f.t.run((ctx) =>
+    ctx.db.patch(f.ids.owner, {
+      housingLeadEmailsEnabled: true,
+      notificationEmail: "offers-owner@example.test",
+      notificationEmailMode: "test",
+      notificationEmailVerifiedAt: now,
+      notificationEmailExpiresAt: now + DAY,
+    }),
+  );
+  await f.create();
+  const deliveryId = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0].deliveryId;
+  await f.t.run((ctx) =>
+    ctx.db.patch(deliveryId, {
+      emailStatus: "queued",
+      emailGeneration: 7,
+      emailSelectionStartedAt: now,
+      notificationListingId: f.ids.listings[0],
+    }),
+  );
+  expect(
+    await f.t.mutation(internal.leadNotifications.prepareSend, {
+      deliveryId,
+      generation: 7,
+      configured: true,
+    }),
+  ).not.toBeNull();
+  await f.owner.mutation(api.housingRequests.deleteLead, { deliveryId });
+  expect(
+    await f.t.mutation(internal.leadNotifications.prepareSend, {
+      deliveryId,
+      generation: 7,
+      configured: true,
+    }),
+  ).toBeNull();
+  await f.t.mutation(internal.leadNotifications.finish, {
+    deliveryId,
+    generation: 7,
+    status: "sent",
+    providerId: "synthetic-provider-result",
+  });
+  const delivery = await f.t.run((ctx) => ctx.db.get(deliveryId));
+  expect(delivery?.deletedAt).toBeGreaterThanOrEqual(now);
+  expect(delivery?.emailGeneration).toBe(7);
+  expect(delivery?.emailStatus).toBe("sent");
+  expect(delivery?.emailProviderId).toBe("synthetic-provider-result");
+});
+it("continues paging past deleted leads without restoring them or losing older active requests", async () => {
+  const f = await fixture(1);
+  const ids = [];
+  for (let i = 0; i < 30; i++)
+    ids.push(await f.create({ description: `Request ${i}` }));
+  const deliveries = await f.t.run((ctx) =>
+    ctx.db
+      .query("housingRequestDeliveries")
+      .withIndex("by_landlordId", (q) => q.eq("landlordId", f.ids.owner))
+      .order("desc")
+      .collect(),
+  );
+  for (const delivery of deliveries.slice(0, 25))
+    await f.owner.mutation(api.housingRequests.deleteLead, {
+      deliveryId: delivery._id,
+    });
+  const first = await f.owner.query(api.housingRequests.inbox, {
+    paginationOpts: { cursor: null, numItems: 25 },
+  });
+  expect(first.page).toEqual([]);
+  expect(first.isDone).toBe(false);
+  const second = await f.owner.query(api.housingRequests.inbox, {
+    paginationOpts: { cursor: first.continueCursor, numItems: 25 },
+  });
+  expect(second.page).toHaveLength(5);
+  expect(second.isDone).toBe(true);
+  expect(new Set(second.page.map((row) => row.request._id))).toEqual(
+    new Set(ids.slice(0, 5)),
+  );
+});
+
+it("deletes an unmatched lead permanently through intake preference changes", async () => {
+  const f = await fixture(),
+    requestId = await f.create({ maxBudget: 1000 });
+  const delivery = (
+    await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+  ).page[0];
+  expect(delivery.kind).toBe("unmatched");
+  await f.owner.mutation(api.housingRequests.deleteLead, {
+    deliveryId: delivery.deliveryId,
+  });
+  await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+    receiveUnmatched: false,
+  });
+  await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+    receiveUnmatched: true,
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(
+    (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+  ).toEqual([]);
+  expect((await f.options(requestId)).page).toEqual([]);
+  await expect(
+    f.owner.mutation(api.housingRequests.reply, {
+      requestId,
+      listingId: f.ids.listings[0],
+      message: "Alternative",
+      acknowledgeDifferences: true,
+    }),
+  ).rejects.toThrow("deleted");
+});

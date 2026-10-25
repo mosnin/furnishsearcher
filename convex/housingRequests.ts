@@ -10,6 +10,7 @@ import {
   offerPrefix,
   replyLimit,
   existingLeadResponse,
+  ownerLeadDelivery,
 } from "./lib/leadOffers";
 import { recordPerformance } from "./lib/performance";
 import { publiclyVisible } from "./lib/publication";
@@ -225,6 +226,12 @@ async function saveMatch(
     request.userId === listing.landlordId
   )
     return;
+  const delivery = await ownerLeadDelivery(
+    ctx,
+    request._id,
+    listing.landlordId,
+  );
+  if (delivery?.deletedAt !== undefined) return;
   const requester = await ctx.db.get(request.userId);
   if (!requester || requester.clerkDeletedAt !== undefined) return;
   const existing = await ctx.db
@@ -289,12 +296,6 @@ async function saveMatch(
       matchedProperties: (current?.matchedProperties ?? 0) + 1,
     });
   }
-  const delivery = await ctx.db
-    .query("housingRequestDeliveries")
-    .withIndex("by_requestId_and_landlordId", (q) =>
-      q.eq("requestId", request._id).eq("landlordId", owner._id),
-    )
-    .unique();
   let current = delivery;
   if (!current) {
     const id = await ctx.db.insert("housingRequestDeliveries", {
@@ -513,6 +514,7 @@ export const inbox = query({
       });
     const page = [];
     for (const delivery of result.page) {
+      if (delivery.deletedAt !== undefined) continue;
       const request = await ctx.db.get(delivery.requestId);
       if (
         !request ||
@@ -558,6 +560,11 @@ export const matchingProperties = query({
     const user = await requireUser(ctx);
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found.");
+    if (
+      (await ownerLeadDelivery(ctx, request._id, user._id))?.deletedAt !==
+      undefined
+    )
+      return { page: [], continueCursor: "", isDone: true };
     await requireMessagingAllowed(ctx, user._id, request.userId);
     const offers =
       args.orderVersion === 1
@@ -687,6 +694,11 @@ export const leadContact = query({
       throw new Error("Not authorized");
     const none = { phone: null, phoneTestMode: false, expiresAt: null };
     if (
+      (await ownerLeadDelivery(ctx, request._id, owner._id))?.deletedAt !==
+      undefined
+    )
+      return none;
+    if (
       request.status !== "open" ||
       request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
       request.contactPreference !== "phone" ||
@@ -724,6 +736,32 @@ export const leadContact = query({
   },
 });
 
+export const deleteLead = mutation({
+  args: { deliveryId: v.id("housingRequestDeliveries") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const owner = await requireUser(ctx),
+      delivery = await ctx.db.get(args.deliveryId);
+    if (!delivery || delivery.landlordId !== owner._id)
+      throw new Error("Not authorized");
+    if (delivery.deletedAt !== undefined) return null;
+    // A provider attempt already claimed may finish; preserve its audit/idempotency.
+    // Unclaimed jobs lose their generation and selection atomically.
+    await ctx.db.patch(delivery._id, {
+      deletedAt: Date.now(),
+      ...(delivery.emailAttemptedAt === undefined &&
+      delivery.emailStatus !== "sent"
+        ? {
+            emailStatus: "suppressed" as const,
+            emailGeneration: (delivery.emailGeneration ?? 0) + 1,
+            notificationListingId: undefined,
+          }
+        : {}),
+    });
+    return null;
+  },
+});
+
 export const markRead = mutation({
   args: { deliveryId: v.id("housingRequestDeliveries") },
   returns: v.null(),
@@ -732,6 +770,8 @@ export const markRead = mutation({
       delivery = await ctx.db.get(args.deliveryId);
     if (!delivery || delivery.landlordId !== user._id)
       throw new Error("Not authorized");
+    if (delivery.deletedAt !== undefined)
+      throw new Error("This lead was deleted.");
     if (delivery.readAt === undefined)
       await ctx.db.patch(delivery._id, { readAt: Date.now() });
     return null;
@@ -760,6 +800,13 @@ export const reply = mutation({
       request.userId === owner._id
     )
       throw new Error("Not authorized");
+    if (
+      (await ownerLeadDelivery(ctx, request._id, owner._id))?.deletedAt !==
+      undefined
+    )
+      throw new Error(
+        "This lead was deleted. Use Messages for any existing conversation.",
+      );
     const classification = await classifyLead(ctx, listing, request);
     if (
       request.status !== "open" ||

@@ -904,6 +904,8 @@ export default defineSchema({
     ]),
 
   housingRequestDeliveries: defineTable({
+    // Owner-specific irreversible removal; retained to prevent redelivery.
+    deletedAt: v.optional(v.number()),
     response: v.optional(leadResponse),
     emailGeneration: v.optional(v.number()),
     emailSelectionStartedAt: v.optional(v.number()),
