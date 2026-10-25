@@ -31,7 +31,12 @@ function getNavItems(role: Role): NavItem[] {
   return [
     {
       label: "Dashboard",
-      href: role === "landlord" ? "/dashboard/landlord" : role === "admin" ? "/dashboard/admin" : "/dashboard/tenant",
+      href:
+        role === "landlord"
+          ? "/dashboard/landlord"
+          : role === "admin"
+            ? "/dashboard/admin"
+            : "/dashboard/tenant",
       icon: LayoutDashboard,
     },
     {
@@ -71,18 +76,23 @@ function UnreadBadge() {
   const { userId: clerkId } = useAuth();
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : "skip",
   ) as { _id: Id<"users"> } | null | undefined;
 
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as ConversationSummary[] | undefined;
-
-  const unreadCount =
-    conversations?.filter((c) =>
-      !c.blockedByMe && !c.archived && (c.tenantId === convexUser?._id ? !c.tenantRead : !c.landlordRead)
-    ).length ?? 0;
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser?._id ? {} : "skip",
+  );
+  const unreadCount = inboxSummary?.ready ? inboxSummary.unread : 0;
+  if (inboxSummary && !inboxSummary.ready)
+    return (
+      <span
+        aria-label="Inbox updating"
+        className="absolute -top-1 -right-1 text-xs"
+      >
+        …
+      </span>
+    );
 
   if (unreadCount === 0) return null;
 
@@ -120,14 +130,14 @@ export default function MobileNav({ role }: { role: Role }) {
                 "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
                 isActive
                   ? "text-[#1e3a8a]"
-                  : "text-slate-400 hover:text-slate-600"
+                  : "text-slate-400 hover:text-slate-600",
               )}
             >
               <div className="relative">
                 <Icon
                   className={cn(
                     "w-5 h-5 transition-colors",
-                    isActive ? "text-[#1e3a8a]" : "text-slate-400"
+                    isActive ? "text-[#1e3a8a]" : "text-slate-400",
                   )}
                 />
                 {item.showBadge && <UnreadBadge />}

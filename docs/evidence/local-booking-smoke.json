@@ -1,13 +1,13 @@
 {
-  "verifiedAt": "2026-10-25T02:43:27.438Z",
+  "verifiedAt": "2026-10-25T02:59:02.254Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "listingId": "k972qvx2r6wrgb6v0rkdq2zfnn8gyeyj",
-  "inquiryId": "j977pgx3r8kv82ffsk9kmckmvx8gz55x",
+  "inquiryId": "j97cctge41kbv747sav1wt9je98gz3r4",
   "conversationId": "jh726n5smzk9334px8nzsze8ms8gybh5",
   "realLocalTransactions": true,
   "legacyLinks": {
-    "scanned": 9,
+    "scanned": 13,
     "linked": 0,
     "isDone": true
   },

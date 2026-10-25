@@ -1,3 +1,4 @@
+import { syncInbox } from "./inbox";
 import { publiclyVisible } from "./publication";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -105,6 +106,7 @@ export async function sendListingMessage(
       landlordId: listing.landlordId,
       ...patch,
     });
+  await syncInbox(ctx, conversationId);
   const messageId = await ctx.db.insert("messages", {
     conversationId: key,
     conversationDocId: conversationId,

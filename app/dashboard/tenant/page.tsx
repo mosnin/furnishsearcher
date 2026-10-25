@@ -168,7 +168,9 @@ function ListingCard({
         )}
       </div>
       <CardContent className="flex-1 flex flex-col p-4">
-        <h3 className="font-semibold text-slate-900 line-clamp-1">{listing.title}</h3>
+        <h3 className="font-semibold text-slate-900 line-clamp-1">
+          {listing.title}
+        </h3>
         <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
           <MapPin className="h-3.5 w-3.5" />
           <span>
@@ -186,14 +188,17 @@ function ListingCard({
           </span>
         </div>
         <p className="text-[#0f2044] font-bold mt-2">
-          {formatPrice(listing.price)}<span className="font-normal text-slate-500 text-sm">/mo</span>
+          {formatPrice(listing.price)}
+          <span className="font-normal text-slate-500 text-sm">/mo</span>
         </p>
         <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
           <Button asChild size="sm" className="flex-1">
             <Link href={`/listings/${listing._id}`}>View</Link>
           </Button>
           <Button asChild size="sm" variant="outline" className="flex-1">
-            <Link href={`/dashboard/messages?listing=${listing._id}&landlord=${listing.landlordId}`}>
+            <Link
+              href={`/dashboard/messages?listing=${listing._id}&landlord=${listing.landlordId}`}
+            >
               Message
             </Link>
           </Button>
@@ -209,36 +214,40 @@ export default function TenantDashboardPage() {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const savedListings = useQuery(
     api.saved.getSaved,
-    convexUser?._id ? { tenantId: convexUser._id } : "skip"
+    convexUser?._id ? { tenantId: convexUser._id } : "skip",
   ) as SavedEntry[] | undefined;
 
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as ConvConversation[] | undefined;
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser?._id ? {} : "skip",
+  );
+  const conversations = inboxSummary?.ready ? inboxSummary.recent : undefined;
 
-  const featuredListings = useQuery(api.listings.getFeatured, {}) as ConvListing[] | undefined;
+  const featuredListings = useQuery(api.listings.getFeatured, {}) as
+    | ConvListing[]
+    | undefined;
 
   const savedSearches = useQuery(
     api.savedSearches.getByUser,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
+    convexUser?._id ? { userId: convexUser._id } : "skip",
   ) as SavedSearch[] | undefined;
 
   const removeSavedSearch = useMutation(api.savedSearches.remove);
 
   const housingRequests = useQuery(
     api.housingRequests.getByUser,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
+    convexUser?._id ? { userId: convexUser._id } : "skip",
   ) as HousingRequest[] | undefined;
 
   const closeHousingRequest = useMutation(api.housingRequests.close);
 
-  const visibleConversations = conversations?.filter(c => !c.archived && !c.blockedByMe) ?? [];
+  const visibleConversations =
+    conversations?.filter((c) => !c.archived && !c.blockedByMe) ?? [];
 
   const isLoading = !isLoaded || convexUser === undefined;
   const firstName = convexUser?.name?.split(" ")[0] ?? "there";
@@ -249,11 +258,7 @@ export default function TenantDashboardPage() {
     day: "numeric",
   });
 
-  const unreadMessages =
-    conversations?.filter((c) => {
-      const isTenant = c.tenantId === convexUser?._id;
-      return !c.archived && !c.blockedByMe && (isTenant ? !c.tenantRead : !c.landlordRead);
-    }).length ?? 0;
+  const unreadMessages = inboxSummary?.ready ? inboxSummary.unread : 0;
 
   const handleRemoveSavedSearch = async (id: string, name: string) => {
     try {
@@ -312,7 +317,11 @@ export default function TenantDashboardPage() {
         />
         <StatCard
           title="Messages"
-          value={unreadMessages > 0 ? `${unreadMessages} unread` : visibleConversations.length}
+          value={
+            unreadMessages > 0
+              ? `${unreadMessages} unread`
+              : visibleConversations.length
+          }
           icon={MessageSquare}
           loading={isLoading || conversations === undefined}
         />
@@ -333,7 +342,9 @@ export default function TenantDashboardPage() {
       {/* Saved Listings */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Saved Listings</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Saved Listings
+          </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/dashboard/tenant/saved">
               View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -358,7 +369,9 @@ export default function TenantDashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Heart className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No saved listings yet</h3>
+              <h3 className="text-base font-medium text-slate-900 mb-1">
+                No saved listings yet
+              </h3>
               <p className="text-sm text-slate-500 mb-4">
                 Browse listings and save your favorites to compare them later.
               </p>
@@ -369,15 +382,17 @@ export default function TenantDashboardPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedListings.slice(0, 3).map((entry) =>
-              entry.listing ? (
-                <ListingCard
-                  key={entry._id}
-                  listing={entry.listing!}
-                  userId={convexUser?._id ?? ""}
-                />
-              ) : null
-            )}
+            {savedListings
+              .slice(0, 3)
+              .map((entry) =>
+                entry.listing ? (
+                  <ListingCard
+                    key={entry._id}
+                    listing={entry.listing!}
+                    userId={convexUser?._id ?? ""}
+                  />
+                ) : null,
+              )}
           </div>
         )}
       </section>
@@ -385,7 +400,9 @@ export default function TenantDashboardPage() {
       {/* Recent Messages */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Recent Messages</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Recent Messages
+          </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/dashboard/messages">
               View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -412,7 +429,9 @@ export default function TenantDashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <MessageSquare className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No messages in your inbox</h3>
+              <h3 className="text-base font-medium text-slate-900 mb-1">
+                No messages in your inbox
+              </h3>
               <p className="text-sm text-slate-500 mb-4">
                 Find a listing you love and reach out to the landlord.
               </p>
@@ -426,7 +445,9 @@ export default function TenantDashboardPage() {
             <CardContent className="p-0 divide-y divide-slate-100">
               {visibleConversations.slice(0, 3).map((conv) => {
                 const isTenant = conv.tenantId === convexUser?._id;
-                const isUnread = isTenant ? !conv.tenantRead : !conv.landlordRead;
+                const isUnread = isTenant
+                  ? !conv.tenantRead
+                  : !conv.landlordRead;
                 return (
                   <Link
                     key={conv._id}
@@ -440,7 +461,12 @@ export default function TenantDashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className={cn("text-sm font-medium", isUnread ? "text-slate-900" : "text-slate-700")}>
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            isUnread ? "text-slate-900" : "text-slate-700",
+                          )}
+                        >
                           {conv.otherUser?.name ?? "Unknown"}
                         </span>
                         <span className="text-xs text-slate-400 shrink-0 flex items-center gap-1">
@@ -451,7 +477,14 @@ export default function TenantDashboardPage() {
                       <p className="text-xs text-slate-500 truncate mt-0.5">
                         Re: {conv.listing?.title ?? "Listing"}
                       </p>
-                      <p className={cn("text-sm mt-0.5 truncate", isUnread ? "text-slate-800 font-medium" : "text-slate-500")}>
+                      <p
+                        className={cn(
+                          "text-sm mt-0.5 truncate",
+                          isUnread
+                            ? "text-slate-800 font-medium"
+                            : "text-slate-500",
+                        )}
+                      >
                         {conv.lastMessage}
                       </p>
                     </div>
@@ -469,7 +502,9 @@ export default function TenantDashboardPage() {
       {/* My Saved Searches */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">My Saved Searches</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            My Saved Searches
+          </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/search">
               Browse Listings <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -487,7 +522,9 @@ export default function TenantDashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Bookmark className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No saved searches yet</h3>
+              <h3 className="text-base font-medium text-slate-900 mb-1">
+                No saved searches yet
+              </h3>
               <p className="text-sm text-slate-500 mb-4">
                 Save a search to get notified when matching listings are posted.
               </p>
@@ -503,7 +540,13 @@ export default function TenantDashboardPage() {
                 key={search._id}
                 className="group flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm hover:border-[#0f2044]/40 hover:shadow-md transition-all cursor-pointer"
                 onClick={() => {
-                  try { router.push(buildSearchUrl(criteriaOnly(search))); } catch { toast.error("This saved search needs new criteria. Open Saved Searches to remove it."); }
+                  try {
+                    router.push(buildSearchUrl(criteriaOnly(search)));
+                  } catch {
+                    toast.error(
+                      "This saved search needs new criteria. Open Saved Searches to remove it.",
+                    );
+                  }
                 }}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -556,7 +599,9 @@ export default function TenantDashboardPage() {
       {/* Recommended */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Recommended for You</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Recommended for You
+          </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/search">
               See all <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -581,8 +626,12 @@ export default function TenantDashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No listings available yet</h3>
-              <p className="text-sm text-slate-500">Check back soon — new listings are added daily.</p>
+              <h3 className="text-base font-medium text-slate-900 mb-1">
+                No listings available yet
+              </h3>
+              <p className="text-sm text-slate-500">
+                Check back soon — new listings are added daily.
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -598,7 +647,11 @@ export default function TenantDashboardPage() {
         )}
       </section>
 
-      <div className="mb-4 text-right"><Link href="/dashboard/housing-requests" className="text-sm underline">View all housing requests</Link></div>
+      <div className="mb-4 text-right">
+        <Link href="/dashboard/housing-requests" className="text-sm underline">
+          View all housing requests
+        </Link>
+      </div>
 
       {/* My Housing Requests */}
       <section>
@@ -607,7 +660,11 @@ export default function TenantDashboardPage() {
             <FileText className="h-5 w-5 text-[#0f2044]" />
             My Housing Requests
           </h2>
-          <Button asChild size="sm" className="bg-[#0f2044] hover:bg-[#1a3360] text-white gap-1">
+          <Button
+            asChild
+            size="sm"
+            className="bg-[#0f2044] hover:bg-[#1a3360] text-white gap-1"
+          >
             <Link href="/housing-request">
               <PlusCircle className="h-4 w-4" />
               New Request
@@ -634,7 +691,9 @@ export default function TenantDashboardPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">No housing requests yet</h3>
+              <h3 className="text-base font-medium text-slate-900 mb-1">
+                No housing requests yet
+              </h3>
               <p className="text-sm text-slate-500 mb-4">
                 Submit a request and let landlords come to you.
               </p>
@@ -660,12 +719,14 @@ export default function TenantDashboardPage() {
                         {req.city}, {req.state}
                       </span>
                       <Badge
-                        variant={req.status === "open" ? "default" : "secondary"}
+                        variant={
+                          req.status === "open" ? "default" : "secondary"
+                        }
                         className={cn(
                           "text-xs capitalize",
                           req.status === "open"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-slate-100 text-slate-600"
+                            : "bg-slate-100 text-slate-600",
                         )}
                       >
                         {req.status}

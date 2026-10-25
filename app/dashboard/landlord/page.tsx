@@ -86,7 +86,11 @@ function StatCard({
   );
 }
 
-function StatusBadge({ status }: { status: "active" | "inactive" | "pending" }) {
+function StatusBadge({
+  status,
+}: {
+  status: "active" | "inactive" | "pending";
+}) {
   const variants = {
     active: "success",
     inactive: "secondary",
@@ -104,37 +108,35 @@ export default function LandlordDashboardPage() {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const listings = useQuery(
     api.listings.getByLandlord,
-    convexUser?._id ? { landlordId: convexUser._id } : "skip"
+    convexUser?._id ? { landlordId: convexUser._id } : "skip",
   ) as LandlordListing[] | undefined;
 
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as LandlordConversation[] | undefined;
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser?._id ? {} : "skip",
+  );
+  const conversations = inboxSummary?.ready ? inboxSummary.recent : undefined;
 
   const publishMutation = useMutation(api.listings.publish);
   const unpublishMutation = useMutation(api.listings.unpublish);
 
-  const visibleConversations = conversations?.filter(c => !c.archived && !c.blockedByMe) ?? [];
+  const visibleConversations =
+    conversations?.filter((c) => !c.archived && !c.blockedByMe) ?? [];
 
   const isLoading = convexUser === undefined || listings === undefined;
 
   const activeListings = listings?.filter((l) => l.status === "active") ?? [];
   const totalViews = listings?.reduce((sum, l) => sum + l.views, 0) ?? 0;
-  const unreadCount =
-    conversations?.filter((c) => {
-      const isLandlord = c.landlordId === convexUser?._id;
-      return !c.archived && !c.blockedByMe && (isLandlord ? !c.landlordRead : !c.tenantRead);
-    }).length ?? 0;
+  const unreadCount = inboxSummary?.ready ? inboxSummary.unread : 0;
 
   const handleToggle = async (
     listingId: Id<"listings">,
-    currentStatus: string
+    currentStatus: string,
   ) => {
     try {
       if (currentStatus === "active") {
@@ -154,7 +156,9 @@ export default function LandlordDashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Landlord Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Landlord Dashboard
+          </h1>
           <p className="text-slate-500 text-sm mt-1">
             Manage your listings and communicate with tenants
           </p>
@@ -183,7 +187,9 @@ export default function LandlordDashboardPage() {
         />
         <StatCard
           title="Messages"
-          value={unreadCount > 0 ? `${unreadCount} new` : visibleConversations.length}
+          value={
+            unreadCount > 0 ? `${unreadCount} new` : visibleConversations.length
+          }
           icon={MessageSquare}
           loading={isLoading || conversations === undefined}
         />
@@ -206,8 +212,8 @@ export default function LandlordDashboardPage() {
               Create Your First Listing
             </h3>
             <p className="text-slate-500 max-w-sm mb-6">
-              Start attracting tenants by listing your furnished property. It only
-              takes a few minutes to get started.
+              Start attracting tenants by listing your furnished property. It
+              only takes a few minutes to get started.
             </p>
             <Button asChild size="lg">
               <Link href="/dashboard/landlord/listings/new">
@@ -223,7 +229,9 @@ export default function LandlordDashboardPage() {
       {(isLoading || (listings && listings.length > 0)) && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">My Listings</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              My Listings
+            </h2>
             <Button asChild variant="link" size="sm" className="text-[#0f2044]">
               <Link href="/dashboard/landlord/listings">
                 Manage all <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -291,7 +299,9 @@ export default function LandlordDashboardPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/dashboard/landlord/listings/${listing._id}/edit`}>
+                          <Link
+                            href={`/dashboard/landlord/listings/${listing._id}/edit`}
+                          >
                             <Pencil className="h-3.5 w-3.5 mr-1" />
                             Edit
                           </Link>
@@ -299,8 +309,17 @@ export default function LandlordDashboardPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleToggle(listing._id as Id<"listings">, listing.status)}
-                          title={listing.status === "active" ? "Set inactive" : "Set active"}
+                          onClick={() =>
+                            handleToggle(
+                              listing._id as Id<"listings">,
+                              listing.status,
+                            )
+                          }
+                          title={
+                            listing.status === "active"
+                              ? "Set inactive"
+                              : "Set active"
+                          }
                         >
                           {listing.status === "active" ? (
                             <ToggleRight className="h-5 w-5 text-emerald-600" />
@@ -321,7 +340,9 @@ export default function LandlordDashboardPage() {
       {/* Recent Inquiries */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Recent Inquiries</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Recent Inquiries
+          </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/dashboard/messages">
               View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
@@ -353,7 +374,8 @@ export default function LandlordDashboardPage() {
                 No messages in your inbox
               </h3>
               <p className="text-sm text-slate-500">
-                When tenants message you about your listings, they'll appear here.
+                When tenants message you about your listings, they'll appear
+                here.
               </p>
             </CardContent>
           </Card>
@@ -362,7 +384,9 @@ export default function LandlordDashboardPage() {
             <CardContent className="p-0 divide-y divide-slate-100">
               {visibleConversations.slice(0, 5).map((conv) => {
                 const isLandlord = conv.landlordId === convexUser?._id;
-                const isUnread = isLandlord ? !conv.landlordRead : !conv.tenantRead;
+                const isUnread = isLandlord
+                  ? !conv.landlordRead
+                  : !conv.tenantRead;
                 return (
                   <div key={conv._id} className="p-4 flex items-start gap-3">
                     <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0">

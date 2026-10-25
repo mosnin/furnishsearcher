@@ -28,9 +28,7 @@ import {
   CheckCheck,
 } from "lucide-react";
 
-type Conversation = FunctionReturnType<
-  typeof api.messages.getConversations
->[number];
+type Conversation = FunctionReturnType<typeof api.inbox.list>["page"][number];
 type Folder = "all" | "unread" | "archived" | "blocked";
 function ConversationItem({
   conv,
@@ -201,15 +199,24 @@ export default function MessagesPage() {
     api.users.getByClerkId,
     isAuthenticated && userId ? { clerkId: userId } : "skip",
   );
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser ? { userId: convexUser._id } : "skip",
-  );
   const [selectedId, setSelectedId] = useState<string | null>(
     searchParams.get("conv"),
   );
   const [folder, setFolder] = useState<Folder>("all"),
     [mobileThread, setMobileThread] = useState(!!searchParams.get("conv"));
+  const {
+    results: conversations,
+    status: inboxStatus,
+    loadMore: loadConversations,
+  } = usePaginatedQuery(
+    api.inbox.list,
+    convexUser && isAuthenticated ? { folder } : "skip",
+    { initialNumItems: 20 },
+  );
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser && isAuthenticated ? {} : "skip",
+  );
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<{
     conversationId: string;
@@ -226,7 +233,10 @@ export default function MessagesPage() {
   const [busy, setBusy] = useState(false),
     [focused, setFocused] = useState(false),
     [desktop, setDesktop] = useState(false);
-  const selected = conversations?.find((c) => c._id === selectedId);
+  const selected = useQuery(
+    api.inbox.conversation,
+    isAuthenticated && convexUser && selectedId ? { id: selectedId } : "skip",
+  );
   const {
     results: newestFirst,
     status,
@@ -307,18 +317,7 @@ export default function MessagesPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [latestId, sending]);
-  const filtered = conversations?.filter((c) =>
-    folder === "blocked"
-      ? c.blockedByMe
-      : !c.blockedByMe &&
-        (folder === "archived"
-          ? c.archived
-          : !c.archived &&
-            (folder !== "unread" ||
-              (c.tenantId === convexUser?._id
-                ? !c.tenantRead
-                : !c.landlordRead))),
-  );
+  const filtered = conversations;
   async function perform(
     action: () => Promise<unknown>,
     success: string,
@@ -442,13 +441,22 @@ export default function MessagesPage() {
           </div>
         </header>
         <div className="flex-1 overflow-y-auto">
-          {folder === "blocked" && isAuthenticated && <BlockedUsers />}
-          {conversations === undefined ? (
+          {folder === "blocked" && isAuthenticated && convexUser && (
+            <BlockedUsers />
+          )}
+          {inboxSummary && !inboxSummary.ready && (
+            <p role="status" className="p-3 text-xs text-slate-500">
+              Updating inbox history and folder counts…
+            </p>
+          )}
+          {inboxStatus === "LoadingFirstPage" ? (
             <p className="p-5 text-sm text-slate-500">Loading conversations…</p>
           ) : !filtered?.length ? (
             <div className="p-6 text-center text-sm text-slate-500">
               <MessageSquare className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-              No conversations in this folder.
+              {inboxStatus === "CanLoadMore" || !inboxSummary?.ready
+                ? "No conversations loaded yet. More history may still be available."
+                : "No conversations in this folder."}
             </div>
           ) : (
             filtered.map((conv) => (
@@ -464,6 +472,20 @@ export default function MessagesPage() {
               />
             ))
           )}
+          {inboxStatus === "CanLoadMore" && (
+            <Button
+              className="m-3"
+              variant="outline"
+              onClick={() => loadConversations(20)}
+            >
+              More conversations
+            </Button>
+          )}
+          {inboxStatus === "LoadingMore" && (
+            <p role="status" className="p-3 text-sm">
+              Loading more conversations…
+            </p>
+          )}
         </div>
       </aside>
       <section
@@ -475,7 +497,13 @@ export default function MessagesPage() {
         {!selected ? (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center">
             <MessageSquare className="h-14 w-14 text-slate-300 mb-4" />
-            <h2 className="font-medium">Select a conversation</h2>
+            <h2 className="font-medium">
+              {selectedId
+                ? selected === undefined
+                  ? "Loading conversation…"
+                  : "Conversation unavailable"
+                : "Select a conversation"}
+            </h2>
             <p className="text-sm mt-2">
               Choose a conversation to read and reply.
             </p>

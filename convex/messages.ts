@@ -1,3 +1,4 @@
+import { syncInbox, queueFolderSync } from "./lib/inbox";
 import {
   paginationOptsValidator,
   paginationResultValidator,
@@ -41,6 +42,8 @@ export const sendMessage = mutation({
   returns: v.id("messages"),
   handler: async (ctx, args) => (await sendListingMessage(ctx, args)).messageId,
 });
+// Compatibility for older callers: newest 100 conversations only.
+// Current clients use inbox.list and inbox.summary for complete paging/counts.
 export const getConversations = query({
   args: { userId: v.id("users") },
   returns: v.array(conversationSummary),
@@ -55,12 +58,14 @@ export const getConversations = query({
     const [tenant, owner] = await Promise.all([
       ctx.db
         .query("conversations")
-        .withIndex("by_tenant", (q) => q.eq("tenantId", caller._id))
-        .collect(),
+        .withIndex("by_tenant_latest", (q) => q.eq("tenantId", caller._id))
+        .order("desc")
+        .take(100),
       ctx.db
         .query("conversations")
-        .withIndex("by_landlord", (q) => q.eq("landlordId", caller._id))
-        .collect(),
+        .withIndex("by_landlord_latest", (q) => q.eq("landlordId", caller._id))
+        .order("desc")
+        .take(100),
     ]);
     const unique = Array.from(
       new Map([...tenant, ...owner].map((c) => [c._id, c])).values(),
@@ -68,7 +73,9 @@ export const getConversations = query({
     const summaries = await Promise.all(
       unique.map((c) => enrichConversation(ctx, c, caller._id)),
     );
-    return summaries.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    return summaries
+      .sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+      .slice(0, 100);
   },
 });
 export const listMessages = query({
@@ -151,6 +158,7 @@ async function readBatch(
     conv._id,
     tenant ? { tenantRead: !remaining } : { landlordRead: !remaining },
   );
+  await syncInbox(ctx, conv._id);
   if (unread.length === 100)
     await ctx.scheduler.runAfter(0, internal.messages.continueRead, {
       conversationId: conv._id,
@@ -232,6 +240,7 @@ export const setUnread = mutation({
             landlordReadGeneration: (conv.landlordReadGeneration ?? 0) + 1,
           },
     );
+    await syncInbox(ctx, conv._id);
     return null;
   },
 });
@@ -246,6 +255,7 @@ export const setArchived = mutation({
         ? { tenantArchived: args.archived }
         : { landlordArchived: args.archived },
     );
+    await syncInbox(ctx, conv._id);
     return null;
   },
 });
@@ -268,6 +278,8 @@ export const setBlocked = mutation({
         createdAt: Date.now(),
       });
     else if (!args.blocked && existing) await ctx.db.delete(existing._id);
+    if (args.blocked !== !!existing)
+      await queueFolderSync(ctx, user._id, other);
     return null;
   },
 });
@@ -310,7 +322,10 @@ export const unblockUser = mutation({
         q.eq("blockerId", user._id).eq("blockedId", args.userId),
       )
       .unique();
-    if (block) await ctx.db.delete(block._id);
+    if (block) {
+      await ctx.db.delete(block._id);
+      await queueFolderSync(ctx, user._id, args.userId);
+    }
     return null;
   },
 });

@@ -377,11 +377,50 @@ export default defineSchema({
     ])
     .index("by_conversation_read", ["conversationId", "read"]),
   conversations: defineTable(conversationFields)
+    .index("by_tenant_latest", ["tenantId", "lastMessageAt"])
+    .index("by_landlord_latest", ["landlordId", "lastMessageAt"])
     .index("by_key", ["key"])
     .index("by_tenant", ["tenantId"])
     .index("by_landlord", ["landlordId"])
     .index("by_listing_tenant", ["listingId", "tenantId"])
     .index("by_tenant_landlord", ["tenantId", "landlordId"]),
+  conversationInbox: defineTable({
+    userId: v.id("users"),
+    otherId: v.id("users"),
+    conversationId: v.id("conversations"),
+    folder: v.union(
+      v.literal("inbox"),
+      v.literal("archived"),
+      v.literal("blocked"),
+    ),
+    unread: v.boolean(),
+    lastMessageAt: v.number(),
+  })
+    .index("by_conversation_user", ["conversationId", "userId"])
+    .index("by_user_folder_time", ["userId", "folder", "lastMessageAt"])
+    .index("by_user_folder_unread_time", [
+      "userId",
+      "folder",
+      "unread",
+      "lastMessageAt",
+    ])
+    .index("by_user_other", ["userId", "otherId"]),
+  inboxStats: defineTable({
+    userId: v.id("users"),
+    inbox: v.number(),
+    unread: v.number(),
+    archived: v.number(),
+    blocked: v.number(),
+  }).index("by_user", ["userId"]),
+  inboxFolderJobs: defineTable({
+    userId: v.id("users"),
+    otherId: v.id("users"),
+    generation: v.number(),
+    pending: v.boolean(),
+  })
+    .index("by_pending", ["pending"])
+    .index("by_pair", ["userId", "otherId"])
+    .index("by_user_pending", ["userId", "pending"]),
 
   reviewNotices: defineTable({
     reviewId: v.optional(v.id("reviews")),

@@ -38,4 +38,17 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  "backfill participant inboxes",
+  { minutes: 1 },
+  internal.inbox.backfill,
+  {},
+);
+crons.interval(
+  "retry pending inbox folder work",
+  { minutes: 5 },
+  internal.inbox.retryPending,
+  {},
+);
+
 export default crons;
