@@ -368,6 +368,10 @@ export default defineSchema({
     signature: v.string(),
   }).index("by_user", ["userId"]),
   messages: defineTable(messageFields)
+    .searchIndex("search_content", {
+      searchField: "content",
+      filterFields: ["senderId", "receiverId"],
+    })
     .index("by_conversation", ["conversationId"])
     .index("by_receiver", ["receiverId"])
     .index("by_sender_request", ["senderId", "clientRequestId"])
@@ -386,6 +390,7 @@ export default defineSchema({
     .index("by_listing_tenant", ["listingId", "tenantId"])
     .index("by_tenant_landlord", ["tenantId", "landlordId"]),
   conversationInbox: defineTable({
+    personText: v.optional(v.string()),
     userId: v.id("users"),
     otherId: v.id("users"),
     conversationId: v.id("conversations"),
@@ -397,6 +402,11 @@ export default defineSchema({
     unread: v.boolean(),
     lastMessageAt: v.number(),
   })
+    .searchIndex("search_person", {
+      searchField: "personText",
+      filterFields: ["userId", "folder", "unread"],
+    })
+    .index("by_other", ["otherId"])
     .index("by_conversation_user", ["conversationId", "userId"])
     .index("by_user_folder_time", ["userId", "folder", "lastMessageAt"])
     .index("by_user_folder_unread_time", [
@@ -413,6 +423,13 @@ export default defineSchema({
     archived: v.number(),
     blocked: v.number(),
   }).index("by_user", ["userId"]),
+  participantNameJobs: defineTable({
+    userId: v.id("users"),
+    generation: v.number(),
+    pending: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_pending", ["pending"]),
   inboxFolderJobs: defineTable({
     userId: v.id("users"),
     otherId: v.id("users"),

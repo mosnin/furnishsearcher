@@ -1,3 +1,4 @@
+import { participantSearchName } from "../../lib/message-search";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -33,12 +34,15 @@ export async function syncInbox(
         q.eq("blockerId", userId).eq("blockedId", otherId),
       )
       .unique();
+    const other = await ctx.db.get(otherId);
+    const personText = participantSearchName(other);
     const folder = blocked
       ? ("blocked" as const)
       : (tenant ? conv.tenantArchived : conv.landlordArchived)
         ? ("archived" as const)
         : ("inbox" as const);
     const next = {
+      personText,
       userId,
       otherId,
       conversationId,
@@ -57,13 +61,21 @@ export async function syncInbox(
       old.folder === next.folder &&
       old.unread === next.unread &&
       old.lastMessageAt === next.lastMessageAt &&
-      old.otherId === next.otherId
+      old.otherId === next.otherId &&
+      old.personText === next.personText
     )
       continue;
     if (old) await ctx.db.patch(old._id, next);
     else await ctx.db.insert("conversationInbox", next);
     const previous = counts(old),
       updated = counts(next);
+    if (
+      old &&
+      (Object.keys(previous) as (keyof Counts)[]).every(
+        (key) => previous[key] === updated[key],
+      )
+    )
+      continue;
     const stats = await ctx.db
       .query("inboxStats")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -76,6 +88,38 @@ export async function syncInbox(
     if (stats) await ctx.db.patch(stats._id, value);
     else await ctx.db.insert("inboxStats", { userId, ...value });
   }
+}
+export async function queueNameSync(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const old = await ctx.db
+    .query("participantNameJobs")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .unique();
+  const rows = await ctx.db
+    .query("conversationInbox")
+    .withIndex("by_other", (q) => q.eq("otherId", userId))
+    .take(31);
+  const generation = (old?.generation ?? 0) + 1;
+  if (rows.length <= 30) {
+    for (const row of rows) await syncInbox(ctx, row.conversationId);
+    if (old) await ctx.db.patch(old._id, { generation, pending: false });
+    return;
+  }
+  const jobId =
+    old?._id ??
+    (await ctx.db.insert("participantNameJobs", {
+      userId,
+      generation,
+      pending: true,
+    }));
+  if (old) await ctx.db.patch(jobId, { generation, pending: true });
+  await ctx.scheduler.runAfter(0, internal.messageSearch.refreshNames, {
+    jobId,
+    generation,
+    cursor: null,
+  });
 }
 export async function queueFolderSync(
   ctx: MutationCtx,

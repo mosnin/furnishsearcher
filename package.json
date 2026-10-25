@@ -22,7 +22,8 @@
     "test:local-contacts": "node scripts/local-contact-smoke.mjs",
     "test:local-profile-images": "node scripts/local-profile-image-smoke.mjs",
     "test:local-inbox": "node scripts/local-inbox-smoke.mjs",
-    "test:local-thread-context": "node scripts/local-thread-context-smoke.mjs"
+    "test:local-thread-context": "node scripts/local-thread-context-smoke.mjs",
+    "test:local-message-search": "node scripts/local-message-search-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

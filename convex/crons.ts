@@ -51,4 +51,16 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  "backfill participant name search",
+  { minutes: 1 },
+  internal.messageSearch.backfillNames,
+  {},
+);
+crons.interval(
+  "retry participant name updates",
+  { minutes: 5 },
+  internal.messageSearch.retryNames,
+  {},
+);
 export default crons;

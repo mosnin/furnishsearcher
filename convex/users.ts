@@ -9,6 +9,7 @@ import {
 } from "../lib/contact-verification";
 import { currentPhoneProof, contactMode } from "./lib/contacts";
 import { requireUser } from "./lib/auth";
+import { queueNameSync } from "./lib/inbox";
 import { profileView } from "./lib/profileImages";
 import { canReadTraveler } from "./lib/reviews";
 
@@ -34,6 +35,7 @@ export const getOrCreate = mutation({
         email: args.email,
         avatar: args.avatar,
       });
+      if (args.name !== existing.name) await queueNameSync(ctx, existing._id);
       return await ctx.db.get(existing._id);
     }
 
@@ -185,6 +187,8 @@ export const updateProfile = mutation({
       }
     }
     await ctx.db.patch(userId, patch);
+    if (args.displayName !== undefined && args.displayName !== user.displayName)
+      await queueNameSync(ctx, userId);
     return await ctx.db.get(userId);
   },
 });

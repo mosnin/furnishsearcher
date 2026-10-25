@@ -15,6 +15,7 @@ import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { MessageSearch } from "@/components/message-search";
 import { ConversationDetails } from "@/components/conversation-details";
 import { ReportDialog } from "@/components/report-dialog";
 import { MessageComposerTools } from "@/components/message-composer-tools";
@@ -193,6 +194,10 @@ function BlockedUsers() {
   );
 }
 export default function MessagesPage() {
+  const { userId } = useAuth();
+  return <AccountMessages key={userId ?? "signed-out"} />;
+}
+function AccountMessages() {
   const searchParams = useSearchParams(),
     { userId } = useAuth(),
     { isAuthenticated } = useConvexAuth();
@@ -203,6 +208,8 @@ export default function MessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     searchParams.get("conv"),
   );
+  const [searching, setSearching] = useState(false),
+    [focusMessage, setFocusMessage] = useState<Id<"messages"> | null>(null);
   const [folder, setFolder] = useState<Folder>("all"),
     [mobileThread, setMobileThread] = useState(!!searchParams.get("conv"));
   const {
@@ -239,14 +246,23 @@ export default function MessagesPage() {
     isAuthenticated && convexUser && selectedId ? { id: selectedId } : "skip",
   );
   const {
-    results: newestFirst,
+    results: liveNewest,
     status,
     loadMore,
   } = usePaginatedQuery(
     api.messages.listMessages,
-    selected && isAuthenticated ? { conversationId: selected._id } : "skip",
+    selected && isAuthenticated && !focusMessage
+      ? { conversationId: selected._id }
+      : "skip",
     { initialNumItems: 50 },
   );
+  const matchWindow = useQuery(
+    api.messageSearch.window,
+    selected && isAuthenticated && focusMessage
+      ? { conversationId: selected._id, messageId: focusMessage }
+      : "skip",
+  );
+  const newestFirst = focusMessage ? (matchWindow?.messages ?? []) : liveNewest;
   const messages = [...newestFirst].reverse(),
     latestId = newestFirst[0]?._id;
   const send = useMutation(api.messages.sendMessage),
@@ -254,6 +270,7 @@ export default function MessagesPage() {
     setUnread = useMutation(api.messages.setUnread),
     archive = useMutation(api.messages.setArchived),
     block = useMutation(api.messages.setBlocked);
+  const matchRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null),
     textareaRef = useRef<HTMLTextAreaElement>(null),
     sendingLock = useRef(false);
@@ -267,6 +284,7 @@ export default function MessagesPage() {
     const conv = searchParams.get("conv");
     if (conv) {
       setSelectedId(conv);
+      setFocusMessage(null);
       setMobileThread(true);
     }
   }, [searchParams]);
@@ -316,8 +334,9 @@ export default function MessagesPage() {
     busy,
   ]);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [latestId, sending]);
+    if (focusMessage) matchRef.current?.scrollIntoView({ block: "center" });
+    else endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [latestId, sending, focusMessage]);
   const filtered = conversations;
   async function perform(
     action: () => Promise<unknown>,
@@ -383,8 +402,10 @@ export default function MessagesPage() {
           ? { ...prev, [conversation._id]: "" }
           : prev,
       );
-      if (selectedRef.current === conversation._id)
+      if (selectedRef.current === conversation._id) {
+        setFocusMessage(null);
         textareaRef.current?.focus();
+      }
     } catch (err) {
       setFailedSends((prev) => ({ ...prev, [conversation._id]: attempt }));
       toast.error(
@@ -432,6 +453,7 @@ export default function MessagesPage() {
                 )}
                 onClick={() => {
                   setFolder(f);
+                  setFocusMessage(null);
                   setSelectedId(null);
                   setMobileThread(false);
                 }}
@@ -442,50 +464,72 @@ export default function MessagesPage() {
           </div>
         </header>
         <div className="flex-1 overflow-y-auto">
-          {folder === "blocked" && isAuthenticated && convexUser && (
-            <BlockedUsers />
+          {convexUser && isAuthenticated && (
+            <MessageSearch
+              key={convexUser._id}
+              folder={folder}
+              onActiveChange={(active) => {
+                setSearching(active);
+                if (!active) setFocusMessage(null);
+              }}
+              onSelect={(id, messageId) => {
+                setSelectedId(id);
+                setFocusMessage(messageId ?? null);
+                setMobileThread(true);
+              }}
+            />
           )}
-          {inboxSummary && !inboxSummary.ready && (
-            <p role="status" className="p-3 text-xs text-slate-500">
-              Updating inbox history and folder counts…
-            </p>
-          )}
-          {inboxStatus === "LoadingFirstPage" ? (
-            <p className="p-5 text-sm text-slate-500">Loading conversations…</p>
-          ) : !filtered?.length ? (
-            <div className="p-6 text-center text-sm text-slate-500">
-              <MessageSquare className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-              {inboxStatus === "CanLoadMore" || !inboxSummary?.ready
-                ? "No conversations loaded yet. More history may still be available."
-                : "No conversations in this folder."}
-            </div>
-          ) : (
-            filtered.map((conv) => (
-              <ConversationItem
-                key={conv._id}
-                conv={conv}
-                selected={selectedId === conv._id}
-                userId={convexUser!._id}
-                onClick={() => {
-                  setSelectedId(conv._id);
-                  setMobileThread(true);
-                }}
-              />
-            ))
-          )}
-          {inboxStatus === "CanLoadMore" && (
-            <Button
-              className="m-3"
-              variant="outline"
-              onClick={() => loadConversations(20)}
-            >
-              More conversations
-            </Button>
-          )}
-          {inboxStatus === "LoadingMore" && (
-            <p role="status" className="p-3 text-sm">
-              Loading more conversations…
-            </p>
+          {!searching && (
+            <>
+              {folder === "blocked" && isAuthenticated && convexUser && (
+                <BlockedUsers />
+              )}
+              {inboxSummary && !inboxSummary.ready && (
+                <p role="status" className="p-3 text-xs text-slate-500">
+                  Updating inbox history and folder counts…
+                </p>
+              )}
+              {inboxStatus === "LoadingFirstPage" ? (
+                <p className="p-5 text-sm text-slate-500">
+                  Loading conversations…
+                </p>
+              ) : !filtered?.length ? (
+                <div className="p-6 text-center text-sm text-slate-500">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                  {inboxStatus === "CanLoadMore" || !inboxSummary?.ready
+                    ? "No conversations loaded yet. More history may still be available."
+                    : "No conversations in this folder."}
+                </div>
+              ) : (
+                filtered.map((conv) => (
+                  <ConversationItem
+                    key={conv._id}
+                    conv={conv}
+                    selected={selectedId === conv._id}
+                    userId={convexUser!._id}
+                    onClick={() => {
+                      setSelectedId(conv._id);
+                      setFocusMessage(null);
+                      setMobileThread(true);
+                    }}
+                  />
+                ))
+              )}
+              {inboxStatus === "CanLoadMore" && (
+                <Button
+                  className="m-3"
+                  variant="outline"
+                  onClick={() => loadConversations(20)}
+                >
+                  More conversations
+                </Button>
+              )}
+              {inboxStatus === "LoadingMore" && (
+                <p role="status" className="p-3 text-sm">
+                  Loading more conversations…
+                </p>
+              )}
+            </>
           )}
         </div>
       </aside>
@@ -602,18 +646,53 @@ export default function MessagesPage() {
               </div>
             </header>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {status === "LoadingFirstPage" ? (
+              {(
+                focusMessage
+                  ? matchWindow === undefined
+                  : status === "LoadingFirstPage"
+              ) ? (
                 <p>Loading messages…</p>
               ) : (
                 <>
-                  {status === "CanLoadMore" && (
+                  {focusMessage && (
+                    <div className="rounded-lg border bg-white p-3 text-sm space-y-2">
+                      <p>
+                        {matchWindow
+                          ? "Showing the search match and nearby messages."
+                          : "This saved message is unavailable."}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFocusMessage(null)}
+                      >
+                        View latest messages
+                      </Button>
+                    </div>
+                  )}
+                  {!focusMessage && status === "CanLoadMore" && (
                     <Button variant="outline" onClick={() => loadMore(50)}>
                       Load older messages
                     </Button>
                   )}
-                  {status === "LoadingMore" && <p>Loading older messages…</p>}
+                  {!focusMessage && status === "LoadingMore" && (
+                    <p>Loading older messages…</p>
+                  )}
                   {messages.map((message, i) => (
-                    <div key={message._id}>
+                    <div
+                      key={message._id}
+                      ref={message._id === focusMessage ? matchRef : undefined}
+                      className={
+                        message._id === focusMessage
+                          ? "rounded-lg ring-2 ring-[#0f2044]/30 p-2"
+                          : undefined
+                      }
+                      aria-label={
+                        message._id === focusMessage
+                          ? "Search match"
+                          : undefined
+                      }
+                    >
                       {(i === 0 ||
                         new Date(message.createdAt).toDateString() !==
                           new Date(

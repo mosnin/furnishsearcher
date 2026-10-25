@@ -1,3 +1,4 @@
+import { participantSearchName } from "../../lib/message-search";
 import type { Id, Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireUser } from "./auth";
@@ -93,7 +94,7 @@ export async function enrichConversation(
     otherUser: other
       ? {
           _id: other._id,
-          name: other.name,
+          name: participantSearchName(other),
           avatar: (await profileImage(ctx, other, "profile")) ?? undefined,
         }
       : null,

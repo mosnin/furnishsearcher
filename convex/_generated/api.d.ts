@@ -50,6 +50,7 @@ import type * as lib_unitSetup from "../lib/unitSetup.js";
 import type * as lib_units from "../lib/units.js";
 import type * as listings from "../listings.js";
 import type * as messageEmails from "../messageEmails.js";
+import type * as messageSearch from "../messageSearch.js";
 import type * as messageTemplates from "../messageTemplates.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
@@ -142,6 +143,7 @@ declare const fullApi: ApiFromModules<{
   "lib/units": typeof lib_units;
   listings: typeof listings;
   messageEmails: typeof messageEmails;
+  messageSearch: typeof messageSearch;
   messageTemplates: typeof messageTemplates;
   messages: typeof messages;
   migrations: typeof migrations;
