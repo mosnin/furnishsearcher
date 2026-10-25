@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { usePaginatedQuery, useQueries } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@/convex/_generated/api";
-import type { SearchFilters } from "@/lib/search";
-import { retainedSpatialPages } from "@/lib/spatial-pages";
+import { api } from "../convex/_generated/api";
+import type { SearchFilters } from "../lib/search";
+import { retainedSpatialPages } from "../lib/spatial-pages";
 import { useMarketSearch } from "./use-market-search";
 type Page = FunctionReturnType<typeof api.search.listings>;
 /** The spatial component has its own cursors, so do not pass Convex endCursor semantics to it. */
@@ -25,16 +25,23 @@ export function useRentalSearch(filters: SearchFilters, skip: boolean) {
       key,
       signatures: [],
     });
-  const queries = Object.fromEntries(
-    !skip && spatial
-      ? cursors.map((cursor, i) => [
-          `p${i}`,
-          {
-            query: api.search.listings,
-            args: { ...filters, paginationOpts: { cursor, numItems: 24 } },
-          },
-        ])
-      : [],
+  // Convex useQueries tracks this object's identity. Recreating it during a
+  // render-triggered subscription update causes an infinite render loop.
+  const cursorKey = JSON.stringify(cursors);
+  const queries = useMemo(
+    () =>
+      Object.fromEntries(
+        !skip && spatial
+          ? cursors.map((cursor, i) => [
+              `p${i}`,
+              {
+                query: api.search.listings,
+                args: { ...filters, paginationOpts: { cursor, numItems: 24 } },
+              },
+            ])
+          : [],
+      ),
+    [skip, spatial, key, cursorKey],
   );
   const data = useQueries(queries),
     pages = cursors.map((_, i) => data[`p${i}`] as Page | Error | undefined),
