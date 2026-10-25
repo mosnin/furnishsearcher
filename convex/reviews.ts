@@ -1,3 +1,4 @@
+import { reviewableBooking, reviewEnd } from "./lib/bookings";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { internal } from "./_generated/api";
@@ -761,8 +762,8 @@ export const invitationContext = query({
         user._id === i.tenantId ? ("property" as const) : ("traveler" as const),
       title: (await ctx.db.get(i.listingId))?.title ?? "Past property",
       moveIn: i.moveIn,
-      moveOut: i.moveOut,
-      eligible: i.status === "accepted" && i.moveIn <= Date.now(),
+      moveOut: reviewEnd(i),
+      eligible: reviewableBooking(i),
     };
   },
 });

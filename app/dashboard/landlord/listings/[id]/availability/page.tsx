@@ -24,43 +24,51 @@ export default function AvailabilityPage({ params }: PageProps) {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
   const listing = useQuery(
     api.listings.getById,
-    id ? { id: id as Id<"listings"> } : "skip"
+    id ? { id: id as Id<"listings"> } : "skip",
   );
   const blocks = useQuery(
     api.availability.getByListing,
-    id ? { listingId: id as Id<"listings"> } : "skip"
+    id ? { listingId: id as Id<"listings"> } : "skip",
   );
 
   const addBlock = useMutation(api.availability.addBlock);
   const removeBlock = useMutation(api.availability.removeBlock);
+  const updateBlock = useMutation(api.availability.updateBlock);
 
   const handleAddBlock = async (
     startDate: number,
     endDate: number,
-    type: "unavailable" | "booked"
+    type: "unavailable" | "booked",
+    metadata?: { title: string; note: string },
   ) => {
-    try {
-      await addBlock({ listingId: id as Id<"listings">, startDate, endDate, type });
-      toast.success("Dates blocked");
-    } catch {
-      toast.error("Failed to block dates");
-    }
+    await addBlock({
+      listingId: id as Id<"listings">,
+      startDate,
+      endDate,
+      type,
+      ...metadata,
+    });
+    toast.success("Dates blocked");
   };
 
   const handleRemoveBlock = async (blockId: string) => {
     try {
       await removeBlock({ id: blockId as Id<"availabilityBlocks"> });
       toast.success("Block removed");
-    } catch {
-      toast.error("Failed to remove block");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove block");
     }
   };
 
-  if (listing === undefined || blocks === undefined || convexUser === undefined) {
+  if (
+    listing === undefined ||
+    blocks === undefined ||
+    convexUser === undefined
+  ) {
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -80,14 +88,20 @@ export default function AvailabilityPage({ params }: PageProps) {
     );
   }
 
-  const isOwner = convexUser?._id === listing.landlordId || convexUser?.role === "admin";
+  const isOwner =
+    convexUser?._id === listing.landlordId || convexUser?.role === "admin";
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Button asChild variant="ghost" size="sm" className="gap-1 -ml-2 text-slate-500">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="gap-1 -ml-2 text-slate-500"
+            >
               <Link href="/dashboard/landlord/listings">
                 <ChevronLeft className="h-4 w-4" />
                 My Listings
@@ -103,7 +117,9 @@ export default function AvailabilityPage({ params }: PageProps) {
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/dashboard/landlord/listings/${id}/edit`}>Edit Listing</Link>
+          <Link href={`/dashboard/landlord/listings/${id}/edit`}>
+            Edit Listing
+          </Link>
         </Button>
       </div>
 
@@ -111,8 +127,8 @@ export default function AvailabilityPage({ params }: PageProps) {
         <CardHeader>
           <CardTitle className="text-base">Availability Calendar</CardTitle>
           <p className="text-sm text-slate-500">
-            Block dates when your property is unavailable or already booked. Tenants will
-            see these when browsing your listing.
+            Block dates when your property is unavailable or already booked.
+            Tenants will see these when browsing your listing.
           </p>
         </CardHeader>
         <CardContent>
@@ -121,6 +137,17 @@ export default function AvailabilityPage({ params }: PageProps) {
             syncThrough={listing.calendarSyncThrough}
             onAddBlock={isOwner ? handleAddBlock : undefined}
             onRemoveBlock={isOwner ? handleRemoveBlock : undefined}
+            onUpdateBlock={
+              isOwner
+                ? async (blockId, fields) => {
+                    await updateBlock({
+                      id: blockId as Id<"availabilityBlocks">,
+                      ...fields,
+                    });
+                    toast.success("Event updated");
+                  }
+                : undefined
+            }
             editable={isOwner}
           />
         </CardContent>

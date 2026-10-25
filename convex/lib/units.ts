@@ -49,13 +49,6 @@ export async function unitDeleteGuard(
   l: Doc<"listings">,
   actor: Id<"users">,
 ) {
-  if (!l.propertyGroupId) return;
-  const p = await ctx.db.get(l.propertyGroupId);
-  if (!p) return;
-  if (p.primaryListingId === l._id && p.unitCount > 1)
-    throw new Error(
-      "This property's main space anchors other units. Hide it instead, or remove its additional units first.",
-    );
   const booking = await ctx.db
     .query("bookingInquiries")
     .withIndex("by_listing_status_end", (q) =>
@@ -68,6 +61,13 @@ export async function unitDeleteGuard(
   if (booking)
     throw new Error(
       "This unit has an accepted stay. Hide it and resolve the stay before deleting it.",
+    );
+  if (!l.propertyGroupId) return;
+  const p = await ctx.db.get(l.propertyGroupId);
+  if (!p) return;
+  if (p.primaryListingId === l._id && p.unitCount > 1)
+    throw new Error(
+      "This property's main space anchors other units. Hide it instead, or remove its additional units first.",
     );
   await ctx.db.insert("unitAudit", {
     propertyId: p._id,

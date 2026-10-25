@@ -14,6 +14,7 @@ export async function sendListingMessage(
     content: string;
     clientRequestId?: string;
     origin?: "inbox" | "property" | "housing_request";
+    rentalInquiryId?: Id<"bookingInquiries">;
   },
 ) {
   const sender = await requireUser(ctx);
@@ -69,8 +70,18 @@ export async function sendListingMessage(
       q.eq("listingId", listing._id).eq("tenantId", tenantId),
     )
     .unique();
-  if (!existing && !await publiclyVisible(ctx,listing))
-    throw new Error("This property is not accepting new messages.");
+  if (!existing && !(await publiclyVisible(ctx, listing))) {
+    const inquiry = args.rentalInquiryId
+      ? await ctx.db.get(args.rentalInquiryId)
+      : null;
+    if (
+      !inquiry ||
+      inquiry.listingId !== listing._id ||
+      inquiry.landlordId !== listing.landlordId ||
+      inquiry.tenantId !== tenantId
+    )
+      throw new Error("This property is not accepting new messages.");
+  }
   const key = conversationKey(sender._id, receiver._id, listing._id),
     now = Date.now();
   const patch = {

@@ -1,3 +1,4 @@
+import { reviewableBooking } from "./lib/bookings";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import {
@@ -19,7 +20,7 @@ export const requestReview = mutation({
       i = await ctx.db.get(args.inquiryId);
     if (!i || ![i.landlordId, i.tenantId].includes(user._id))
       throw new Error("This stay is private.");
-    if (i.status !== "accepted" || i.moveIn > Date.now())
+    if (!reviewableBooking(i))
       throw new Error("Request a review after the accepted stay has started.");
     const recipientId = user._id === i.landlordId ? i.tenantId : i.landlordId;
     await requireMessagingAllowed(ctx, user._id, recipientId);

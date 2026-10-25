@@ -1,0 +1,69 @@
+import { v } from "convex/values";
+export const inquiryStatus = v.union(
+  v.literal("pending"),
+  v.literal("accepted"),
+  v.literal("declined"),
+  v.literal("withdrawn"),
+  v.literal("cancelled"),
+);
+export const changeKind = v.union(v.literal("dates"), v.literal("cancel"));
+export const changeStatus = v.union(
+  v.literal("pending"),
+  v.literal("accepted"),
+  v.literal("declined"),
+  v.literal("withdrawn"),
+  v.literal("superseded"),
+);
+export const eventAction = v.union(
+  v.literal("inquiry_created"),
+  v.literal("confirmed"),
+  v.literal("declined"),
+  v.literal("withdrawn"),
+  v.literal("change_requested"),
+  v.literal("change_declined"),
+  v.literal("change_withdrawn"),
+  v.literal("dates_changed"),
+  v.literal("cancelled"),
+  v.literal("calendar_repaired"),
+);
+export const changeFields = {
+  inquiryId: v.id("bookingInquiries"),
+  proposerId: v.id("users"),
+  kind: changeKind,
+  status: changeStatus,
+  baseRevision: v.number(),
+  moveIn: v.optional(v.number()),
+  moveOut: v.optional(v.number()),
+  reason: v.string(),
+  clientRequestId: v.string(),
+  createdAt: v.number(),
+  agreementRecorded: v.optional(v.boolean()),
+  decidedAt: v.optional(v.number()),
+  decidedBy: v.optional(v.id("users")),
+};
+export const changeDoc = v.object({
+  ...changeFields,
+  _id: v.id("bookingChanges"),
+  _creationTime: v.number(),
+});
+export const inquiryDoc = v.object({
+  _id: v.id("bookingInquiries"),
+  _creationTime: v.number(),
+  listingId: v.id("listings"),
+  tenantId: v.id("users"),
+  landlordId: v.id("users"),
+  moveIn: v.number(),
+  moveOut: v.number(),
+  occupants: v.number(),
+  pets: v.boolean(),
+  message: v.string(),
+  status: inquiryStatus,
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  availabilityBlockId: v.optional(v.id("availabilityBlocks")),
+  minimumStayDaysAtConfirmation: v.optional(v.number()),
+  lifecycleRevision: v.optional(v.number()),
+  pendingBookingChangeId: v.optional(v.id("bookingChanges")),
+  cancelledAt: v.optional(v.number()),
+  cancelledEffectiveEnd: v.optional(v.number()),
+});

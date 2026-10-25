@@ -98,7 +98,9 @@ export default function InquiriesPage() {
                     · {date(i.moveIn)} – {date(i.moveOut)}
                   </p>
                 </div>
-                <Badge variant="secondary">{i.status}</Badge>
+                <Badge variant="secondary">
+                  {i.status === "accepted" ? "confirmed" : i.status}
+                </Badge>
               </div>
               <p className="text-sm">
                 {i.occupants} occupant{i.occupants === 1 ? "" : "s"}
@@ -107,6 +109,11 @@ export default function InquiriesPage() {
               <p className="whitespace-pre-wrap text-sm text-slate-700">
                 {i.message}
               </p>
+              <Button asChild variant="outline">
+                <Link href={`/dashboard/inquiries/${i._id}`}>
+                  Stay details, changes and history
+                </Link>
+              </Button>
               {i.status === "pending" && (
                 <div className="flex flex-wrap gap-2">
                   {as === "landlord" ? (
@@ -136,14 +143,14 @@ export default function InquiriesPage() {
                   )}
                 </div>
               )}
-              {i.status === "accepted" && i.moveIn <= Date.now() && (
+              {i.canReview && (
                 <Button asChild variant="outline">
                   <Link href={`/dashboard/reviews?inquiry=${i._id}`}>
                     Review stay
                   </Link>
                 </Button>
               )}
-              {i.status === "accepted" && i.moveIn <= Date.now() && (
+              {i.canReview && (
                 <Button
                   variant="outline"
                   onClick={async () => {

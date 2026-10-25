@@ -1,0 +1,31 @@
+{
+  "verifiedAt": "2026-10-25T01:19:21.088Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "listingId": "k972qvx2r6wrgb6v0rkdq2zfnn8gyeyj",
+  "inquiryId": "j975yprmp1ad435s0k3kgwtj7s8gzbw1",
+  "conversationId": "jh726n5smzk9334px8nzsze8ms8gybh5",
+  "realLocalTransactions": true,
+  "legacyLinks": {
+    "scanned": 3,
+    "linked": 0,
+    "isDone": true
+  },
+  "requestKeepsOriginalReservation": true,
+  "counterpartyAcceptanceRequired": true,
+  "datesAndBlockUpdatedTogether": true,
+  "ownerAgreedCancellationWhileHidden": true,
+  "duplicateReferencesIdempotent": true,
+  "oldRequestSuperseded": true,
+  "futureDatesReleased": true,
+  "newDatedSearchAvailable": true,
+  "managedCalendarBypassRejected": true,
+  "publicCalendarPrivateFieldsOmitted": true,
+  "unrelatedAndAnonymousReadsRejected": true,
+  "notifications": "unconfigured; no email sent",
+  "fixturesLeftHidden": true,
+  "privilegedLocalSdkAuth": true,
+  "syntheticIdentityAndPaidPrerequisites": true,
+  "realClerkBrowserJwt": false,
+  "realRentalLeaseOrPayment": false
+}

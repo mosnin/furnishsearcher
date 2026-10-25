@@ -1,3 +1,8 @@
+import {
+  inquiryStatus,
+  changeFields,
+  eventAction,
+} from "./validators/bookings";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
@@ -548,15 +553,19 @@ export default defineSchema({
   // Landlord availability calendar blocks
   availabilityBlocks: defineTable({
     listingId: v.id("listings"),
+    inquiryId: v.optional(v.id("bookingInquiries")),
     startDate: v.number(),
     endDate: v.number(),
     type: v.union(v.literal("unavailable"), v.literal("booked")),
+    title: v.optional(v.string()),
     note: v.optional(v.string()),
     calendarFeedId: v.optional(v.id("calendarFeeds")),
     createdAt: v.number(),
   })
     .index("by_listing", ["listingId"])
+    .index("by_inquiry", ["inquiryId"])
     .index("by_listing_start", ["listingId", "startDate"])
+    .index("by_listing_end", ["listingId", "endDate"])
     .index("by_calendarFeedId", ["calendarFeedId"]),
 
   bookingInquiries: defineTable({
@@ -568,23 +577,64 @@ export default defineSchema({
     occupants: v.number(),
     pets: v.boolean(),
     message: v.string(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("accepted"),
-      v.literal("declined"),
-      v.literal("withdrawn"),
-    ),
+    status: inquiryStatus,
+    minimumStayDaysAtConfirmation: v.optional(v.number()),
+    lifecycleRevision: v.optional(v.number()),
+    pendingBookingChangeId: v.optional(v.id("bookingChanges")),
+    cancelledAt: v.optional(v.number()),
+    cancelledEffectiveEnd: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
     availabilityBlockId: v.optional(v.id("availabilityBlocks")),
   })
     .index("by_tenantId", ["tenantId"])
+    .index("by_availability_block", ["availabilityBlockId"])
+    .index("by_listing_tenant_status_dates", [
+      "listingId",
+      "tenantId",
+      "status",
+      "moveIn",
+      "moveOut",
+    ])
     .index("by_landlordId", ["landlordId"])
     .index("by_listingId_and_status", ["listingId", "status"])
     .index("by_listing_status_end", ["listingId", "status", "moveOut"])
     .index("by_tenant_landlord", ["tenantId", "landlordId"])
     .index("by_listing_tenant", ["listingId", "tenantId"]),
 
+  bookingChanges: defineTable(changeFields)
+    .index("by_inquiry", ["inquiryId"])
+    .index("by_request", ["inquiryId", "proposerId", "clientRequestId"]),
+  bookingEvents: defineTable({
+    inquiryId: v.id("bookingInquiries"),
+    actorId: v.id("users"),
+    recipientId: v.id("users"),
+    action: eventAction,
+    changeId: v.optional(v.id("bookingChanges")),
+    reason: v.string(),
+    beforeMoveIn: v.number(),
+    beforeMoveOut: v.number(),
+    afterMoveIn: v.number(),
+    afterMoveOut: v.number(),
+    revision: v.number(),
+    createdAt: v.number(),
+    emailStatus: v.union(
+      v.literal("pending"),
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("unconfigured"),
+      v.literal("suppressed"),
+    ),
+    emailAttempt: v.optional(v.number()),
+    emailAttemptedAt: v.optional(v.number()),
+  })
+    .index("by_inquiry", ["inquiryId"])
+    .index("by_prior_stay", [
+      "inquiryId",
+      "beforeMoveIn",
+      "beforeMoveOut",
+      "action",
+    ]),
   // Referral program
   referrals: defineTable({
     referrerId: v.id("users"),

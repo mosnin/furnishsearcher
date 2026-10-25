@@ -1,3 +1,4 @@
+import { reviewableBooking, reviewEnd } from "./bookings";
 import { requireUser } from "./auth";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -86,17 +87,38 @@ export async function checkStay(
     const booking = await ctx.db.get(review.bookingId);
     if (
       !booking ||
-      booking.status !== "accepted" ||
+      !reviewableBooking(booking) ||
       booking.listingId !== review.listingId ||
       booking.landlordId !== review.landlordId ||
       booking.tenantId !== tenantId ||
-      booking.moveIn > Date.now() ||
-      review.stayStart !== booking.moveIn ||
-      review.stayEnd !== booking.moveOut
+      booking.moveIn > Date.now()
     )
       throw new Error(
         "Choose an accepted inquiry that has started, with matching stay dates.",
       );
+    if (
+      review.stayStart !== booking.moveIn ||
+      (review.stayEnd !== reviewEnd(booking) &&
+        review.stayEnd !== booking.moveOut)
+    ) {
+      const prior =
+        review.stayStart !== undefined && review.stayEnd !== undefined
+          ? await ctx.db
+              .query("bookingEvents")
+              .withIndex("by_prior_stay", (q) =>
+                q
+                  .eq("inquiryId", booking._id)
+                  .eq("beforeMoveIn", review.stayStart!)
+                  .eq("beforeMoveOut", review.stayEnd!)
+                  .eq("action", "dates_changed"),
+              )
+              .first()
+          : null;
+      if (!prior)
+        throw new Error(
+          "Choose the current or a previously confirmed stay period.",
+        );
+    }
   } else if ((review.stayEvidence?.trim().length ?? 0) < 20)
     throw new Error(
       "Describe how the off-platform stay was confirmed for staff review (20–1000 characters). Do not include documents or payment details.",
