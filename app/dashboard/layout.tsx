@@ -320,7 +320,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col md:pl-60 min-h-0">
+      <div className="flex flex-1 flex-col md:pl-60 min-h-0 min-w-0 w-full">
         {/* Mobile top bar */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 backdrop-blur-xl px-4 md:hidden">
           <button
@@ -344,7 +344,9 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
+        <main className="flex-1 min-w-0 w-full overflow-y-auto pb-16 md:pb-0">
+          {children}
+        </main>
 
         <MobileNav role={convexUser?.role ?? "tenant"} />
       </div>

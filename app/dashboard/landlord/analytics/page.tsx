@@ -81,7 +81,7 @@ function AccountPerformance() {
   if (me === undefined) return <p role="status">Loading account…</p>;
   if (!me) return <p>Complete your account profile first.</p>;
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full">
       <header>
         <h1 className="text-2xl font-bold text-slate-900">
           Listing performance
@@ -92,10 +92,10 @@ function AccountPerformance() {
         </p>
       </header>
       <div className="flex flex-wrap items-end gap-4">
-        <label className="text-sm">
+        <label className="text-sm min-w-0 max-w-full">
           Property or unit
           <select
-            className="block mt-1 border rounded-md p-2 max-w-full"
+            className="block mt-1 border rounded-md p-2 max-w-full w-full"
             value={listingId ?? ""}
             onChange={(e) =>
               setSelected(
