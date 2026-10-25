@@ -5,6 +5,7 @@ import type { Doc } from "./_generated/dataModel";
 import { requireUser } from "./lib/auth";
 import { currentPhoneProof } from "./lib/contacts";
 import { publiclyVisible } from "./lib/publication";
+import { recordPerformance } from "./lib/performance";
 import { blockState } from "./lib/messageAccess";
 const DAY = 86400000;
 function enabled(owner: Doc<"users">) {
@@ -157,6 +158,8 @@ export const reveal = mutation({
           day,
           listingIds: [listing._id],
         });
+      if (viewer.role !== "admin")
+        await recordPerformance(ctx, listing, "phoneReveals");
     }
     return {
       phone: owner.phone!,

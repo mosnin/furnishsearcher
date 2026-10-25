@@ -8,6 +8,12 @@ export const performanceCounts = {
   bookingRequests: v.number(),
   threads: v.number(),
   matchedLeads: v.number(),
+  phoneReveals: v.number(),
+};
+// Existing daily rows predate phone-reveal collection.
+export const storedPerformanceCounts = {
+  ...performanceCounts,
+  phoneReveals: v.optional(v.number()),
 };
 export const browserActivity = v.union(
   v.literal("impressions"),

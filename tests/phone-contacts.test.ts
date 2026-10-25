@@ -2,6 +2,12 @@ import { convexTest } from "convex-test";
 import geospatial from "@convex-dev/geospatial/test";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import schema from "../convex/schema";
+import {
+  emptyPerformance,
+  performanceSeries,
+  performanceCsv,
+  metricRecorded,
+} from "../lib/listing-performance";
 import { api, internal } from "../convex/_generated/api";
 import { seedPublishedFixtures } from "./helpers/publication";
 const modules = import.meta.glob("../convex/**/*.ts"),
@@ -256,4 +262,170 @@ it("atomically bounds unique daily reveals, deduplicates concurrent retries and 
   expect(
     await f.t.run((ctx) => ctx.db.query("listingPhoneLimits").collect()),
   ).toHaveLength(0);
+});
+it("counts successful reveals once while preserving older per-metric coverage and legacy rows", async () => {
+  const f = await fixture(),
+    args = { listingId: f.ids.listing };
+  const day = Math.floor(now / DAY) * DAY;
+  const { phoneReveals: unused, ...legacyCounts } = emptyPerformance();
+  await f.t.run(async (ctx) => {
+    await ctx.db.insert("listingPerformanceState", {
+      listingId: f.ids.listing,
+      ownerId: f.ids.owner,
+      mode: "test",
+      startedAt: now - 3 * DAY,
+    });
+    await ctx.db.insert("ownerPerformanceState", {
+      ownerId: f.ids.owner,
+      mode: "test",
+      startedAt: now - 3 * DAY,
+    });
+    for (const d of [day - DAY, day]) {
+      await ctx.db.insert("listingPerformanceDays", {
+        listingId: f.ids.listing,
+        ownerId: f.ids.owner,
+        mode: "test",
+        day: d,
+        ...legacyCounts,
+        views: 4,
+      });
+      await ctx.db.insert("ownerPerformanceDays", {
+        ownerId: f.ids.owner,
+        mode: "test",
+        day: d,
+        ...legacyCounts,
+        views: 4,
+      });
+    }
+  });
+  const report = () =>
+    f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+  expect((await report()).phoneStartedAt).toBeNull();
+  await f.owner.mutation(api.phoneContacts.setEnabled, { enabled: true });
+  await Promise.all(
+    Array.from({ length: 10 }, () =>
+      f.viewer.mutation(api.phoneContacts.reveal, args),
+    ),
+  );
+  const counted = await report(),
+    portfolio = await f.owner.query(api.listingPerformance.report, { days: 7 });
+  expect(counted.phoneStartedAt).toBeGreaterThanOrEqual(now);
+  expect(counted.phoneStartedAt).toBeLessThan(now + 1000);
+  expect(portfolio.phoneStartedAt).toBe(counted.phoneStartedAt);
+  expect(counted.rows[1]).toMatchObject({ views: 4, phoneReveals: 1 });
+  expect(portfolio.rows[1]).toMatchObject({ views: 4, phoneReveals: 1 });
+  const series = performanceSeries(
+    counted.rows,
+    7,
+    counted.startedAt,
+    now,
+    counted.phoneStartedAt,
+  );
+  expect(series[5]).toMatchObject({
+    recorded: true,
+    phoneRecorded: false,
+    views: 4,
+  });
+  expect(metricRecorded(series[5], "phoneReveals")).toBe(false);
+  expect(series[6]).toMatchObject({
+    recorded: true,
+    phoneRecorded: true,
+    views: 4,
+    phoneReveals: 1,
+  });
+  const csv = performanceCsv(series, "test")
+    .split("\r\n")
+    .map((line) => line.split(","));
+  const phoneColumn = csv[0].indexOf("Phone number reveals"),
+    coverageColumn = csv[0].indexOf("Phone reveal coverage");
+  expect(csv[6][phoneColumn]).toBe("");
+  expect(csv[6][coverageColumn]).toBe("unavailable");
+  expect(csv[7][phoneColumn]).toBe("1");
+  expect(csv[7][coverageColumn]).toBe("recorded");
+});
+it("excludes staff, failed reveals and caller-forged observations from phone statistics", async () => {
+  const f = await fixture(),
+    args = { listingId: f.ids.listing };
+  const report = () =>
+    f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    });
+  await f.owner.mutation(api.phoneContacts.setEnabled, { enabled: true });
+  await f.t.run((ctx) => ctx.db.patch(f.ids.viewer, { role: "admin" }));
+  await f.viewer.mutation(api.phoneContacts.reveal, args);
+  expect((await report()).phoneStartedAt).toBeNull();
+  await expect(f.t.mutation(api.phoneContacts.reveal, args)).rejects.toThrow(
+    /sign in/,
+  );
+  await expect(
+    f.viewer.mutation(api.listingPerformance.observe, {
+      listingIds: [f.ids.listing],
+      kind: "phoneReveals" as "views",
+      clientId: "00000000-0000-4000-8000-000000000001",
+    }),
+  ).rejects.toThrow();
+  expect((await report()).rows).toHaveLength(0);
+  await f.owner.mutation(api.phoneContacts.setEnabled, { enabled: false });
+  await expect(
+    f.viewer.mutation(api.phoneContacts.reveal, args),
+  ).rejects.toThrow(/unavailable/);
+  expect((await report()).rows).toHaveLength(0);
+});
+it("keeps account/day counts independent and never exposes reveals through another owner's report or mode", async () => {
+  const f = await fixture(),
+    args = { listingId: f.ids.listing };
+  await f.t.run((ctx) =>
+    ctx.db.patch(f.ids.owner, { phoneVerificationExpiresAt: now + 3 * DAY }),
+  );
+  await f.owner.mutation(api.phoneContacts.setEnabled, { enabled: true });
+  await f.viewer.mutation(api.phoneContacts.reveal, args);
+  const initialStart = (
+    await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    })
+  ).phoneStartedAt;
+  await f.t.run((ctx) =>
+    ctx.db.insert("users", {
+      clerkId: "second",
+      name: "Second synthetic viewer",
+      email: "second@example.test",
+      role: "tenant",
+      createdAt: now,
+    }),
+  );
+  const second = f.t.withIdentity({ subject: "second" });
+  await second.mutation(api.phoneContacts.reveal, args);
+  await expect(
+    second.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days: 7,
+    }),
+  ).rejects.toThrow(/authorized/);
+  const other = await second.query(api.listingPerformance.report, { days: 7 });
+  expect(other.phoneStartedAt).toBeNull();
+  expect(other.rows).toHaveLength(0);
+  vi.setSystemTime(now + DAY);
+  await f.viewer.mutation(api.phoneContacts.reveal, args);
+  const report = await f.owner.query(api.listingPerformance.report, {
+    listingId: f.ids.listing,
+    days: 7,
+  });
+  expect(report.rows.map((row) => row.phoneReveals)).toEqual([2, 1]);
+  const state = await f.t.run((ctx) =>
+    ctx.db.query("listingPerformanceState").unique(),
+  );
+  expect(state?.phoneStartedAt).toBe(initialStart);
+  vi.stubEnv("CREEM_API_KEY", "creem_synthetic_mode_only");
+  const production = await f.owner.query(api.listingPerformance.report, {
+    listingId: f.ids.listing,
+    days: 7,
+  });
+  expect(production.mode).toBe("prod");
+  expect(production.rows).toHaveLength(0);
+  expect(production.phoneStartedAt).toBeNull();
 });

@@ -54,6 +54,7 @@ export const report = query({
     status: v.union(v.string(), v.null()),
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.union(v.number(), v.null()),
+    phoneStartedAt: v.union(v.number(), v.null()),
     legacyViews: v.union(v.number(), v.null()),
     start: v.number(),
     end: v.number(),
@@ -114,6 +115,7 @@ export const report = query({
       status: l?.status ?? null,
       mode,
       startedAt: state?.startedAt ?? null,
+      phoneStartedAt: state?.phoneStartedAt ?? null,
       legacyViews: l?.views ?? null,
       start,
       end,
@@ -128,6 +130,7 @@ export const report = query({
           bookingRequests,
           threads,
           matchedLeads,
+          phoneReveals,
         }) => ({
           day,
           impressions,
@@ -138,6 +141,7 @@ export const report = query({
           bookingRequests,
           threads,
           matchedLeads,
+          phoneReveals: phoneReveals ?? 0,
         }),
       ),
     };

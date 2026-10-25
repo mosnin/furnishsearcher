@@ -8,6 +8,7 @@ export const PERFORMANCE_METRICS = [
   "bookingRequests",
   "threads",
   "matchedLeads",
+  "phoneReveals",
 ] as const;
 export type PerformanceMetric = (typeof PERFORMANCE_METRICS)[number];
 export const metricLabels: Record<PerformanceMetric, string> = {
@@ -19,6 +20,7 @@ export const metricLabels: Record<PerformanceMetric, string> = {
   bookingRequests: "Booking requests",
   threads: "New traveler threads",
   matchedLeads: "Matched housing requests",
+  phoneReveals: "Phone number reveals",
 };
 export function emptyPerformance() {
   return Object.fromEntries(
@@ -38,28 +40,46 @@ export function performanceSeries(
   days: number,
   startedAt: number | null,
   now = Date.now(),
+  phoneStartedAt: number | null = null,
 ) {
   const { start } = performanceWindow(days, now),
     byDay = new Map(rows.map((row) => [row.day, row]));
   return Array.from({ length: days }, (_, i) => {
     const day = start + i * PERFORMANCE_DAY,
       recorded = startedAt !== null && day + PERFORMANCE_DAY > startedAt;
-    return { day, recorded, ...emptyPerformance(), ...(byDay.get(day) ?? {}) };
+    const phoneRecorded =
+      phoneStartedAt !== null && day + PERFORMANCE_DAY > phoneStartedAt;
+    return {
+      day,
+      recorded,
+      phoneRecorded,
+      ...emptyPerformance(),
+      ...(byDay.get(day) ?? {}),
+    };
   });
+}
+export function metricRecorded(
+  row: { recorded: boolean; phoneRecorded: boolean },
+  key: PerformanceMetric,
+) {
+  return key === "phoneReveals" ? row.phoneRecorded : row.recorded;
 }
 export function performanceCsv(
   rows: ReturnType<typeof performanceSeries>,
   mode: "test" | "prod",
 ) {
   return [
-    "UTC date,Environment,Collection coverage," +
+    "UTC date,Environment,Collection coverage,Phone reveal coverage," +
       PERFORMANCE_METRICS.map((k) => metricLabels[k]).join(","),
     ...rows.map((row) =>
       [
         new Date(row.day).toISOString().slice(0, 10),
         mode,
         row.recorded ? "recorded" : "unavailable",
-        ...PERFORMANCE_METRICS.map((key) => (row.recorded ? row[key] : "")),
+        row.phoneRecorded ? "recorded" : "unavailable",
+        ...PERFORMANCE_METRICS.map((key) =>
+          metricRecorded(row, key) ? row[key] : "",
+        ),
       ].join(","),
     ),
   ].join("\r\n");

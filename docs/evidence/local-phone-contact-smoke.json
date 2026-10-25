@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-25T19:26:22.023Z",
+  "checkedAt": "2026-10-25T19:40:02.090Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "privilegedSyntheticIdentity": true,
@@ -8,6 +8,8 @@
   "verifiedOwnerOptInRequired": true,
   "anonymousRevealDenied": true,
   "concurrentRevealsAccepted": true,
+  "atomicPhoneRevealsCount": 1,
+  "propertyAndPortfolioCoverageAccepted": true,
   "availabilityAndListingProjectionOmitPhone": true,
   "optOutAndRevocationRechecked": true,
   "realCallOrSmsPlaced": false

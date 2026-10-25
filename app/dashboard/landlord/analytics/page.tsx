@@ -12,6 +12,7 @@ import {
   emptyPerformance,
   performanceSeries,
   performanceCsv,
+  metricRecorded,
   type PerformanceMetric,
 } from "@/lib/listing-performance";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,9 +61,12 @@ function AccountPerformance() {
     report?.rows ?? [],
     days,
     report?.startedAt ?? null,
+    Date.now(),
+    report?.phoneStartedAt ?? null,
   );
   const totals = rows.reduce((counts, row) => {
-    for (const key of PERFORMANCE_METRICS) counts[key] += row[key];
+    for (const key of PERFORMANCE_METRICS)
+      if (metricRecorded(row, key)) counts[key] += row[key];
     return counts;
   }, emptyPerformance());
   function download() {
@@ -166,6 +170,14 @@ function AccountPerformance() {
                 ? "Test-environment activity; production figures are separate."
                 : "Production-environment activity."}
             </p>
+            <p className="text-sm text-slate-600">
+              {report.phoneStartedAt === null
+                ? "Phone reveal history is unavailable until the first counted reveal."
+                : `Phone reveal collection began ${new Date(report.phoneStartedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Earlier phone history is unavailable and its first day may be partial.`}{" "}
+              Successful number reveals count at most once per signed-in
+              account/rental space/UTC day. Staff and the owner are excluded.
+              This records access to the number, not a completed call or text.
+            </p>
             <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {PERFORMANCE_METRICS.map((key) => (
                 <Card key={key}>
@@ -174,7 +186,9 @@ function AccountPerformance() {
                       {metricLabels[key]}
                     </p>
                     <p className="text-2xl font-semibold mt-2">
-                      {totals[key].toLocaleString()}
+                      {key === "phoneReveals" && report.phoneStartedAt === null
+                        ? "Unavailable"
+                        : totals[key].toLocaleString()}
                     </p>
                   </CardContent>
                 </Card>
@@ -200,7 +214,9 @@ function AccountPerformance() {
                   ))}
                 </select>
               </label>
-              {report.startedAt === null ? (
+              {(metric === "phoneReveals"
+                ? report.phoneStartedAt
+                : report.startedAt) === null ? (
                 <p>No dated activity to chart yet.</p>
               ) : (
                 <div className="h-64">
@@ -209,7 +225,7 @@ function AccountPerformance() {
                       data={rows.map((row) => ({
                         ...row,
                         date: new Date(row.day).toISOString().slice(0, 10),
-                        value: row.recorded ? row[metric] : null,
+                        value: metricRecorded(row, metric) ? row[metric] : null,
                       }))}
                     >
                       <XAxis dataKey="date" minTickGap={40} />
@@ -256,7 +272,7 @@ function AccountPerformance() {
                           </th>
                           {PERFORMANCE_METRICS.map((key) => (
                             <td className="p-2" key={key}>
-                              {row.recorded
+                              {metricRecorded(row, key)
                                 ? row[key].toLocaleString()
                                 : "Unavailable"}
                             </td>
@@ -295,10 +311,9 @@ function AccountPerformance() {
                   ? "select a rental space"
                   : report.legacyViews.toLocaleString()}
                 . It predates the current checks and has no recoverable daily
-                history. It is excluded from this chart. Phone reveals,
-                unmatched-lead analysis and continuous map-eligibility days are
-                not recorded by this report. Current reviews remain available on
-                the listing.{" "}
+                history. It is excluded from this chart. Unmatched-lead analysis
+                and continuous map-eligibility days are not recorded by this
+                report. Current reviews remain available on the listing.{" "}
                 {report.status
                   ? `Status “${report.status}” does not by itself prove current publication eligibility.`
                   : "Portfolio totals count activity attributed to this account when it owned the rental spaces. Per-space reports use the current owner."}

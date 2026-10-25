@@ -152,6 +152,23 @@ try {
     ),
   );
   for (const value of revealed) assert.equal(value.phone, phone);
+  const report = await call(owner, "query", "listingPerformance:report", {
+    listingId,
+    days: 7,
+  });
+  assert(
+    report.phoneStartedAt &&
+      report.rows.reduce((n, row) => n + row.phoneReveals, 0) === 1,
+    "Concurrent reveals must count exactly once",
+  );
+  const portfolio = await call(owner, "query", "listingPerformance:report", {
+    days: 7,
+  });
+  assert(
+    portfolio.phoneStartedAt &&
+      portfolio.rows.reduce((n, row) => n + row.phoneReveals, 0) >= 1,
+  );
+
   const publicListing = await call(anonymous, "query", "listings:getById", {
     id: listingId,
   });
@@ -181,6 +198,8 @@ try {
         verifiedOwnerOptInRequired: true,
         anonymousRevealDenied: true,
         concurrentRevealsAccepted: true,
+        atomicPhoneRevealsCount: 1,
+        propertyAndPortfolioCoverageAccepted: true,
         availabilityAndListingProjectionOmitPhone: true,
         optOutAndRevocationRechecked: true,
         realCallOrSmsPlaced: false,

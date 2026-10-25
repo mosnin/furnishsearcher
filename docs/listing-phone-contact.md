@@ -2,7 +2,7 @@
 
 Primary functional references, checked 2026-10-25:
 - https://support.furnishedfinder.com/hc/en-us/articles/35115069925147-How-Do-I-Communicate-with-a-Landlord — booking inquiry, messages and a call option.
-- https://support.furnishedfinder.com/hc/en-us/articles/34672767306907-How-Can-I-Track-Views-or-My-Listing-Performance — phone reveals are a separate performance metric. This batch does not yet add that metric to reports.
+- https://support.furnishedfinder.com/hc/en-us/articles/34672767306907-How-Can-I-Track-Views-or-My-Listing-Performance — phone reveals are a separate performance metric. The private dated report now counts native reveals with its own collection coverage; see docs/listing-performance.md.
 
 Phone contact defaults off for all existing and new owners. The landlord profile provides a separate explicit opt-in for signed-in travelers to reveal the saved phone across that owner's currently public rental spaces. It requires the existing fresh, environment-matched Clerk phone proof. Enabling records the exact phone revision and current confirmation deadline; it never extends beyond that deadline, even if confirmation is refreshed. The owner must enable the next confirmation period separately. A scheduled, version-checked expiry clears the old consent without clearing newer consent. Disabling, number change or revocation closes fresh access; the app cannot recall a number already seen or copied.
 
@@ -14,4 +14,4 @@ The reveal UI resets across account/property changes and withholds cached result
 
 Validation: six focused tests cover default privacy, opt-in, anonymous/missing-profile/role restrictions, current publication, both block directions, self access, number changes, revocation, independent consent expiry after proof refresh, stale expiry jobs, provider modes, atomic retry deduplication, daily caps and cleanup. The guarded eighteenth native smoke uses privileged synthetic local claims and only the existing local synthetic billing setup. It confirms the real mutation/query path, publication prerequisite, exact returned number, projection privacy, concurrent calls, opt-out and revocation, then hides the fixture and removes the synthetic phone. Receipt: docs/evidence/local-phone-contact-smoke.json.
 
-No real Clerk SMS, human phone ownership, phone call, hosted successful reveal or phone-reveal analytics acceptance is implied. Hosted Clerk development phone configuration is currently disabled; no provider security setting is changed to bypass it. Those remain explicit acceptance/integration work.
+No real Clerk SMS, human phone ownership, phone call, hosted successful reveal or nonzero hosted phone-reveal analytics acceptance is implied. Hosted Clerk development phone configuration is currently disabled; no provider security setting is changed to bypass it. Those remain explicit acceptance/integration work.

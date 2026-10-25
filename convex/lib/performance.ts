@@ -27,7 +27,10 @@ export async function recordPerformance(
       ownerId,
       mode,
       startedAt: now,
+      ...(kind === "phoneReveals" ? { phoneStartedAt: now } : {}),
     });
+  if (state && kind === "phoneReveals" && state.phoneStartedAt === undefined)
+    await ctx.db.patch(state._id, { phoneStartedAt: now });
   const row = await ctx.db
     .query("listingPerformanceDays")
     .withIndex("by_listing_day", (q) =>
@@ -38,7 +41,7 @@ export async function recordPerformance(
         .eq("day", day),
     )
     .unique();
-  if (row) await ctx.db.patch(row._id, { [kind]: row[kind] + 1 });
+  if (row) await ctx.db.patch(row._id, { [kind]: (row[kind] ?? 0) + 1 });
   else
     await ctx.db.insert("listingPerformanceDays", {
       listingId: listing._id,
@@ -59,7 +62,14 @@ export async function recordPerformance(
       ownerId,
       mode,
       startedAt: now,
+      ...(kind === "phoneReveals" ? { phoneStartedAt: now } : {}),
     });
+  if (
+    ownerState &&
+    kind === "phoneReveals" &&
+    ownerState.phoneStartedAt === undefined
+  )
+    await ctx.db.patch(ownerState._id, { phoneStartedAt: now });
   const ownerDay = await ctx.db
     .query("ownerPerformanceDays")
     .withIndex("by_owner_day", (q) =>
@@ -67,7 +77,7 @@ export async function recordPerformance(
     )
     .unique();
   if (ownerDay)
-    await ctx.db.patch(ownerDay._id, { [kind]: ownerDay[kind] + 1 });
+    await ctx.db.patch(ownerDay._id, { [kind]: (ownerDay[kind] ?? 0) + 1 });
   else
     await ctx.db.insert("ownerPerformanceDays", {
       ownerId,

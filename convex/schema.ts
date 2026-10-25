@@ -1,4 +1,4 @@
-import { performanceCounts } from "./validators/performance";
+import { storedPerformanceCounts } from "./validators/performance";
 import { toolFields } from "./validators/rentalTools";
 import {
   documentFields,
@@ -52,12 +52,13 @@ export default defineSchema({
     ownerId: v.id("users"),
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.number(),
+    phoneStartedAt: v.optional(v.number()),
   }).index("by_owner_mode", ["ownerId", "mode"]),
   ownerPerformanceDays: defineTable({
     ownerId: v.id("users"),
     mode: v.union(v.literal("test"), v.literal("prod")),
     day: v.number(),
-    ...performanceCounts,
+    ...storedPerformanceCounts,
   })
     .index("by_owner_day", ["ownerId", "mode", "day"])
     .index("by_day", ["day"]),
@@ -66,13 +67,14 @@ export default defineSchema({
     ownerId: v.id("users"),
     mode: v.union(v.literal("test"), v.literal("prod")),
     startedAt: v.number(),
+    phoneStartedAt: v.optional(v.number()),
   }).index("by_listing_owner_mode", ["listingId", "ownerId", "mode"]),
   listingPerformanceDays: defineTable({
     listingId: v.id("listings"),
     ownerId: v.id("users"),
     mode: v.union(v.literal("test"), v.literal("prod")),
     day: v.number(),
-    ...performanceCounts,
+    ...storedPerformanceCounts,
   })
     .index("by_listing_day", ["listingId", "ownerId", "mode", "day"])
     .index("by_day", ["day"]),
