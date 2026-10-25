@@ -1,5 +1,7 @@
 "use client";
 
+import { RemoveSavedDialog } from "@/components/remove-saved-dialog";
+import { ShareListingButton } from "@/components/share-listing-button";
 import { ListingPhoneContact } from "@/components/listing-phone-contact";
 import { PropertyUnits } from "@/components/property-units";
 import { ListingDetails } from "@/components/listing-details";
@@ -89,6 +91,13 @@ export default function ListingDetailPage({ params }: PageProps) {
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saveOptimistic, setSaveOptimistic] = useState<boolean | null>(null);
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  useEffect(() => {
+    setConfirmRemoval(false);
+    setIsSaved(false);
+    setSaveOptimistic(null);
+  }, [id, clerkUser?.id]);
 
   // Fetch listing
   const listing = useQuery(api.listings.getById, { id: id as Id<"listings"> });
@@ -140,15 +149,20 @@ export default function ListingDetailPage({ params }: PageProps) {
 
   const displaySaved = saveOptimistic !== null ? saveOptimistic : isSaved;
 
-  const handleSaveToggle = async () => {
+  const changeSaved = async (next: boolean) => {
+    if (saveBusy) return;
     if (!clerkLoaded) return;
     if (!clerkUser) {
       router.push("/sign-in");
       return;
     }
+    if (convexUser === null) {
+      router.push("/onboarding");
+      return;
+    }
     if (!convexUser || !listing) return;
 
-    const next = !displaySaved;
+    setSaveBusy(true);
     setSaveOptimistic(next);
 
     try {
@@ -165,7 +179,14 @@ export default function ListingDetailPage({ params }: PageProps) {
     } catch {
       setSaveOptimistic(null);
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaveBusy(false);
     }
+    setConfirmRemoval(false);
+  };
+  const handleSaveToggle = () => {
+    if (displaySaved) setConfirmRemoval(true);
+    else void changeSaved(true);
   };
 
   const handleContactClick = () => {
@@ -175,25 +196,6 @@ export default function ListingDetailPage({ params }: PageProps) {
       return;
     }
     setContactOpen(true);
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: listing?.title ?? "FurnishFinder listing",
-          url,
-        });
-        if (listing) recordShare([listing._id]);
-      } catch {
-        // User cancelled — that's fine
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      if (listing) recordShare([listing._id]);
-      toast.success("Link copied to clipboard");
-    }
   };
 
   // Loading state
@@ -528,6 +530,14 @@ export default function ListingDetailPage({ params }: PageProps) {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveToggle}
+                    disabled={
+                      saveBusy ||
+                      (clerkLoaded &&
+                        !!clerkUser &&
+                        (convexUser === undefined ||
+                          (!!convexUser && savedStatus === undefined)))
+                    }
+                    aria-pressed={displaySaved}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-[14px] font-medium transition-colors",
                       displaySaved
@@ -543,13 +553,10 @@ export default function ListingDetailPage({ params }: PageProps) {
                     />
                     {displaySaved ? "Saved" : "Save"}
                   </button>
-                  <button
-                    onClick={handleShare}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-slate-200 text-slate-700 text-[14px] font-medium hover:bg-slate-50 transition-colors"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </button>
+                  <ShareListingButton
+                    title={listing.title}
+                    onShared={() => recordShare([listing._id])}
+                  />
                 </div>
 
                 <ReportDialog listingId={listing._id} />
@@ -693,6 +700,12 @@ export default function ListingDetailPage({ params }: PageProps) {
           onClose={() => setReviewFormOpen(false)}
         />
       )}
+      <RemoveSavedDialog
+        open={confirmRemoval}
+        onOpenChange={setConfirmRemoval}
+        onConfirm={() => void changeSaved(false)}
+        busy={saveBusy}
+      />
     </div>
   );
 }

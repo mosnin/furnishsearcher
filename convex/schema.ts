@@ -596,6 +596,7 @@ export default defineSchema({
     savedAt: v.number(),
   })
     .index("by_tenant", ["tenantId"])
+    .index("by_tenant_saved", ["tenantId", "savedAt"])
     .index("by_listing", ["listingId"])
     .index("by_tenant_listing", ["tenantId", "listingId"]),
 

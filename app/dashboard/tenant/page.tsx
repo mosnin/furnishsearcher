@@ -217,10 +217,11 @@ export default function TenantDashboardPage() {
     userId ? { clerkId: userId } : "skip",
   );
 
-  const savedListings = useQuery(
-    api.saved.getSaved,
-    convexUser?._id ? { tenantId: convexUser._id } : "skip",
-  ) as SavedEntry[] | undefined;
+  const savedSummary = useQuery(
+    api.saved.summary,
+    convexUser?._id ? {} : "skip",
+  );
+  const savedListings = savedSummary?.recent;
 
   const inboxSummary = useQuery(
     api.inbox.summary,
@@ -311,7 +312,11 @@ export default function TenantDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Saved Listings"
-          value={savedListings?.length ?? 0}
+          value={
+            savedSummary
+              ? `${savedSummary.count}${savedSummary.hasMore ? "+" : ""}`
+              : 0
+          }
           icon={Heart}
           loading={isLoading || savedListings === undefined}
         />
@@ -382,17 +387,30 @@ export default function TenantDashboardPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedListings
-              .slice(0, 3)
-              .map((entry) =>
-                entry.listing ? (
-                  <ListingCard
-                    key={entry._id}
-                    listing={entry.listing!}
-                    userId={convexUser?._id ?? ""}
-                  />
-                ) : null,
-              )}
+            {savedListings.slice(0, 3).map((entry) =>
+              entry.listing ? (
+                <ListingCard
+                  key={entry._id}
+                  listing={entry.listing!}
+                  userId={convexUser?._id ?? ""}
+                />
+              ) : (
+                <Card key={entry._id}>
+                  <CardContent className="p-6 space-y-3">
+                    <p className="font-medium">Listing unavailable</p>
+                    <p className="text-sm text-slate-500">
+                      A saved listing is not currently public.
+                    </p>
+                    <Link
+                      href="/dashboard/tenant/saved"
+                      className="text-sm underline"
+                    >
+                      Manage saved listings
+                    </Link>
+                  </CardContent>
+                </Card>
+              ),
+            )}
           </div>
         )}
       </section>

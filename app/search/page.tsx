@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+import { RemoveSavedDialog } from "@/components/remove-saved-dialog";
 import { useRentalSearch } from "@/components/use-rental-search";
 import LeafletMap from "@/components/leaflet-map";
 import type { MapListing } from "@/components/map-view";
@@ -660,6 +661,7 @@ function SearchListingCard({
   userId?: Id<"users">;
 }) {
   const router = useRouter();
+  const { userId: signedInClerkId } = useAuth();
   const appearanceRef = useSearchAppearance(l._id);
   const saved = useQuery(
       api.saved.isSaved,
@@ -668,6 +670,26 @@ function SearchListingCard({
     save = useMutation(api.saved.save),
     unsave = useMutation(api.saved.unsave);
   const [busy, setBusy] = useState(false);
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
+  useEffect(() => {
+    setConfirmRemoval(false);
+  }, [userId, l._id]);
+  async function changeSaved(remove: boolean) {
+    if (!userId) {
+      router.push(signedInClerkId ? "/onboarding" : "/sign-in");
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    try {
+      await (remove ? unsave : save)({ tenantId: userId, listingId: l._id });
+      setConfirmRemoval(false);
+    } catch {
+      toast.error("Unable to update saved property.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const stay = new URLSearchParams();
   if (l.matchedMoveIn !== undefined) {
     stay.set("moveIn", date(l.matchedMoveIn));
@@ -706,23 +728,10 @@ function SearchListingCard({
           className="absolute top-3 right-3 bg-white/90 rounded-xl p-2 shadow-sm"
           aria-label={saved ? "Unsave property" : "Save property"}
           aria-pressed={!!saved}
-          disabled={busy}
-          onClick={async () => {
-            if (!userId) {
-              router.push("/sign-in");
-              return;
-            }
-            setBusy(true);
-            try {
-              await (saved ? unsave : save)({
-                tenantId: userId,
-                listingId: l._id,
-              });
-            } catch {
-              toast.error("Unable to update saved property.");
-            } finally {
-              setBusy(false);
-            }
+          disabled={busy || (!!userId && saved === undefined)}
+          onClick={() => {
+            if (saved) setConfirmRemoval(true);
+            else void changeSaved(false);
           }}
         >
           <Heart
@@ -777,6 +786,12 @@ function SearchListingCard({
           View listing
         </Link>
       </div>
+      <RemoveSavedDialog
+        open={confirmRemoval}
+        onOpenChange={setConfirmRemoval}
+        onConfirm={() => void changeSaved(true)}
+        busy={busy}
+      />
     </article>
   );
 }
