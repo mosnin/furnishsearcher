@@ -103,6 +103,14 @@ export const create = mutation({
       lifecycleRevision: 0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      originalRequest: {
+        moveIn: args.moveIn,
+        moveOut: args.moveOut,
+        occupants: args.occupants,
+        pets: args.pets,
+        message,
+        createdAt: Date.now(),
+      },
     });
     await sendListingMessage(ctx, {
       senderId: tenant._id,
@@ -110,6 +118,7 @@ export const create = mutation({
       listingId: listing._id,
       content: message,
       origin: "property",
+      rentalInquiryId: id,
     });
     await recordBookingEvent(
       ctx,

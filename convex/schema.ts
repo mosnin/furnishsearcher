@@ -9,6 +9,7 @@ import {
   inquiryStatus,
   changeFields,
   eventAction,
+  originalRequest,
 } from "./validators/bookings";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -646,6 +647,8 @@ export default defineSchema({
     .index("by_calendarFeedId", ["calendarFeedId"]),
 
   bookingInquiries: defineTable({
+    conversationId: v.optional(v.id("conversations")),
+    originalRequest: v.optional(originalRequest),
     listingId: v.id("listings"),
     tenantId: v.id("users"),
     landlordId: v.id("users"),

@@ -15,6 +15,7 @@ import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ConversationDetails } from "@/components/conversation-details";
 import { ReportDialog } from "@/components/report-dialog";
 import { MessageComposerTools } from "@/components/message-composer-tools";
 import { toast } from "sonner";
@@ -511,6 +512,11 @@ export default function MessagesPage() {
         ) : (
           <>
             <header className="bg-white border-b p-4 space-y-3">
+              <ConversationDetails
+                key={selected._id}
+                conversationId={selected._id}
+                listingId={selected.listingId}
+              />
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"

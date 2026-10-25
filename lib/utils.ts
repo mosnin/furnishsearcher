@@ -9,7 +9,7 @@ export function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(price);
 }
 
@@ -23,7 +23,12 @@ export function formatDate(date: number): string {
 
 // Rental dates are stored at UTC midnight and must not shift with the viewer's timezone.
 export function formatStayDate(date: number): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(date));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(date));
 }
 
 export { PROPERTY_TYPES, AMENITIES } from "./search-options";

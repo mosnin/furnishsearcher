@@ -7,6 +7,14 @@ export const inquiryStatus = v.union(
   v.literal("cancelled"),
 );
 export const changeKind = v.union(v.literal("dates"), v.literal("cancel"));
+export const originalRequest = v.object({
+  moveIn: v.number(),
+  moveOut: v.number(),
+  occupants: v.number(),
+  pets: v.boolean(),
+  message: v.string(),
+  createdAt: v.number(),
+});
 export const changeStatus = v.union(
   v.literal("pending"),
   v.literal("accepted"),
@@ -53,6 +61,8 @@ export const changeDoc = v.object({
   _creationTime: v.number(),
 });
 export const inquiryDoc = v.object({
+  conversationId: v.optional(v.id("conversations")),
+  originalRequest: v.optional(originalRequest),
   _id: v.id("bookingInquiries"),
   _creationTime: v.number(),
   listingId: v.id("listings"),

@@ -1,4 +1,5 @@
 import { syncInbox } from "./inbox";
+import { monthlyRateCents } from "./threadContext";
 import { publiclyVisible } from "./publication";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
@@ -25,6 +26,20 @@ export async function sendListingMessage(
   const content = args.content.trim();
   if (!content || content.length > 2000)
     throw new Error("Enter a message of up to 2,000 characters.");
+  const inquiry = args.rentalInquiryId
+    ? await ctx.db.get(args.rentalInquiryId)
+    : null;
+  if (
+    args.rentalInquiryId &&
+    (!inquiry ||
+      inquiry.listingId !== args.listingId ||
+      ![inquiry.tenantId, inquiry.landlordId].includes(sender._id) ||
+      ![inquiry.tenantId, inquiry.landlordId].includes(args.receiverId) ||
+      args.receiverId === sender._id)
+  )
+    throw new Error(
+      "This inquiry does not belong to these conversation participants and property.",
+    );
   if (args.clientRequestId) {
     if (
       !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
@@ -45,7 +60,10 @@ export async function sendListingMessage(
         previous.receiverId !== args.receiverId ||
         previous.listingId !== args.listingId ||
         previous.content !== content ||
-        !previous.conversationDocId
+        !previous.conversationDocId ||
+        ((previous.requestBindingVersion === 2 ||
+          previous.rentalInquiryId !== undefined) &&
+          previous.rentalInquiryId !== args.rentalInquiryId)
       )
         throw new Error("Send reference already used for another message.");
       return {
@@ -71,10 +89,8 @@ export async function sendListingMessage(
       q.eq("listingId", listing._id).eq("tenantId", tenantId),
     )
     .unique();
-  if (!existing && !(await publiclyVisible(ctx, listing))) {
-    const inquiry = args.rentalInquiryId
-      ? await ctx.db.get(args.rentalInquiryId)
-      : null;
+  const visibleAtCreation = !existing && (await publiclyVisible(ctx, listing));
+  if (!existing && !visibleAtCreation) {
     if (
       !inquiry ||
       inquiry.listingId !== listing._id ||
@@ -105,9 +121,30 @@ export async function sendListingMessage(
       tenantId,
       landlordId: listing.landlordId,
       ...patch,
+      termsAtStart: visibleAtCreation
+        ? {
+            title: listing.title,
+            city: listing.city,
+            state: listing.state,
+            monthlyRateCents: monthlyRateCents(listing.price),
+            currency: "USD",
+            capturedAt: now,
+          }
+        : undefined,
     });
+  if (inquiry) {
+    if (
+      inquiry.landlordId !== listing.landlordId ||
+      inquiry.tenantId !== tenantId ||
+      (inquiry.conversationId && inquiry.conversationId !== conversationId)
+    )
+      throw new Error("The inquiry conversation association needs review.");
+    if (!inquiry.conversationId)
+      await ctx.db.patch(inquiry._id, { conversationId });
+  }
   await syncInbox(ctx, conversationId);
   const messageId = await ctx.db.insert("messages", {
+    ...(args.rentalInquiryId ? { rentalInquiryId: args.rentalInquiryId } : {}),
     conversationId: key,
     conversationDocId: conversationId,
     senderId: sender._id,
@@ -117,7 +154,12 @@ export async function sendListingMessage(
     read: false,
     createdAt: now,
     origin: args.origin ?? "property",
-    ...(args.clientRequestId ? { clientRequestId: args.clientRequestId } : {}),
+    ...(args.clientRequestId
+      ? {
+          clientRequestId: args.clientRequestId,
+          requestBindingVersion: 2 as const,
+        }
+      : {}),
     emailStatus: "pending",
   });
   await ctx.scheduler.runAfter(0, internal.messageEmails.notify, { messageId });

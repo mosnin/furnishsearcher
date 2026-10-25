@@ -12,6 +12,8 @@ export const messageEmailStatus = v.union(
   v.literal("suppressed"),
 );
 export const messageFields = {
+  requestBindingVersion: v.optional(v.literal(2)),
+  rentalInquiryId: v.optional(v.id("bookingInquiries")),
   conversationId: v.string(),
   conversationDocId: v.optional(v.id("conversations")),
   senderId: v.id("users"),
@@ -31,6 +33,16 @@ export const messageDoc = v.object({
   _creationTime: v.number(),
 });
 export const conversationFields = {
+  termsAtStart: v.optional(
+    v.object({
+      title: v.string(),
+      city: v.string(),
+      state: v.string(),
+      monthlyRateCents: v.union(v.number(), v.null()),
+      currency: v.literal("USD"),
+      capturedAt: v.number(),
+    }),
+  ),
   listingId: v.id("listings"),
   tenantId: v.id("users"),
   landlordId: v.id("users"),
