@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-25T23:49:10.466Z",
+  "deployment": "cheerful-ferret-182",
+  "actualOwnerAndTravelerClerkDevelopmentJwts": true,
+  "privilegedPrivateHistoricalFixtureOnly": true,
+  "foreignDeletionDenied": true,
+  "ownerDeletionAndRetryAccepted": true,
+  "removedFromOwnerInbox": true,
+  "staleOptionsAndReplyDenied": true,
+  "travelerRequestStillOpenAndMessagesRetained": true,
+  "publicOfferCreationOrRealPhoneDisclosureAcceptance": false,
+  "realMessageEmailOrSmsSent": false,
+  "productionChanged": false
+}
