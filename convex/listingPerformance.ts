@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import {
   paginationOptsValidator,
   paginationResultValidator,
@@ -167,12 +168,7 @@ export const observe = mutation({
     )
       throw new Error("Invalid listing observation.");
     const identity = await ctx.auth.getUserIdentity(),
-      me = identity
-        ? await ctx.db
-            .query("users")
-            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-            .unique()
-        : null;
+      me = identity ? await findActiveUser(ctx, identity.subject) : null;
     if (me?.role === "admin") return null;
     const mode = marketMode(),
       day = Math.floor(Date.now() / PERFORMANCE_DAY) * PERFORMANCE_DAY;

@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { recordPerformance } from "./lib/performance";
 import { publiclyVisible } from "./lib/publication";
 import { listingPhotos } from "./lib/photos";
@@ -13,10 +14,7 @@ export const save = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller._id !== args.tenantId) throw new Error("Not authorized");
 
@@ -53,10 +51,7 @@ export const unsave = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller._id !== args.tenantId) throw new Error("Not authorized");
 
@@ -86,10 +81,7 @@ export const isSaved = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return false;
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller._id !== args.tenantId) return false;
 
     const existing = await ctx.db
@@ -108,10 +100,7 @@ export const getSaved = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller._id !== args.tenantId) return [];
 
     const saved = await ctx.db

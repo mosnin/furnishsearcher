@@ -24,7 +24,7 @@ When an accepted snapshot removes, changes or unverifies a saved confirmed prima
 
 Both authenticated phone and email confirmation paths consult the latest provider snapshot. Fresh claims for a superseded primary, claims issued before a contact change, uncertain contact state and deleted contacts cannot regain authority. Returning to an old primary still requires fresh explicit confirmation. A newly confirmed phone does not restore prior listing-phone consent. Unchanged primary contacts do not extend proof lifetime or turn revoked preferences back on.
 
-Clerk events are asynchronous. There can be a delay before successful delivery, and a failed/unconfigured receiver does not provide immediate provider-change revocation. Monitor failures and replay missed events through the provider. Existing proof expiry and in-app revocation remain in effect. This receiver is not full native account deletion, data erasure, subscription cancellation, session revocation or account offboarding; those workflows require separate review/acceptance.
+Clerk events are asynchronous. There can be a delay before successful delivery, and a failed/unconfigured receiver does not provide immediate provider-change revocation. Monitor failures and replay missed events through the provider. Existing proof expiry and in-app revocation remain in effect. Signed deletion also triggers [native access offboarding](./account-offboarding.md): retained identities lose app access, public listings are hidden and paged cleanup closes open requests. Data erasure, subscription cancellation/refunds, external session/link revocation and retention policy remain separate work.
 
 ## Verified development setup
 

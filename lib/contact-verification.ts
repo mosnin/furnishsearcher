@@ -10,6 +10,7 @@ export function canonicalPhone(value: string) {
 }
 export function phoneIsConfirmed(
   user: {
+    clerkDeletedAt?: number;
     phone?: string;
     phoneVerified?: boolean;
     phoneVerificationSource?: string;
@@ -20,6 +21,7 @@ export function phoneIsConfirmed(
   now = Date.now(),
 ) {
   return (
+    user.clerkDeletedAt === undefined &&
     user.phoneVerified === true &&
     user.phoneVerificationSource === "clerk" &&
     (user.phoneVerificationMode === "test" ||

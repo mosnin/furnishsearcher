@@ -364,13 +364,13 @@ it("treats deletion as a permanent contact tombstone without deleting rental/pro
   expect(await f.read()).toEqual(after);
   await expect(
     f.claims().mutation(api.users.confirmPhone, { phone }),
-  ).rejects.toThrow("contact changed");
+  ).rejects.toThrow("no longer available");
   await expect(
     f.claims().mutation(api.emailContacts.setMessageEmails, {
       clerkId: "user_fixture",
       enabled: true,
     }),
-  ).rejects.toThrow("contact changed");
+  ).rejects.toThrow("no longer available");
 });
 it("stores contact authority before native onboarding but never trusts provider metadata for app roles or automatically creates a profile", async () => {
   const f = await fixture();

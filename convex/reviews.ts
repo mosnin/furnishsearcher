@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { profileView } from "./lib/profileImages";
 import { reviewableBooking, reviewEnd } from "./lib/bookings";
 import { v } from "convex/values";
@@ -713,10 +714,7 @@ export const actions = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-        .unique(),
+    const user = await findActiveUser(ctx, identity.subject),
       r = await ctx.db.get(args.id);
     if (!user || !r) return null;
     if (r.kind === "traveler" && !(await canReadTraveler(ctx, r.subjectId!)))

@@ -1,3 +1,4 @@
+import { offboardNativeUser } from "./lib/accountOffboarding";
 import { v } from "convex/values";
 import { httpAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -77,7 +78,14 @@ export const apply = internalMutation({
         q.eq("clerkId", event.clerkId).eq("mode", config.mode),
       )
       .unique();
-    if (prior?.deleted) return null;
+    if (prior?.deleted) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", event.clerkId))
+        .unique();
+      if (user) await offboardNativeUser(ctx, user, prior.eventAt);
+      return null;
+    }
     if (
       prior &&
       !event.deleted &&
@@ -134,6 +142,7 @@ export const apply = internalMutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", event.clerkId))
       .unique();
     if (!user) return null;
+    if (event.deleted) await offboardNativeUser(ctx, user, event.eventAt);
     const revokeEmail =
       event.deleted ||
       uncertain ||

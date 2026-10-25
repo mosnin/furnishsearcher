@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -100,10 +101,7 @@ export const availability = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity)
       return { status: "sign-in" as const, revision: null, expiresAt: null };
-    const viewer = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const viewer = await findActiveUser(ctx, identity.subject);
     if (!viewer) return unavailable;
     if (
       viewer._id === owner._id ||

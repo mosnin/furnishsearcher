@@ -18,6 +18,7 @@ export function canonicalEmail(value: string): string {
 }
 
 export type EmailProof = {
+  clerkDeletedAt?: number;
   notificationEmail?: string;
   notificationEmailVerifiedAt?: number;
   notificationEmailExpiresAt?: number;
@@ -31,6 +32,7 @@ export function emailProofCurrent(
   now = Date.now(),
 ) {
   return (
+    user.clerkDeletedAt === undefined &&
     !!user.notificationEmail &&
     user.notificationEmailMode === mode &&
     typeof user.notificationEmailVerifiedAt === "number" &&

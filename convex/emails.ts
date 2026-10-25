@@ -4,7 +4,11 @@ import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
-const resend = { get emails() { return new Resend(process.env.RESEND_API_KEY).emails; } };
+const resend = {
+  get emails() {
+    return new Resend(process.env.RESEND_API_KEY).emails;
+  },
+};
 const FROM = process.env.EMAIL_FROM ?? "noreply@furnishfinder.com";
 
 // ---------------------------------------------------------------------------
@@ -22,8 +26,17 @@ export const sendNewMessageNotification = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
-    const conversationId = await ctx.runQuery(internal.messages.legacyNotificationConversation, { conversationId: args.conversationId, email: args.toEmail });
-    if (!conversationId || !process.env.RESEND_API_KEY || !process.env.EMAIL_FROM || !process.env.NEXT_PUBLIC_APP_URL) return null;
+    const conversationId = await ctx.runQuery(
+      internal.messages.legacyNotificationConversation,
+      { conversationId: args.conversationId, email: args.toEmail },
+    );
+    if (
+      !conversationId ||
+      !process.env.RESEND_API_KEY ||
+      !process.env.EMAIL_FROM ||
+      !process.env.NEXT_PUBLIC_APP_URL
+    )
+      return null;
     try {
       await resend.emails.send({
         from: process.env.EMAIL_FROM,
@@ -31,7 +44,9 @@ export const sendNewMessageNotification = internalAction({
         subject: `New message about "${args.listingTitle}" — FurnishFinder`,
         html: newMessageEmailHtml({ ...args, conversationId }),
       });
-    } catch { /* Legacy jobs predate per-message delivery records. */ }
+    } catch {
+      /* Legacy jobs predate per-message delivery records. */
+    }
     return null;
   },
 });
@@ -46,23 +61,32 @@ export const sendWelcomeEmail = action({
     role: v.union(
       v.literal("tenant"),
       v.literal("landlord"),
-      v.literal("admin")
+      v.literal("admin"),
     ),
   },
   returns: v.null(),
   handler: async (ctx, _args) => {
-    if (!(await ctx.auth.getUserIdentity())) throw new Error("Please sign in to continue.");
+    if (!(await ctx.auth.getUserIdentity()))
+      throw new Error("Please sign in to continue.");
     if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return null;
-    const recipient = await ctx.runMutation(internal.emailContacts.claimWelcome, {});
+    const recipient = await ctx.runMutation(
+      internal.emailContacts.claimWelcome,
+      {},
+    );
     if (!recipient) return null;
     try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM,
-        to: recipient.email,
-        subject: "Welcome to FurnishFinder!",
-        text: `Hi ${recipient.name},\n\nWelcome! Your account is ready. Sign in to your dashboard to manage your rental search or properties.`,
-      }, { idempotencyKey: `account-welcome-${recipient.userId}` });
-    } catch { /* A welcome email failure must not prevent completing onboarding. */ }
+      await resend.emails.send(
+        {
+          from: process.env.EMAIL_FROM,
+          to: recipient.email,
+          subject: "Welcome to FurnishFinder!",
+          text: `Hi ${recipient.name},\n\nWelcome! Your account is ready. Sign in to your dashboard to manage your rental search or properties.`,
+        },
+        { idempotencyKey: `account-welcome-${recipient.userId}` },
+      );
+    } catch {
+      /* A welcome email failure must not prevent completing onboarding. */
+    }
     return null;
   },
 });
@@ -78,7 +102,10 @@ export const sendContactEmail = action({
     message: v.string(),
   },
   returns: v.id("supportCases"),
-  handler: async (ctx, args): Promise<import("./_generated/dataModel").Id<"supportCases">> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<import("./_generated/dataModel").Id<"supportCases">> => {
     return ctx.runMutation(api.support.submitContact, args);
   },
 });
@@ -88,16 +115,23 @@ export const sendContactEmail = action({
 // ---------------------------------------------------------------------------
 export const sendListingApprovedEmail = internalAction({
   args: {
+    ownerId: v.optional(v.id("users")),
     toEmail: v.string(),
     toName: v.string(),
     listingTitle: v.string(),
     listingId: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const recipient = args.ownerId
+      ? await ctx.runQuery(internal.accountOffboarding.activeOwnerRecipient, {
+          userId: args.ownerId,
+        })
+      : null;
+    if (!recipient) return;
     try {
       await resend.emails.send({
         from: FROM,
-        to: args.toEmail,
+        to: recipient,
         subject: `Your listing "${args.listingTitle}" is now live!`,
         html: listingApprovedEmailHtml(args),
       });
@@ -342,15 +376,22 @@ function listingApprovedEmailHtml(args: ListingApprovedArgs): string {
 // ---------------------------------------------------------------------------
 export const sendListingRejectedEmail = internalAction({
   args: {
+    ownerId: v.optional(v.id("users")),
     toEmail: v.string(),
     toName: v.string(),
     listingTitle: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const recipient = args.ownerId
+      ? await ctx.runQuery(internal.accountOffboarding.activeOwnerRecipient, {
+          userId: args.ownerId,
+        })
+      : null;
+    if (!recipient) return;
     try {
       await resend.emails.send({
         from: FROM,
-        to: args.toEmail,
+        to: recipient,
         subject: `Update on your listing "${args.listingTitle}" — FurnishFinder`,
         html: listingRejectedEmailHtml(args),
       });
@@ -376,7 +417,12 @@ export const sendSavedSearchAlerts = internalAction({
     propertyType: v.string(),
   },
   returns: v.null(),
-  handler: async (ctx, args): Promise<null> => { await ctx.runMutation(internal.searchAlerts.start, { listingId: args.listingId }); return null; },
+  handler: async (ctx, args): Promise<null> => {
+    await ctx.runMutation(internal.searchAlerts.start, {
+      listingId: args.listingId,
+    });
+    return null;
+  },
 });
 
 // ---------------------------------------------------------------------------

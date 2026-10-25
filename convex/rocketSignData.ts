@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { v } from "convex/values";
 import {
   query,
@@ -7,7 +8,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireDocument, docAudit } from "./lib/rentalDocs";
-import { requireMessagingAllowed } from "./lib/messageAccess";
+import { requireMessagingAllowed, blockState } from "./lib/messageAccess";
 import { rocketConfig } from "./lib/rocket";
 import { activePaidSubscription } from "./lib/billing";
 import {
@@ -467,6 +468,13 @@ export const claimSetup = internalMutation({
       ["completed", "cancelled"].includes(s.state)
     )
       return false;
+    const inquiry = document ? await ctx.db.get(document.inquiryId) : null;
+    if (
+      !inquiry ||
+      (await blockState(ctx, inquiry.tenantId, inquiry.landlordId))
+        .cannotMessage
+    )
+      return false;
     if (args.creation) {
       if (s.creationAttemptedAt) return false;
       await ctx.db.patch(s._id, { creationAttemptedAt: Date.now() });
@@ -491,10 +499,7 @@ export const caller = internalQuery({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Sign in.");
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await findActiveUser(ctx, identity.subject);
     if (!user) throw new Error("Complete your profile.");
     return user._id;
   },

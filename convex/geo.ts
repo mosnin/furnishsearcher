@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import {
   paginationOptsValidator,
   paginationResultValidator,
@@ -144,12 +145,7 @@ export const reserve = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity(),
-      user = identity
-        ? await ctx.db
-            .query("users")
-            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-            .unique()
-        : null;
+      user = identity ? await findActiveUser(ctx, identity.subject) : null;
     const recent = await ctx.db
       .query("geoRequests")
       .withIndex("by_user", (q) =>

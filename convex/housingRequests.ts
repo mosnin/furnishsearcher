@@ -207,6 +207,8 @@ async function saveMatch(
     request.userId === listing.landlordId
   )
     return;
+  const requester = await ctx.db.get(request.userId);
+  if (!requester || requester.clerkDeletedAt !== undefined) return;
   const classification = await classifyLead(ctx, listing, request);
   if (!classification) return;
   const owner = await ctx.db.get(listing.landlordId);

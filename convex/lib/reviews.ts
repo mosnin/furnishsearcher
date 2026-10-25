@@ -1,3 +1,4 @@
+import { findActiveUser } from "./auth";
 import { reviewableBooking, reviewEnd } from "./bookings";
 import { requireUser } from "./auth";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -127,10 +128,7 @@ export async function checkStay(
 export async function canReadTraveler(ctx: Ctx, subjectId: Id<"users">) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return false;
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-    .unique();
+  const user = await findActiveUser(ctx, identity.subject);
   if (!user) return false;
   if (user._id === subjectId || user.role === "admin") return true;
   const conversation = await ctx.db

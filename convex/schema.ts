@@ -371,12 +371,15 @@ export default defineSchema({
     phoneChangedAt: v.optional(v.number()),
     eventId: v.string(),
     appliedAt: v.number(),
-  }).index("by_clerk_mode", ["clerkId", "mode"]),
+  })
+    .index("by_clerk_mode", ["clerkId", "mode"])
+    .index("by_deleted", ["deleted"]),
 
   users: defineTable({
     identityCheckId: v.optional(v.id("identityChecks")),
     identityHold: v.optional(v.boolean()),
     clerkId: v.string(),
+    clerkDeletedAt: v.optional(v.number()),
     name: v.string(),
     email: v.string(),
     avatar: v.optional(v.string()),

@@ -1,7 +1,7 @@
 import { participantSearchName } from "../../lib/message-search";
 import type { Id, Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
-import { requireUser } from "./auth";
+import { requireUser, subjectDeleted } from "./auth";
 import { listingPhotos } from "./photos";
 import { profileImage } from "./profileImages";
 type Ctx = QueryCtx | MutationCtx;
@@ -19,7 +19,19 @@ export async function blockState(ctx: Ctx, a: Id<"users">, b: Id<"users">) {
       .withIndex("by_pair", (q) => q.eq("blockerId", b).eq("blockedId", a))
       .unique(),
   ]);
-  return { blockedByMe: !!mine, cannotMessage: !!mine || !!theirs };
+  const [first, second] = await Promise.all([ctx.db.get(a), ctx.db.get(b)]);
+  return {
+    blockedByMe: !!mine,
+    cannotMessage:
+      !!mine ||
+      !!theirs ||
+      !first ||
+      !second ||
+      first.clerkDeletedAt !== undefined ||
+      second.clerkDeletedAt !== undefined ||
+      (await subjectDeleted(ctx, first.clerkId)) ||
+      (await subjectDeleted(ctx, second.clerkId)),
+  };
 }
 export async function requireMessagingAllowed(
   ctx: Ctx,
@@ -94,8 +106,14 @@ export async function enrichConversation(
     otherUser: other
       ? {
           _id: other._id,
-          name: participantSearchName(other),
-          avatar: (await profileImage(ctx, other, "profile")) ?? undefined,
+          name:
+            other.clerkDeletedAt !== undefined
+              ? "Account removed"
+              : participantSearchName(other),
+          avatar:
+            other.clerkDeletedAt !== undefined
+              ? undefined
+              : ((await profileImage(ctx, other, "profile")) ?? undefined),
         }
       : null,
   };

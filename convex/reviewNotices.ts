@@ -140,7 +140,7 @@ export const emailDetails = internalQuery({
     )
       return null;
     const user = await ctx.db.get(n.recipientId);
-    if (!user) return null;
+    if (!user || user.clerkDeletedAt !== undefined) return null;
     return {
       email: user.email,
       body: n.body,

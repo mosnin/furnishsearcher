@@ -129,4 +129,10 @@ crons.interval(
   internal.mapEligibility.cleanup,
   {},
 );
+crons.interval(
+  "reconcile removed sign-in accounts",
+  { hours: 24 },
+  internal.accountOffboarding.reconcile,
+  { cursor: null },
+);
 export default crons;

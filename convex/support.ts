@@ -522,6 +522,12 @@ export const emailDetails = internalQuery({
       if (!reply || reply.internal || reply.emailStatus !== "pending")
         return null;
       const ticket = await ctx.db.get(reply.caseId);
+      if (
+        reply.staff &&
+        ticket?.userId &&
+        (await ctx.db.get(ticket.userId))?.clerkDeletedAt !== undefined
+      )
+        return null;
       return ticket
         ? {
             email: ticket.email,

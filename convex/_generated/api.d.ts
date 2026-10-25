@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accountOffboarding from "../accountOffboarding.js";
 import type * as analytics from "../analytics.js";
 import type * as availability from "../availability.js";
 import type * as billingWebhook from "../billingWebhook.js";
@@ -34,6 +35,7 @@ import type * as inboundEmails from "../inboundEmails.js";
 import type * as inbox from "../inbox.js";
 import type * as inquiries from "../inquiries.js";
 import type * as leadNotifications from "../leadNotifications.js";
+import type * as lib_accountOffboarding from "../lib/accountOffboarding.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
 import type * as lib_bookings from "../lib/bookings.js";
@@ -123,6 +125,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accountOffboarding: typeof accountOffboarding;
   analytics: typeof analytics;
   availability: typeof availability;
   billingWebhook: typeof billingWebhook;
@@ -149,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   inbox: typeof inbox;
   inquiries: typeof inquiries;
   leadNotifications: typeof leadNotifications;
+  "lib/accountOffboarding": typeof lib_accountOffboarding;
   "lib/auth": typeof lib_auth;
   "lib/billing": typeof lib_billing;
   "lib/bookings": typeof lib_bookings;

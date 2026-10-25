@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T22:03:44.477Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentUserDeletion": true,
+  "newlyCreatedReservedFixtureOnly": true,
+  "preDeletionJwtStillUnexpiredAtDenial": true,
+  "nativeProfileHidden": true,
+  "nativeRecreationDenied": true,
+  "nativePrivateRequestReadDenied": true,
+  "publicPaymentUserResolutionDenied": true,
+  "nativeUserRetainedWithDeletionMarker": true,
+  "unpublishedRentalRetainedAndDeactivated": true,
+  "openHousingRequestRetainedAndClosed": true,
+  "publicRentalHideAcceptance": false,
+  "acceptedStayHistoryAcceptance": "covered by native lifecycle tests, not this hosted fixture",
+  "realEmailOrSmsSent": false,
+  "productionChanged": false
+}

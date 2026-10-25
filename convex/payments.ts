@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { v } from "convex/values";
 import {
   query,
@@ -210,10 +211,7 @@ export const resolveUserId = query({
   handler: async (ctx, args): Promise<Id<"users"> | null> => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity?.subject !== args.clerkId) return null;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+    const user = await findActiveUser(ctx, args.clerkId);
     return user?._id ?? null;
   },
 });

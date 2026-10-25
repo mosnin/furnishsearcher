@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { syncInbox, queueFolderSync } from "./lib/inbox";
 import {
   paginationOptsValidator,
@@ -51,10 +52,7 @@ export const getConversations = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller._id !== args.userId) return [];
     const [tenant, owner] = await Promise.all([
       ctx.db
@@ -107,10 +105,7 @@ export const getMessages = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const user = await findActiveUser(ctx, identity.subject);
     const conv = await findConversationByKey(ctx, args.conversationId);
     if (!user || !conv || !isParticipant(conv, user._id)) return [];
     return (

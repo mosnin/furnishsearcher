@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { profileImage } from "./lib/profileImages";
 import {
   createPropertyGroup,
@@ -66,10 +67,7 @@ export const create = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller.role !== "admin" && caller._id !== args.landlordId) {
       throw new Error("Not authorized");
@@ -224,10 +222,7 @@ export const update = mutation({
     const listing = await ctx.db.get(id);
     if (!listing) throw new Error(`Listing ${id} not found`);
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller.role !== "admin" && caller._id !== listing.landlordId) {
       throw new Error("Not authorized to edit this listing");
@@ -349,10 +344,7 @@ export const publish = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller.role !== "admin" && caller._id !== listing.landlordId) {
       throw new Error("Not authorized");
@@ -387,10 +379,7 @@ export const unpublish = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller.role !== "admin" && caller._id !== listing.landlordId) {
       throw new Error("Not authorized");
@@ -417,10 +406,7 @@ export const deleteListing = mutation({
     const listing = await ctx.db.get(args.id);
     if (!listing) throw new Error(`Listing ${args.id} not found`);
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
     if (caller.role !== "admin" && caller._id !== listing.landlordId) {
       throw new Error("Not authorized");
@@ -461,10 +447,7 @@ export const getById = query({
     if (!listing) return null;
     const identity = await ctx.auth.getUserIdentity();
     const caller = identity
-      ? await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-          .unique()
+      ? await findActiveUser(ctx, identity.subject)
       : null;
     const canManage =
       caller?._id === listing.landlordId || caller?.role === "admin";
@@ -609,10 +592,7 @@ export const getByLandlord = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     const caller = identity
-      ? await ctx.db
-          .query("users")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-          .unique()
+      ? await findActiveUser(ctx, identity.subject)
       : null;
     const canManage =
       caller?._id === args.landlordId || caller?.role === "admin";
@@ -735,10 +715,7 @@ export const approveListing = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller.role !== "admin") throw new Error("Not authorized");
 
     const listing = await ctx.db.get(args.id);
@@ -811,10 +788,7 @@ export const rejectListing = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller.role !== "admin") throw new Error("Not authorized");
 
     const listing = await ctx.db.get(args.id);
@@ -852,6 +826,7 @@ export const rejectListing = mutation({
         0,
         internal.emails.sendListingRejectedEmail,
         {
+          ownerId: landlord._id,
           toEmail: landlord.email,
           toName: landlord.name ?? "there",
           listingTitle: listing.title,
@@ -867,10 +842,7 @@ export const getAll = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller.role !== "admin") return [];
 
     const listings = await ctx.db.query("listings").collect();

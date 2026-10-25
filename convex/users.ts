@@ -1,3 +1,5 @@
+import { assertSubjectActive, subjectDeleted } from "./lib/auth";
+import { findActiveUser } from "./lib/auth";
 import { assertProviderContact } from "./lib/providerContacts";
 import type { MutationCtx } from "./_generated/server";
 import { billingMode } from "../lib/billing";
@@ -26,10 +28,8 @@ export const getOrCreate = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.clerkId)
       throw new Error("Not authorized");
-    const existing = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    await assertSubjectActive(ctx, args.clerkId);
+    const existing = await findActiveUser(ctx, args.clerkId);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -59,10 +59,7 @@ export const getByClerkId = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.clerkId) return null;
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+    const user = await findActiveUser(ctx, args.clerkId);
     return user
       ? {
           ...(await profileView(ctx, user)),
@@ -85,10 +82,7 @@ export const updateRole = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (
       !caller ||
       (caller.role !== "admin" &&
@@ -110,10 +104,7 @@ export const getById = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || (caller._id !== args.id && caller.role !== "admin"))
       return null;
     const found = await ctx.db.get(args.id);
@@ -144,10 +135,7 @@ export const updateProfile = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller) throw new Error("User not found");
 
     // Only allow editing own profile (admins can edit any)
@@ -306,10 +294,7 @@ export const getAll = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller.role !== "admin") return [];
 
     const users = await ctx.db.query("users").collect();
@@ -322,7 +307,12 @@ export const getPublicProfile = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
-    if (!user) return null;
+    if (
+      !user ||
+      user.clerkDeletedAt !== undefined ||
+      (await subjectDeleted(ctx, user.clerkId))
+    )
+      return null;
     if (user.role !== "landlord" && !(await canReadTraveler(ctx, user._id)))
       return null;
     const visible = await profileView(ctx, user);

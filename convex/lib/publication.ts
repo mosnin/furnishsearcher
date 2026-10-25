@@ -1,3 +1,4 @@
+import { subjectDeleted } from "./auth";
 import { recordMapEligibility } from "./mapEligibility";
 import { propertyIssues } from "./units";
 import { syncGeo } from "./geo";
@@ -37,7 +38,13 @@ export async function contentIssues(ctx: Ctx, listing: Doc<"listings">) {
   return issues;
 }
 export async function identityPassed(ctx: Ctx, user: Doc<"users">) {
-  if (user.identityHold || !user.identityCheckId) return false;
+  if (
+    user.clerkDeletedAt !== undefined ||
+    (await subjectDeleted(ctx, user.clerkId)) ||
+    user.identityHold ||
+    !user.identityCheckId
+  )
+    return false;
   const check = await ctx.db.get(user.identityCheckId);
   let mode;
   try {
@@ -117,8 +124,14 @@ export async function reconcileListing(
   listing: Doc<"listings">,
 ) {
   const state = await readiness(ctx, listing);
-  const status =
-    state.requested && state.eligible
+  const owner = await ctx.db.get(listing.landlordId);
+  const removed =
+    !!owner &&
+    (owner.clerkDeletedAt !== undefined ||
+      (await subjectDeleted(ctx, owner.clerkId)));
+  const status = removed
+    ? "inactive"
+    : state.requested && state.eligible
       ? "active"
       : listing.approvalStatus === "rejected"
         ? "rejected"
