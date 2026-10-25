@@ -23,6 +23,7 @@ import type * as emailIngress from "../emailIngress.js";
 import type * as emails from "../emails.js";
 import type * as files from "../files.js";
 import type * as geo from "../geo.js";
+import type * as guidedSearch from "../guidedSearch.js";
 import type * as housingRequestEmails from "../housingRequestEmails.js";
 import type * as housingRequests from "../housingRequests.js";
 import type * as http from "../http.js";
@@ -127,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   emails: typeof emails;
   files: typeof files;
   geo: typeof geo;
+  guidedSearch: typeof guidedSearch;
   housingRequestEmails: typeof housingRequestEmails;
   housingRequests: typeof housingRequests;
   http: typeof http;

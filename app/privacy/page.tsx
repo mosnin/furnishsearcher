@@ -86,6 +86,21 @@ export default function PrivacyPage() {
                 rental account, messages or requests.
               </p>
               <p>
+                <strong className="text-slate-800">Optional AI search:</strong>{" "}
+                If you choose AI interpretation, your description and current
+                search filters are sent through the Convex AI Gateway to its
+                model providers. Avoid private contact, financial or medical
+                information. The feature requests zero-data-retention inference
+                routing and excludes data-collection endpoints; provider usage
+                and billing metadata may still be retained. The application does
+                not create a saved prompt or conversation history for this
+                feature. Private rate-limit records contain a hashed account or
+                page reference, counters and a request ID; records become
+                eligible for bounded cleanup after three days without activity.
+                Standard search is available without AI. Review interpreted
+                filters and any unapplied preferences before searching.
+              </p>
+              <p>
                 <strong className="text-slate-800">Communications:</strong> When
                 you contact us or communicate with other users through our
                 messaging system, we store those communications to facilitate

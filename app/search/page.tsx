@@ -47,6 +47,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { AppliedSearchSummary } from "@/components/applied-search-summary";
 import { DAY } from "@/lib/stays";
 type Listing = FunctionReturnType<typeof api.search.listings>["page"][number];
 type ViewMode = "list" | "map" | "split";
@@ -236,6 +237,7 @@ function SearchPageInner() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/80 sticky top-0 z-30">
         <div className="max-w-screen-2xl mx-auto px-4 py-3 space-y-3">
+          {!parsed.error && <AppliedSearchSummary filters={applied} />}
           <div className="flex items-center gap-3 flex-wrap">
             <Link href="/" className="font-semibold text-[#0f2044] text-[17px]">
               FurnishFinder

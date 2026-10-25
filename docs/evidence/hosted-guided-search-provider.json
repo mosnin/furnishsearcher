@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-25T05:28:15.889Z",
+  "deployment": "cheerful-ferret-182",
+  "availability": {
+    "available": false,
+    "reason": "provider_unavailable"
+  },
+  "modelCalled": false,
+  "planChanged": false,
+  "AI_SEARCH_ENABLED": false
+}

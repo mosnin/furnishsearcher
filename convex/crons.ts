@@ -99,4 +99,10 @@ crons.interval(
   internal.marketInsights.cleanup,
   {},
 );
+crons.interval(
+  "expire AI search rate metadata",
+  { hours: 24 },
+  internal.guidedSearch.cleanup,
+  {},
+);
 export default crons;

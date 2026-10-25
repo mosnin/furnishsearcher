@@ -40,6 +40,19 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  guidedSearchLimits: defineTable({
+    key: v.string(),
+    day: v.number(),
+    minute: v.number(),
+    dayCount: v.number(),
+    minuteCount: v.number(),
+    updatedAt: v.number(),
+    lastRequest: v.optional(v.string()),
+    requestIds: v.optional(v.array(v.string())),
+    busyUntil: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_updated", ["updatedAt"]),
   identityResultAudit: defineTable({
     checkId: v.id("identityChecks"),
     status: v.string(),
