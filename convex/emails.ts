@@ -49,17 +49,21 @@ export const sendWelcomeEmail = action({
       v.literal("admin")
     ),
   },
-  handler: async (_ctx, args) => {
+  returns: v.null(),
+  handler: async (ctx, _args) => {
+    if (!(await ctx.auth.getUserIdentity())) throw new Error("Please sign in to continue.");
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return null;
+    const recipient = await ctx.runMutation(internal.emailContacts.claimWelcome, {});
+    if (!recipient) return null;
     try {
       await resend.emails.send({
-        from: FROM,
-        to: args.toEmail,
+        from: process.env.EMAIL_FROM,
+        to: recipient.email,
         subject: "Welcome to FurnishFinder!",
-        html: welcomeEmailHtml(args),
-      });
-    } catch (e) {
-      console.error("Failed to send welcome email:", e);
-    }
+        text: `Hi ${recipient.name},\n\nWelcome! Your account is ready. Sign in to your dashboard to manage your rental search or properties.`,
+      }, { idempotencyKey: `account-welcome-${recipient.userId}` });
+    } catch { /* A welcome email failure must not prevent completing onboarding. */ }
+    return null;
   },
 });
 

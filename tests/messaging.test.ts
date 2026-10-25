@@ -540,8 +540,69 @@ describe("saved message composition", () => {
   });
 });
 describe("message email notifications", () => {
+  it("suppresses message previews without a trusted opted-in recipient", async () => {
+    const { t, message } = await setup();
+    vi.stubEnv("RESEND_API_KEY", "synthetic");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.test");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.test");
+    await t.action(internal.messageEmails.notify, { messageId: message._id });
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect((await t.run((ctx) => ctx.db.get(message._id)))?.emailStatus).toBe(
+      "suppressed",
+    );
+  });
+  it("binds the public welcome action to the signed email and allows one account attempt", async () => {
+    const { t } = await setup();
+    const args = {
+      toEmail: "victim@example.test",
+      toName: "Forged sender",
+      role: "admin" as const,
+    };
+    vi.stubEnv("RESEND_API_KEY", "synthetic");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.test");
+    await expect(t.action(api.emails.sendWelcomeEmail, args)).rejects.toThrow(
+      "sign in",
+    );
+    await t
+      .withIdentity({ subject: "owner" })
+      .action(api.emails.sendWelcomeEmail, args);
+    expect(sendEmail).not.toHaveBeenCalled();
+    sendEmail.mockResolvedValue({
+      data: { id: "welcome-accepted" },
+      error: null,
+    });
+    const owner = t.withIdentity({
+      subject: "owner",
+      email: "verified-owner@example.test",
+      emailVerified: true,
+    });
+    await Promise.all([
+      owner.action(api.emails.sendWelcomeEmail, args),
+      owner.action(api.emails.sendWelcomeEmail, args),
+    ]);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail.mock.calls[0][0]).toMatchObject({
+      to: "verified-owner@example.test",
+      from: "noreply@example.test",
+    });
+    expect(sendEmail.mock.calls[0][0].text).not.toContain("Forged sender");
+    expect(sendEmail.mock.calls[0][0].html).toBeUndefined();
+    await owner.action(api.emails.sendWelcomeEmail, args);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
   it("applies block guards to notifications already queued by older clients", async () => {
     const { t, owner, convId, message } = await setup();
+    await t
+      .withIdentity({
+        subject: "owner",
+        email: "owner@example.test",
+        emailVerified: true,
+        iat: Math.floor(Date.now() / 1000),
+      })
+      .mutation(api.emailContacts.setMessageEmails, {
+        clerkId: "owner",
+        enabled: true,
+      });
     vi.stubEnv("RESEND_API_KEY", "synthetic");
     vi.stubEnv("EMAIL_FROM", "noreply@example.test");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.test");
@@ -580,6 +641,17 @@ describe("message email notifications", () => {
 
   it("records configured provider outcomes and suppresses queued notifications after a block", async () => {
     const { t, owner, convId, message, tenant, args } = await setup();
+    await t
+      .withIdentity({
+        subject: "owner",
+        email: "owner@example.test",
+        emailVerified: true,
+        iat: Math.floor(Date.now() / 1000),
+      })
+      .mutation(api.emailContacts.setMessageEmails, {
+        clerkId: "owner",
+        enabled: true,
+      });
     vi.stubEnv("RESEND_API_KEY", "");
     await t.action(internal.messageEmails.notify, { messageId: message._id });
     expect((await t.run((ctx) => ctx.db.get(message._id)))?.emailStatus).toBe(

@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-25T03:58:18.644Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedSyntheticClaims": true,
+  "actualClerkJwt": false,
+  "actualEmailSent": false,
+  "anonymousRejected": true,
+  "unverifiedClaimRejected": true,
+  "accountSwitchRejected": true,
+  "normalizedTrustedEmailSaved": true,
+  "profileEmailCannotChangeBinding": true,
+  "privateTravelerProfile": true,
+  "optOutPersisted": true,
+  "oldTokenReplayRejected": true,
+  "finalSyntheticBindingRemoved": true
+}

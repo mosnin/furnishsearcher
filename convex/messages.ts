@@ -4,6 +4,7 @@ import {
   paginationResultValidator,
 } from "convex/server";
 import { v } from "convex/values";
+import { messageEmailRecipient } from "./lib/emailContact";
 import {
   mutation,
   query,
@@ -352,11 +353,21 @@ export const notificationDetails = internalQuery({
     const conv = message.conversationDocId
       ? await ctx.db.get(message.conversationDocId)
       : await findConversationByKey(ctx, message.conversationId);
-    if (!receiver || !sender || !conv) return null;
+    if (
+      !receiver ||
+      !sender ||
+      !conv ||
+      conv.listingId !== message.listingId ||
+      sender._id === receiver._id ||
+      ![conv.tenantId, conv.landlordId].includes(sender._id) ||
+      ![conv.tenantId, conv.landlordId].includes(receiver._id)
+    )
+      return null;
     const blocked = await blockState(ctx, sender._id, receiver._id);
+    const recipient = messageEmailRecipient(receiver);
     return {
-      suppressed: blocked.cannotMessage,
-      email: receiver.email,
+      suppressed: blocked.cannotMessage || recipient === null,
+      email: recipient ?? "",
       name: receiver.name,
       sender: sender.name,
       title: listing?.title ?? "A property conversation",
@@ -393,7 +404,7 @@ export const legacyNotificationConversation = internalQuery({
     if (
       !tenant ||
       !owner ||
-      ![tenant.email.toLowerCase(), owner.email.toLowerCase()].includes(
+      ![messageEmailRecipient(tenant), messageEmailRecipient(owner)].includes(
         args.email.toLowerCase(),
       )
     )

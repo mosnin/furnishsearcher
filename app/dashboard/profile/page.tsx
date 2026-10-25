@@ -26,6 +26,7 @@ import { PublicReviews } from "@/components/public-reviews";
 import { STATES } from "@/lib/cities";
 import { ProfileImageEditor } from "@/components/profile-image-editor";
 import PhoneVerifyDialog from "@/components/phone-verify-dialog";
+import { MessageEmailSettings } from "@/components/message-email-settings";
 
 const TABS = [
   "Personal Info",
@@ -224,6 +225,7 @@ function PersonalInfoTab({
 
   return (
     <div className="space-y-10">
+      <MessageEmailSettings />
       <p className="text-sm text-gray-600">
         Profile and pet photos appear with your profile. Photo links can be
         opened by anyone who has the link. Use images you want to share, without

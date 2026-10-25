@@ -165,6 +165,16 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     avatar: v.optional(v.string()),
+    messageEmailsEnabled: v.optional(v.boolean()),
+    notificationEmail: v.optional(v.string()),
+    notificationEmailVerifiedAt: v.optional(v.number()),
+    notificationEmailExpiresAt: v.optional(v.number()),
+    notificationEmailMode: v.optional(
+      v.union(v.literal("test"), v.literal("prod")),
+    ),
+    notificationEmailProofAfter: v.optional(v.number()),
+    notificationEmailRevision: v.optional(v.number()),
+    welcomeEmailAttemptedAt: v.optional(v.number()),
     role: v.union(
       v.literal("tenant"),
       v.literal("landlord"),
