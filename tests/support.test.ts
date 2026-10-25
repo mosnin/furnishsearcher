@@ -465,3 +465,454 @@ describe("support notification delivery", () => {
     expect(send.mock.calls[2][0].text).not.toContain("Confidential followup");
   });
 });
+
+async function contactFixture() {
+  const f = await setup();
+  vi.stubEnv("RESEND_API_KEY", "");
+  vi.stubEnv("CLERK_CONTACT_MODE", "test");
+  const now = Date.now(),
+    DAY = 86400000,
+    moveInDate = (Math.floor(now / DAY) + 60) * DAY;
+  await f.t.run(async (ctx) => {
+    for (const id of [f.ids.owner, f.ids.tenant])
+      await ctx.db.patch(id, {
+        phone: "+12025550123",
+        phoneVerified: true,
+        phoneVerificationSource: "clerk",
+        phoneVerificationMode: "test",
+        phoneVerifiedAt: now,
+        phoneVerificationExpiresAt: now + 30 * DAY,
+        phoneRevision: 1,
+        notificationEmail: `${id}@example.test`,
+        notificationEmailMode: "test",
+        notificationEmailVerifiedAt: now,
+        notificationEmailExpiresAt: now + 30 * DAY,
+        housingLeadEmailsEnabled: id === f.ids.owner,
+        messageEmailsEnabled: true,
+      });
+  });
+  await f.owner.mutation(api.phoneContacts.setEnabled, { enabled: true });
+  const requestId = await f.tenant.mutation(api.housingRequests.create, {
+    userId: f.ids.tenant,
+    city: "Austin",
+    state: "TX",
+    moveInDate,
+    duration: 1,
+    bedrooms: 1,
+    maxBudget: 2500,
+    petFriendly: false,
+    description: "Synthetic contact review request",
+    contactPreference: "phone",
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  const messageId = await f.tenant.mutation(api.messages.sendMessage, {
+    senderId: f.ids.tenant,
+    receiverId: f.ids.owner,
+    listingId: f.ids.listing,
+    content: "Synthetic reportable message",
+    origin: "inbox",
+  });
+  const report = () =>
+    f.owner.mutation(api.support.report, { messageId, ...reportDetails });
+  const caseId = await report();
+  const review = async (action: "hold" | "release", id = caseId) => {
+    const info = await f.staff.query(api.support.get, { id });
+    return f.staff.mutation(api.support.review, {
+      id,
+      status: "reviewing",
+      note: `Synthetic contact ${action}`,
+      contactAction: action,
+      expectedContactRevision: info.contactReview!.revision,
+    });
+  };
+  return { ...f, requestId, messageId, caseId, review };
+}
+describe("case-bound account contact reviews", () => {
+  it("requires staff action and pauses native contact in both directions while keeping readable history and support", async () => {
+    const f = await contactFixture();
+    const conv = (
+      await f.owner.query(api.messages.getConversations, {
+        userId: f.ids.owner,
+      })
+    )[0];
+    expect(conv.cannotMessage).toBe(false);
+    expect(
+      (
+        await f.owner.query(api.housingRequests.leadContact, {
+          requestId: f.requestId,
+          listingId: f.ids.listing,
+        })
+      ).phone,
+    ).toBe("+12025550123");
+    expect(
+      (
+        await f.tenant.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("available");
+    const requestBefore = await f.t.run((ctx) => ctx.db.get(f.requestId));
+    await f.review("hold");
+    for (const [caller, senderId, receiverId] of [
+      [f.owner, f.ids.owner, f.ids.tenant],
+      [f.tenant, f.ids.tenant, f.ids.owner],
+    ] as const)
+      await expect(
+        caller.mutation(api.messages.sendMessage, {
+          senderId,
+          receiverId,
+          listingId: f.ids.listing,
+          content: "Must not send",
+        }),
+      ).rejects.toThrow("unavailable");
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, {
+        requestId: f.requestId,
+        listingId: f.ids.listing,
+        message: "Must not send",
+      }),
+    ).rejects.toThrow("unavailable");
+    await expect(
+      f.owner.query(api.housingRequests.matchingProperties, {
+        requestId: f.requestId,
+        paginationOpts,
+      }),
+    ).rejects.toThrow("unavailable");
+    const inbox = await f.owner.query(api.housingRequests.inbox, {
+      paginationOpts,
+    });
+    expect(inbox.page[0].contactRestricted).toBe(true);
+    expect(inbox.page[0].phone).toBeNull();
+    expect(
+      (
+        await f.owner.query(api.housingRequests.leadContact, {
+          requestId: f.requestId,
+          listingId: f.ids.listing,
+        })
+      ).phone,
+    ).toBeNull();
+    expect(
+      (
+        await f.tenant.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("unavailable");
+    await expect(
+      f.tenant.mutation(api.phoneContacts.reveal, { listingId: f.ids.listing }),
+    ).rejects.toThrow("unavailable");
+    const held = (
+      await f.owner.query(api.messages.getConversations, {
+        userId: f.ids.owner,
+      })
+    )[0];
+    expect(held.contactRestricted).toBe(true);
+    expect(held.cannotMessage).toBe(true);
+    expect(
+      (
+        await f.tenant.query(api.messages.listMessages, {
+          conversationId: conv._id,
+          paginationOpts,
+        })
+      ).page.some((m) => m._id === f.messageId),
+    ).toBe(true);
+    const appeal = await f.tenant.mutation(api.support.submitContact, {
+      ...contact,
+      subject: "Technical Issue",
+      message: "Please review the contact restriction.",
+    });
+    expect((await f.tenant.query(api.support.get, { id: appeal })).userId).toBe(
+      f.ids.tenant,
+    );
+    expect(await f.t.run((ctx) => ctx.db.get(f.requestId))).toEqual(
+      requestBefore,
+    );
+    await f.review("release");
+    expect(
+      (
+        await f.owner.query(api.housingRequests.leadContact, {
+          requestId: f.requestId,
+          listingId: f.ids.listing,
+        })
+      ).phone,
+    ).toBe("+12025550123");
+    expect(
+      (
+        await f.tenant.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("available");
+    await f.owner.mutation(api.messages.sendMessage, {
+      senderId: f.ids.owner,
+      receiverId: f.ids.tenant,
+      listingId: f.ids.listing,
+      content: "Contact restored",
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("enforces staff authority, private targets and notes, and guards stale review revisions", async () => {
+    const f = await contactFixture();
+    const action = {
+      id: f.caseId,
+      status: "reviewing" as const,
+      note: "Private investigation",
+      contactAction: "hold" as const,
+      expectedContactRevision: 0,
+    };
+    for (const caller of [f.owner, f.tenant, f.stranger])
+      await expect(caller.mutation(api.support.review, action)).rejects.toThrow(
+        "Staff",
+      );
+    const requester = await f.owner.query(api.support.get, { id: f.caseId });
+    expect(requester.contactReview).toBeUndefined();
+    expect(requester.reportedUserId).toBeUndefined();
+    expect(requester.evidence).toBeUndefined();
+    await expect(
+      f.tenant.query(api.support.get, { id: f.caseId }),
+    ).rejects.toThrow("not found");
+    await f.staff.mutation(api.support.review, action);
+    await expect(
+      f.staff.mutation(api.support.review, {
+        ...action,
+        contactAction: "release",
+      }),
+    ).rejects.toThrow("changed");
+    const state = await f.staff.query(api.support.get, { id: f.caseId });
+    expect(state.contactReview).toMatchObject({
+      userId: f.ids.tenant,
+      restricted: true,
+      caseRestricted: true,
+      revision: 1,
+    });
+    expect(
+      (await f.staff.query(api.support.audit, { id: f.caseId, paginationOpts }))
+        .page[0].action,
+    ).toContain("contact_hold");
+    await expect(
+      f.owner.query(api.support.audit, { id: f.caseId, paginationOpts }),
+    ).rejects.toThrow("Staff");
+    await f.review("release");
+    expect(
+      (await f.staff.query(api.support.get, { id: f.caseId })).contactReview
+        ?.revision,
+    ).toBe(2);
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("requires every active case restriction to be released and preserves independent user blocks", async () => {
+    const f = await contactFixture();
+    const next = await f.tenant.mutation(api.messages.sendMessage, {
+      senderId: f.ids.tenant,
+      receiverId: f.ids.owner,
+      listingId: f.ids.listing,
+      content: "Second reported event",
+    });
+    const otherCase = await f.owner.mutation(api.support.report, {
+      messageId: next,
+      ...reportDetails,
+    });
+    await f.review("hold");
+    await f.review("hold", otherCase);
+    await f.review("release");
+    expect(
+      (await f.staff.query(api.support.get, { id: f.caseId })).contactReview,
+    ).toMatchObject({ restricted: true, caseRestricted: false });
+    const conv = (
+      await f.owner.query(api.messages.getConversations, {
+        userId: f.ids.owner,
+      })
+    )[0];
+    await f.owner.mutation(api.messages.setBlocked, {
+      conversationId: conv._id,
+      blocked: true,
+    });
+    await f.review("release", otherCase);
+    const released = (
+      await f.owner.query(api.messages.getConversations, {
+        userId: f.ids.owner,
+      })
+    )[0];
+    expect(released.contactRestricted).toBe(false);
+    expect(released.blockedByMe).toBe(true);
+    expect(released.cannotMessage).toBe(true);
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toEqual([]);
+    await f.owner.mutation(api.messages.setBlocked, {
+      conversationId: conv._id,
+      blocked: false,
+    });
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts }))
+        .page[0].contactRestricted,
+    ).toBe(false);
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("keeps the original reported-account binding after source changes or deletion and never trusts evidence JSON", async () => {
+    const f = await contactFixture();
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.messageId, { senderId: f.ids.stranger }),
+    );
+    expect(
+      (await f.staff.query(api.support.get, { id: f.caseId })).contactReview
+        ?.userId,
+    ).toBe(f.ids.tenant);
+    await f.t.run((ctx) => ctx.db.delete(f.messageId));
+    await f.review("hold");
+    expect(
+      (await f.staff.query(api.support.get, { id: f.caseId })).contactReview
+        ?.restricted,
+    ).toBe(true);
+    await f.review("release");
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.caseId, {
+        reportedUserId: undefined,
+        evidence: JSON.stringify({ senderId: f.ids.stranger }),
+      }),
+    );
+    expect(
+      (await f.staff.query(api.support.get, { id: f.caseId })).contactReview,
+    ).toBeUndefined();
+    await expect(
+      f.staff.mutation(api.support.review, {
+        id: f.caseId,
+        status: "reviewing",
+        note: "Invalid evidence binding",
+        contactAction: "hold",
+        expectedContactRevision: 2,
+      }),
+    ).rejects.toThrow("no reviewable");
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("supports surviving legacy report sources but rejects ordinary support, staff and deleted-account targets", async () => {
+    const f = await contactFixture();
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.caseId, { reportedUserId: undefined }),
+    );
+    await f.review("hold");
+    await f.review("release");
+    const general = await f.owner.mutation(api.support.submitContact, contact);
+    await expect(
+      f.staff.mutation(api.support.review, {
+        id: general,
+        status: "reviewing",
+        note: "No report target",
+        contactAction: "hold",
+        expectedContactRevision: 0,
+      }),
+    ).rejects.toThrow("no reviewable");
+    for (const target of [f.ids.admin, f.ids.tenant]) {
+      await f.t.run(async (ctx) => {
+        await ctx.db.patch(f.caseId, { reportedUserId: target });
+        if (target === f.ids.tenant)
+          await ctx.db.patch(target, { clerkDeletedAt: Date.now() });
+      });
+      await expect(
+        f.staff.mutation(api.support.review, {
+          id: f.caseId,
+          status: "reviewing",
+          note: "Invalid account target",
+          contactAction: "hold",
+          expectedContactRevision: 2,
+        }),
+      ).rejects.toThrow("no reviewable");
+    }
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("suppresses pending direct and lead notifications before provider claim without changing preferences", async () => {
+    const f = await contactFixture();
+    const delivery = (
+      await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+    ).page[0];
+    await f.t.run((ctx) =>
+      ctx.db.patch(delivery.deliveryId, {
+        emailStatus: "queued",
+        emailGeneration: 10,
+        emailSelectionStartedAt: Date.now(),
+        notificationListingId: f.ids.listing,
+      }),
+    );
+    expect(
+      await f.t.query(internal.housingRequests.notificationDetails, {
+        deliveryId: delivery.deliveryId,
+      }),
+    ).not.toBeNull();
+    expect(
+      (
+        await f.t.query(internal.messages.notificationDetails, {
+          messageId: f.messageId,
+        })
+      )?.suppressed,
+    ).toBe(false);
+    await f.review("hold");
+    expect(
+      (
+        await f.t.query(internal.messages.notificationDetails, {
+          messageId: f.messageId,
+        })
+      )?.suppressed,
+    ).toBe(true);
+    expect(
+      await f.t.query(internal.housingRequests.notificationDetails, {
+        deliveryId: delivery.deliveryId,
+      }),
+    ).toBeNull();
+    expect(
+      await f.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: delivery.deliveryId,
+        generation: 10,
+        configured: true,
+      }),
+    ).toBeNull();
+    expect(
+      (await f.t.run((ctx) => ctx.db.get(f.ids.owner)))
+        ?.housingLeadEmailsEnabled,
+    ).toBe(true);
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("does not resurrect an owner-deleted lead when review is released or leak a held owner's phone to anonymous viewers", async () => {
+    const f = await contactFixture();
+    const ownerCase = await f.tenant.mutation(api.support.report, {
+      listingId: f.ids.listing,
+      ...reportDetails,
+    });
+    expect(
+      (
+        await f.t.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("sign-in");
+    await f.review("hold", ownerCase);
+    expect(
+      (
+        await f.t.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("unavailable");
+    const item = (
+      await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+    ).page[0];
+    expect(item.contactRestricted).toBe(true);
+    await f.owner.mutation(api.housingRequests.deleteLead, {
+      deliveryId: item.deliveryId,
+    });
+    await f.review("release", ownerCase);
+    await f.t.mutation(internal.housingRequests.scanRequest, {
+      requestId: f.requestId,
+      cursor: null,
+    });
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toEqual([]);
+    expect(
+      (
+        await f.t.query(api.phoneContacts.availability, {
+          listingId: f.ids.listing,
+        })
+      ).status,
+    ).toBe("sign-in");
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+});

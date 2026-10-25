@@ -41,6 +41,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
 import type * as lib_bookings from "../lib/bookings.js";
 import type * as lib_calendarFeeds from "../lib/calendarFeeds.js";
+import type * as lib_contactReview from "../lib/contactReview.js";
 import type * as lib_contacts from "../lib/contacts.js";
 import type * as lib_documentCrypto from "../lib/documentCrypto.js";
 import type * as lib_emailContact from "../lib/emailContact.js";
@@ -162,6 +163,7 @@ declare const fullApi: ApiFromModules<{
   "lib/billing": typeof lib_billing;
   "lib/bookings": typeof lib_bookings;
   "lib/calendarFeeds": typeof lib_calendarFeeds;
+  "lib/contactReview": typeof lib_contactReview;
   "lib/contacts": typeof lib_contacts;
   "lib/documentCrypto": typeof lib_documentCrypto;
   "lib/emailContact": typeof lib_emailContact;

@@ -23,6 +23,8 @@ const cfg = JSON.parse(
 );
 assert.equal(Number(new URL(url).port), cfg.ports.cloud);
 const testDeletion = process.argv.includes("--delete-lead");
+const testContactReview = process.argv.includes("--contact-review");
+assert(!(testDeletion && testContactReview));
 const subject = `qa-lead-offers-${randomUUID()}`,
   phone = "+12025550123";
 const make = (clerkId, claims = {}) => {
@@ -219,6 +221,111 @@ try {
     }),
     { listingId: unit._id, moveIn: moveInDate, moveOut: moveOutDate },
   );
+  if (testContactReview) {
+    const staff = make("qa-publication-staff");
+    assert.equal(
+      (
+        await call(staff, "query", "users:getByClerkId", {
+          clerkId: "qa-publication-staff",
+        })
+      ).role,
+      "admin",
+    );
+    const reportedMessage = await call(
+      traveler,
+      "mutation",
+      "messages:sendMessage",
+      {
+        senderId: user._id,
+        receiverId: root.landlordId,
+        listingId: unit._id,
+        content: "[QA] Synthetic contact-review test message",
+        origin: "inbox",
+      },
+    );
+    const caseId = await call(owner, "mutation", "support:report", {
+      messageId: reportedMessage,
+      category: "Spam or suspicious message",
+      details:
+        "[QA] Synthetic precautionary contact review, no actual allegation",
+    });
+    await assert.rejects(
+      call(owner, "mutation", "support:review", {
+        id: caseId,
+        status: "reviewing",
+        note: "Must not grant staff authority",
+        contactAction: "hold",
+        expectedContactRevision: 0,
+      }),
+      /Staff/,
+    );
+    await call(staff, "mutation", "support:review", {
+      id: caseId,
+      status: "reviewing",
+      note: "[QA] Synthetic contact pause",
+      contactAction: "hold",
+      expectedContactRevision: 0,
+    });
+    assert(
+      (
+        await call(owner, "query", "housingRequests:inbox", {
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.find((row) => row.request._id === requestId)?.contactRestricted,
+    );
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:leadContact", {
+          requestId,
+          listingId: unit._id,
+        })
+      ).phone,
+      null,
+    );
+    await assert.rejects(
+      call(owner, "mutation", "housingRequests:reply", {
+        requestId,
+        listingId: unit._id,
+        message: "Must not send during review",
+      }),
+      /unavailable/,
+    );
+    await assert.rejects(
+      call(traveler, "mutation", "messages:sendMessage", {
+        senderId: user._id,
+        receiverId: root.landlordId,
+        listingId: unit._id,
+        content: "Must not send during review",
+      }),
+      /unavailable/,
+    );
+    assert(
+      (
+        await call(traveler, "query", "messages:listMessages", {
+          conversationId,
+          paginationOpts: { cursor: null, numItems: 25 },
+        })
+      ).page.some((row) => row._id === reportedMessage),
+    );
+    await call(staff, "mutation", "support:review", {
+      id: caseId,
+      status: "resolved",
+      note: "[QA] Synthetic review cleared",
+      contactAction: "release",
+      expectedContactRevision: 1,
+    });
+    assert.equal(
+      (
+        await call(owner, "query", "housingRequests:leadContact", {
+          requestId,
+          listingId: unit._id,
+        })
+      ).phone,
+      phone,
+    );
+    const info = await call(staff, "query", "support:get", { id: caseId });
+    assert(info.contactReview.revision === 2 && !info.contactReview.restricted);
+  }
   await call(owner, "mutation", "listings:unpublish", { id: unit._id });
   assert.equal(
     (
@@ -333,6 +440,15 @@ try {
           travelerRequestAndMessagesRetained: true,
         }
       : {}),
+    ...(testContactReview
+      ? {
+          nativeCaseBoundStaffHoldAndRelease: true,
+          nonstaffActionDenied: true,
+          pausedLeadVisibleAndPhoneHidden: true,
+          newMessagesAndLeadRepliesDeniedDuringReview: true,
+          historyRetainedAndContactRestoredAfterRelease: true,
+        }
+      : {}),
     actualNativeGroupedPublicOptions: true,
     offerLinkCarriesRequestedDatesAndHonorsVisibility: true,
     oneOwnerLeadForGroupedUnits: true,
@@ -363,9 +479,11 @@ try {
 }
 receipt.borrowedLocalQaCapacityRestored = true;
 writeFileSync(
-  testDeletion
-    ? "docs/evidence/local-lead-deletion-smoke.json"
-    : "docs/evidence/local-lead-offers-smoke.json",
+  testContactReview
+    ? "docs/evidence/local-contact-review-smoke.json"
+    : testDeletion
+      ? "docs/evidence/local-lead-deletion-smoke.json"
+      : "docs/evidence/local-lead-offers-smoke.json",
   JSON.stringify(receipt, null, 2) + "\n",
 );
 console.log(

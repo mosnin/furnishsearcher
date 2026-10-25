@@ -4,11 +4,17 @@ import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireUser, subjectDeleted } from "./auth";
 import { listingPhotos } from "./photos";
 import { profileImage } from "./profileImages";
+import { contactReviewActive } from "./contactReview";
 type Ctx = QueryCtx | MutationCtx;
 export function conversationKey(a: string, b: string, listing: string) {
   return [a, b].sort().join("_") + "_" + listing;
 }
-export async function blockState(ctx: Ctx, a: Id<"users">, b: Id<"users">) {
+export async function blockState(
+  ctx: Ctx,
+  a: Id<"users">,
+  b: Id<"users">,
+  ignoreContactReview = false,
+) {
   const [mine, theirs] = await Promise.all([
     ctx.db
       .query("userBlocks")
@@ -20,9 +26,13 @@ export async function blockState(ctx: Ctx, a: Id<"users">, b: Id<"users">) {
       .unique(),
   ]);
   const [first, second] = await Promise.all([ctx.db.get(a), ctx.db.get(b)]);
+  const contactRestricted =
+    (await contactReviewActive(ctx, a)) || (await contactReviewActive(ctx, b));
   return {
+    contactRestricted,
     blockedByMe: !!mine,
     cannotMessage:
+      (!ignoreContactReview && contactRestricted) ||
       !!mine ||
       !!theirs ||
       !first ||

@@ -66,6 +66,10 @@ export default function CasePage({
     [listingAction, setListingAction] = useState<"none" | "hold" | "release">(
       "none",
     );
+  const [contactAction, setContactAction] = useState<
+    "none" | "hold" | "release"
+  >("none");
+  const [contactRevision, setContactRevision] = useState<number | null>(null);
   async function perform(action: () => Promise<unknown>, success: string) {
     setBusy(true);
     try {
@@ -151,9 +155,17 @@ export default function CasePage({
                   note,
                   listingAction:
                     listingAction === "none" ? undefined : listingAction,
+                  ...(contactAction === "none"
+                    ? {}
+                    : {
+                        contactAction,
+                        expectedContactRevision: contactRevision ?? undefined,
+                      }),
                 });
                 setNote("");
                 setListingAction("none");
+                setContactAction("none");
+                setContactRevision(null);
               }, "Review saved");
             }}
           >
@@ -190,6 +202,50 @@ export default function CasePage({
                   </option>
                 </select>
               </label>
+            )}
+            {ticket.contactReview && (
+              <div className="rounded-lg border p-3 space-y-3">
+                <p className="text-sm break-words">
+                  Reported account: {ticket.contactReview.name}
+                </p>
+                <p className="text-sm">
+                  {ticket.contactReview.restricted
+                    ? "Contact is disabled during review."
+                    : "No active contact review."}{" "}
+                  {ticket.contactReview.restricted &&
+                  !ticket.contactReview.caseRestricted
+                    ? "Another case still restricts this account."
+                    : ""}
+                </p>
+                <Label htmlFor="contact-review-action">
+                  Account contact action
+                </Label>
+                <select
+                  id="contact-review-action"
+                  className="w-full max-w-full rounded border p-2 text-sm"
+                  disabled={busy || !ticket.contactReview.canReview}
+                  value={contactAction}
+                  onChange={(e) => {
+                    setContactAction(e.target.value as typeof contactAction);
+                    setContactRevision(ticket.contactReview!.revision);
+                  }}
+                >
+                  <option value="none">No action</option>
+                  <option value="hold">
+                    Disable contact during this review
+                  </option>
+                  <option value="release">
+                    Release this case’s contact restriction
+                  </option>
+                </select>
+                <p className="text-xs text-slate-500">
+                  Applies to the reported account across the marketplace. Pauses
+                  new messages and contact disclosure; keeps existing history
+                  and support access. Releasing this case does not release
+                  restrictions from other cases or undo user blocks. Review
+                  notes remain private.
+                </p>
+              </div>
             )}
             <Label htmlFor="review-note">Private review note</Label>
             <Textarea

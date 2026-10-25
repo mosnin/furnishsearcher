@@ -64,6 +64,7 @@ export const conversationSummary = v.object({
   _creationTime: v.number(),
   blockedByMe: v.boolean(),
   cannotMessage: v.boolean(),
+  contactRestricted: v.optional(v.boolean()),
   archived: v.boolean(),
   listing: v.union(
     v.null(),

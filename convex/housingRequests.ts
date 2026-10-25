@@ -498,6 +498,7 @@ const inboxItem = v.object({
   phoneTestMode: v.boolean(),
   response: v.union(leadResponse, v.null()),
   historyNeedsReview: v.boolean(),
+  contactRestricted: v.optional(v.boolean()),
 });
 export const inbox = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -522,7 +523,7 @@ export const inbox = query({
         request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
         (delivery.kind === "unmatched" &&
           (!user.receiveUnmatchedLeads || request.allowUnmatched !== true)) ||
-        (await blockState(ctx, request.userId, user._id)).cannotMessage
+        (await blockState(ctx, request.userId, user._id, true)).cannotMessage
       )
         continue;
       const tenant = await ctx.db.get(request.userId);
@@ -537,6 +538,8 @@ export const inbox = query({
           tenant?.name ??
           "Traveler",
         phone: null,
+        contactRestricted: (await blockState(ctx, request.userId, user._id))
+          .contactRestricted,
         ...(await existingLeadResponse(ctx, delivery, request)),
         phoneTestMode: tenant?.phoneVerificationMode !== "prod",
       });

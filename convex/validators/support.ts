@@ -27,6 +27,7 @@ export const caseFields = {
   messageId: v.optional(v.id("messages")),
   // Snapshots survive changes/deletion of the reported source. Staff access only.
   evidence: v.optional(v.string()),
+  reportedUserId: v.optional(v.id("users")),
   status: caseStatus,
   createdAt: v.number(),
   updatedAt: v.number(),

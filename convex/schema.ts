@@ -903,6 +903,17 @@ export default defineSchema({
       "offerPrice",
     ]),
 
+  contactReviewHolds: defineTable({
+    userId: v.id("users"),
+    caseId: v.id("supportCases"),
+    active: v.boolean(),
+    revision: v.number(),
+    actorId: v.id("users"),
+    updatedAt: v.number(),
+  })
+    .index("by_case", ["caseId"])
+    .index("by_user_active", ["userId", "active"]),
+
   housingRequestDeliveries: defineTable({
     // Owner-specific irreversible removal; retained to prevent redelivery.
     deletedAt: v.optional(v.number()),

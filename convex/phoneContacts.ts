@@ -1,3 +1,4 @@
+import { contactReviewActive } from "./lib/contactReview";
 import { findActiveUser } from "./lib/auth";
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
@@ -97,7 +98,12 @@ export const availability = query({
     const listing = await ctx.db.get(args.listingId);
     if (!listing || !(await publiclyVisible(ctx, listing))) return unavailable;
     const owner = await ctx.db.get(listing.landlordId);
-    if (!owner || !enabled(owner)) return unavailable;
+    if (
+      !owner ||
+      !enabled(owner) ||
+      (await contactReviewActive(ctx, owner._id))
+    )
+      return unavailable;
     const identity = await ctx.auth.getUserIdentity();
     if (!identity)
       return { status: "sign-in" as const, revision: null, expiresAt: null };

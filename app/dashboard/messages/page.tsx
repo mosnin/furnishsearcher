@@ -776,9 +776,11 @@ function AccountMessages() {
             <div className="bg-white border-t p-4">
               {selected.cannotMessage ? (
                 <p className="text-sm text-slate-600">
-                  {selected.blockedByMe
-                    ? "You blocked this user. Unblock them to resume messaging."
-                    : "Messaging is currently unavailable between these accounts."}
+                  {selected.contactRestricted
+                    ? "Contact is disabled while an account review is in progress. Existing messages remain available."
+                    : selected.blockedByMe
+                      ? "You blocked this user. Unblock them to resume messaging."
+                      : "Messaging is currently unavailable between these accounts."}
                 </p>
               ) : !selected.listing || !selected.otherUser ? (
                 <p className="text-sm text-slate-500">

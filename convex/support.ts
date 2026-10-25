@@ -1,3 +1,4 @@
+import { contactReviewActive, reportedAccount } from "./lib/contactReview";
 import { recordMapEligibility } from "./lib/mapEligibility";
 import { publiclyVisible } from "./lib/publication";
 import { listingPhotos } from "./lib/photos";
@@ -15,7 +16,7 @@ import {
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { requireUser } from "./lib/auth";
+import { requireUser, subjectDeleted } from "./lib/auth";
 import {
   caseStatus,
   deliveryStatus,
@@ -157,11 +158,13 @@ export const report = mutation({
     const body = text(args.details, "Report details", 10, 5000);
     let listingId = args.listingId;
     let evidence: string;
+    let reportedUserId: Id<"users">;
     if (args.messageId) {
       const message = await ctx.db.get(args.messageId);
       if (!message || message.receiverId !== user._id)
         throw new Error("Only received messages can be reported.");
       listingId = message.listingId;
+      reportedUserId = message.senderId;
       evidence = JSON.stringify({
         content: message.content,
         senderId: message.senderId,
@@ -174,6 +177,7 @@ export const report = mutation({
         throw new Error("Listing unavailable. Use the contact form instead.");
       if (listing.landlordId === user._id)
         throw new Error("Use support for your own property.");
+      reportedUserId = listing.landlordId;
       evidence = JSON.stringify({
         title: listing.title.slice(0, 500),
         description: listing.description.slice(0, 20000),
@@ -221,6 +225,7 @@ export const report = mutation({
       listingId,
       ...(args.messageId ? { messageId: args.messageId } : {}),
       evidence,
+      reportedUserId,
     });
   },
 });
@@ -319,6 +324,16 @@ export const get = query({
     _creationTime: v.number(),
     isStaff: v.boolean(),
     listingHeld: v.boolean(),
+    contactReview: v.optional(
+      v.object({
+        userId: v.id("users"),
+        name: v.string(),
+        canReview: v.boolean(),
+        restricted: v.boolean(),
+        caseRestricted: v.boolean(),
+        revision: v.number(),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     const { user, ticket } = await allowed(ctx, args.id);
@@ -326,8 +341,29 @@ export const get = query({
     const listing = ticket.listingId
       ? await ctx.db.get(ticket.listingId)
       : null;
+    const target = isStaff ? await reportedAccount(ctx, ticket) : null;
+    const hold = target
+      ? await ctx.db
+          .query("contactReviewHolds")
+          .withIndex("by_case", (q) => q.eq("caseId", ticket._id))
+          .unique()
+      : null;
     return {
       ...ticket,
+      reportedUserId: isStaff ? ticket.reportedUserId : undefined,
+      contactReview: target
+        ? {
+            userId: target._id,
+            name: target.displayName ?? target.name,
+            canReview:
+              target.role !== "admin" &&
+              target.clerkDeletedAt === undefined &&
+              !(await subjectDeleted(ctx, target.clerkId)),
+            restricted: await contactReviewActive(ctx, target._id),
+            caseRestricted: !!hold?.active,
+            revision: hold?.revision ?? 0,
+          }
+        : undefined,
       evidence: isStaff ? ticket.evidence : undefined,
       isStaff,
       listingHeld: isStaff && !!listing?.moderationHold,
@@ -434,6 +470,8 @@ export const review = mutation({
     status: caseStatus,
     note: v.string(),
     listingAction: v.optional(v.union(v.literal("hold"), v.literal("release"))),
+    contactAction: v.optional(v.union(v.literal("hold"), v.literal("release"))),
+    expectedContactRevision: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -441,6 +479,41 @@ export const review = mutation({
     const ticket = await ctx.db.get(args.id);
     if (!ticket) throw new Error("Case not found.");
     const note = text(args.note, "Review note", 3, 2000);
+    if (args.contactAction) {
+      const target = await reportedAccount(ctx, ticket);
+      if (
+        !target ||
+        target.role === "admin" ||
+        target.clerkDeletedAt !== undefined ||
+        (await subjectDeleted(ctx, target.clerkId)) ||
+        target._id === actor._id
+      )
+        throw new Error("This case has no reviewable reported account.");
+      const hold = await ctx.db
+        .query("contactReviewHolds")
+        .withIndex("by_case", (q) => q.eq("caseId", ticket._id))
+        .unique();
+      if (
+        (hold && hold.userId !== target._id) ||
+        args.expectedContactRevision !== (hold?.revision ?? 0)
+      )
+        throw new Error(
+          "Contact review changed. Refresh this case before saving.",
+        );
+      const active = args.contactAction === "hold";
+      if (active !== !!hold?.active) {
+        const state = {
+          userId: target._id,
+          caseId: ticket._id,
+          active,
+          revision: (hold?.revision ?? 0) + 1,
+          actorId: actor._id,
+          updatedAt: Date.now(),
+        };
+        if (hold) await ctx.db.patch(hold._id, state);
+        else await ctx.db.insert("contactReviewHolds", state);
+      }
+    }
     if (args.listingAction) {
       const listing = ticket.listingId
         ? await ctx.db.get(ticket.listingId)
@@ -458,7 +531,8 @@ export const review = mutation({
     await ctx.db.insert("supportAudit", {
       caseId: args.id,
       actorId: actor._id,
-      action: `${args.status}${args.listingAction ? `:listing_${args.listingAction}` : ""}`,
+      action: `${args.status}${args.listingAction ? `:listing_${args.listingAction}` : ""}${args.contactAction ? `:contact_${args.contactAction}` : ""}`,
+
       note,
       createdAt: Date.now(),
     });

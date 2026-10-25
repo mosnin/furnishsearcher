@@ -49,7 +49,9 @@ function RequestCard({ item }: { item: InboxItem }) {
     loadMore,
   } = usePaginatedQuery(
     api.housingRequests.matchingProperties,
-    expanded ? { requestId: r._id, orderVersion: 1 } : "skip",
+    expanded && !item.contactRestricted
+      ? { requestId: r._id, orderVersion: 1 }
+      : "skip",
     { initialNumItems: 20 },
   );
   const chosen = listingId
@@ -64,7 +66,7 @@ function RequestCard({ item }: { item: InboxItem }) {
     : chosen;
   const contact = useQuery(
     api.housingRequests.leadContact,
-    expanded && contactOption
+    expanded && !item.contactRestricted && contactOption
       ? { requestId: r._id, listingId: contactOption.listingId }
       : "skip",
   );
@@ -157,6 +159,16 @@ function RequestCard({ item }: { item: InboxItem }) {
             {r.description}
           </p>
         )}
+        {item.contactRestricted && (
+          <p
+            role="status"
+            className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700"
+          >
+            Account review — contact disabled. Contact details and new messages
+            are paused while the review is in progress. Existing conversations
+            remain readable.
+          </p>
+        )}
         {item.response && (
           <div className="rounded-lg border bg-slate-50 p-4 space-y-2">
             <p className="text-sm font-medium break-words">
@@ -183,7 +195,12 @@ function RequestCard({ item }: { item: InboxItem }) {
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={expand}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={expand}
+            disabled={item.contactRestricted}
+          >
             {expanded ? "Hide properties" : "Review my properties"}
           </Button>
           <DeleteLeadDialog
@@ -193,7 +210,7 @@ function RequestCard({ item }: { item: InboxItem }) {
             disabled={busy}
           />
         </div>
-        {expanded && (
+        {expanded && !item.contactRestricted && (
           <div className="space-y-4 border-t pt-4">
             {listingId && !chosen && status !== "LoadingFirstPage" && (
               <p role="status" className="text-sm text-amber-800">
