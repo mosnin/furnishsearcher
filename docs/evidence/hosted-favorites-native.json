@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-25T22:34:46.094Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentJwt": true,
+  "privilegedSyntheticHistoricalFavoritesOnly": true,
+  "currentPrivateListingsCannotBeNewlySaved": true,
+  "pagedPrivateRead": true,
+  "unavailableCardsContainNoListingDetails": true,
+  "fixtureFavoritesRemaining": 19,
+  "nativeUnavailableRemovalAccepted": true,
+  "anonymousReadDenied": true,
+  "publicSaveAcceptance": false,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

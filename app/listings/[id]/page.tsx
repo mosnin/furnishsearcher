@@ -19,7 +19,6 @@ import {
   PawPrint,
   Car,
   Heart,
-  Share2,
   MapPin,
   CheckCircle2,
   Clock,

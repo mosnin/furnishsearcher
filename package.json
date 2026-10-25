@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:local-search": "node scripts/local-search-smoke.mjs",
+    "test:local-favorites": "node scripts/local-favorites-smoke.mjs",
     "test:local-photos": "node scripts/local-photo-smoke.mjs",
     "test:local-photo-retention": "node scripts/local-photo-retention-smoke.mjs",
     "test:local-billing": "node scripts/local-billing-smoke.mjs",

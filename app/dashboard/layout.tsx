@@ -95,6 +95,8 @@ const landlordNav: NavItem[] = [
   { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { label: "Rental Tools", href: "/dashboard/rental-tools", icon: FileText },
   { label: "Support Cases", href: "/dashboard/support", icon: FileText },
+  { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
+  { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   {
     label: "Market Insights",

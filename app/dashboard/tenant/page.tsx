@@ -30,11 +30,6 @@ type ConvListing = {
   photos: string[];
 };
 
-type SavedEntry = {
-  _id: string;
-  listing: ConvListing | null;
-};
-
 type ConvConversation = {
   _id: string;
   tenantId: string;
