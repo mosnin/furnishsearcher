@@ -173,9 +173,21 @@ export default defineSchema({
     storageId: v.id("_storage"),
     ownerId: v.id("users"),
     createdAt: v.number(),
+    cleanupVersion: v.optional(v.literal(1)),
+    expiresAt: v.optional(v.number()),
+    urlKey: v.optional(v.string()),
   })
     .index("by_storage", ["storageId"])
-    .index("by_owner_time", ["ownerId", "createdAt"]),
+    .index("by_owner_time", ["ownerId", "createdAt"])
+    .index("by_cleanup_version", ["cleanupVersion"])
+    .index("by_url_key", ["urlKey"])
+    .index("by_expiry", ["expiresAt"]),
+  listingPhotoReferences: defineTable({
+    listingId: v.id("listings"),
+    storageId: v.id("_storage"),
+  })
+    .index("by_listing", ["listingId"])
+    .index("by_storage", ["storageId"]),
   profileImageUploads: defineTable({
     ownerId: v.id("users"),
     kind: v.union(v.literal("profile"), v.literal("pet")),

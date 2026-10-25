@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T22:16:43.957Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "authentication": "Privileged isolated local development identity, not real Clerk/provider acceptance",
+  "actualAuthenticatedHttpUploadAndExactBytes": true,
+  "actualNativeReferenceMigrationCompleted": true,
+  "sharedRentalReferenceProtectsBytes": true,
+  "actualNativeLegacyStorageUrlReferenceProtected": true,
+  "freshAndRemovedRecoveryWindowPreservesBytes": true,
+  "reattachmentBeforeExpiryWorks": true,
+  "abandonedAndFinalReferenceExpiryDeletesActualBytes": true,
+  "expiredGallerySaveRejected": true,
+  "syntheticListingsDeleted": true,
+  "deadlineAcceptance": "Only this new reserved fixture's unused deadlines were aged through a temporary guarded local helper; seven days were not elapsed in real time",
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

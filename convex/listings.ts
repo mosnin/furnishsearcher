@@ -1,4 +1,5 @@
 import { findActiveUser } from "./lib/auth";
+import { syncPhotoReferences } from "./lib/photoRetention";
 import { profileImage } from "./lib/profileImages";
 import {
   createPropertyGroup,
@@ -158,6 +159,7 @@ export const create = mutation({
       createdAt: Date.now(),
       views: 0,
     });
+    await syncPhotoReferences(ctx, (await ctx.db.get(listingId))!);
     if (group) {
       await ctx.db.patch(group._id, { unitCount: group.unitCount + 1 });
       await syncGeo(ctx, (await ctx.db.get(listingId))!);
@@ -323,6 +325,8 @@ export const update = mutation({
         ? { searchState: normalizeState(args.state) }
         : {}),
     });
+    if (assets || photos)
+      await syncPhotoReferences(ctx, (await ctx.db.get(id))!);
     if (!locationChanged && listing.mapLatitude !== undefined)
       await syncGeo(ctx, (await ctx.db.get(id))!);
     if (changed)
@@ -432,6 +436,7 @@ export const deleteListing = mutation({
       .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
       .unique();
     if (privateLocation) await ctx.db.delete(privateLocation._id);
+    await syncPhotoReferences(ctx, listing, true);
     await ctx.db.delete(args.id);
     await ctx.scheduler.runAfter(0, internal.publication.reconcileOwner, {
       userId: listing.landlordId,

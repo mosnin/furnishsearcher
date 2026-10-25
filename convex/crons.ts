@@ -2,6 +2,12 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
 crons.interval(
+  "clean unused listing photos",
+  { hours: 24 },
+  internal.photoRetention.maintenance,
+  {},
+);
+crons.interval(
   "refresh linked calendars",
   { minutes: 15 },
   internal.calendarFeeds.refreshDue,

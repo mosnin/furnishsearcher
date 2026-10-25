@@ -7,6 +7,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireUser } from "./lib/auth";
+import { PHOTO_RECOVERY_MS, photoUrlKey } from "./lib/photoRetention";
 import {
   MAX_PHOTO_BYTES,
   PHOTO_TYPES,
@@ -68,6 +69,9 @@ export const register = internalMutation({
       storageId,
       ownerId: user._id,
       createdAt: Date.now(),
+      cleanupVersion: 1,
+      expiresAt: Date.now() + PHOTO_RECOVERY_MS,
+      urlKey: await photoUrlKey((await ctx.storage.getUrl(storageId))!),
     });
     return null;
   },
