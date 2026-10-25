@@ -197,10 +197,11 @@ function AccountPerformance() {
                       {metricLabels[key]}
                     </p>
                     <p className="text-2xl font-semibold mt-2">
-                      {(key === "phoneReveals" &&
-                        report.phoneStartedAt === null) ||
-                      (key === "unmatchedLeads" &&
-                        report.unmatchedStartedAt === null)
+                      {(key === "phoneReveals"
+                        ? report.phoneStartedAt
+                        : key === "unmatchedLeads"
+                          ? report.unmatchedStartedAt
+                          : report.startedAt) === null
                         ? "Unavailable"
                         : totals[key].toLocaleString()}
                     </p>
