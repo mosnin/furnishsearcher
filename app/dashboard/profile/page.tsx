@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn, formatPrice, formatDate } from "@/lib/utils";
 import { Doc } from "@/convex/_generated/dataModel";
-import { ReviewCard } from "@/components/review-card";
+import { PublicReviews } from "@/components/public-reviews";
 import { STATES } from "@/lib/cities";
 
 const TABS = ["Personal Info", "Reviews", "Saved Searches", "Housing Requests"] as const;
@@ -344,45 +344,7 @@ function PersonalInfoTab({ convexUser, clerkUser }: { convexUser: NonNullable<Re
 
 /* ─── Reviews tab ─── */
 function ReviewsTab({ convexUser }: { convexUser: NonNullable<ReturnType<typeof useQuery<typeof api.users.getByClerkId>>> }) {
-  const reviews = useQuery(
-    api.reviews.getByLandlord,
-    convexUser.role === "landlord" ? { landlordId: convexUser._id } : "skip"
-  );
-
-  if (convexUser.role !== "landlord") {
-    return (
-      <div className="text-center py-16 text-gray-400">
-        <Star className="w-10 h-10 mx-auto mb-3 opacity-40" />
-        <p className="font-medium text-gray-600">Reviews you&apos;ve written will appear here</p>
-        <p className="text-sm mt-1">Once you&apos;ve stayed somewhere, you can leave a review.</p>
-      </div>
-    );
-  }
-
-  if (reviews === undefined) return <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}</div>;
-
-  if (!reviews.length) return (
-    <div className="text-center py-16 text-gray-400">
-      <Star className="w-10 h-10 mx-auto mb-3 opacity-40" />
-      <p className="font-medium text-gray-600">No reviews yet</p>
-      <p className="text-sm mt-1">Reviews from tenants will appear here.</p>
-    </div>
-  );
-
-  return (
-    <div className="space-y-4">
-      {reviews.map((r) => (
-        <ReviewCard
-          key={r._id}
-          rating={r.rating}
-          comment={r.comment}
-          reviewerName={r.reviewerName ?? "Anonymous"}
-          reviewerAvatar={r.reviewerAvatar}
-          createdAt={r.createdAt}
-        />
-      ))}
-    </div>
-  );
+  return <div className="space-y-5"><p className="text-sm text-slate-600">Published reviews about you{convexUser.role==="landlord"?" and your properties":""} appear below. <Link className="underline" href="/dashboard/reviews">Manage written reviews, responses, invitations and moderation updates</Link>.</p>{convexUser.role==="landlord"?<PublicReviews landlordId={convexUser._id}/>:<PublicReviews travelerId={convexUser._id}/>}</div>;
 }
 
 /* ─── Saved Searches tab ─── */

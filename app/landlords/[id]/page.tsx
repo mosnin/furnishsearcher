@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
-import { ReviewCard } from "@/components/review-card";
+import { PublicReviews } from "@/components/public-reviews";
 import { formatDate } from "@/lib/utils";
 
 interface PageProps {
@@ -45,17 +45,12 @@ export default function LandlordProfilePage({ params }: PageProps) {
 
   const listings = useQuery(
     api.listings.getByLandlord,
-    landlord ? { landlordId: landlord._id } : "skip"
-  );
-
-  const reviews = useQuery(
-    api.reviews.getByLandlord,
-    landlord ? { landlordId: landlord._id } : "skip"
+    landlord ? { landlordId: landlord._id } : "skip",
   );
 
   const ratingStats = useQuery(
     api.reviews.getAverageRating,
-    landlord ? { landlordId: landlord._id } : "skip"
+    landlord ? { landlordId: landlord._id } : "skip",
   );
 
   // Loading state
@@ -67,7 +62,9 @@ export default function LandlordProfilePage({ params }: PageProps) {
   if (landlord === null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-        <h1 className="text-2xl font-bold text-foreground">Landlord not found</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Landlord not found
+        </h1>
         <p className="text-muted-foreground text-sm">
           This profile may have been removed or does not exist.
         </p>
@@ -90,14 +87,15 @@ export default function LandlordProfilePage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 flex flex-col gap-8">
-
         {/* Breadcrumb */}
         <nav className="text-sm text-muted-foreground flex items-center gap-1.5">
           <Link href="/" className="hover:text-foreground transition-colors">
             Home
           </Link>
           <span>/</span>
-          <span className="text-foreground font-medium truncate">{displayName}</span>
+          <span className="text-foreground font-medium truncate">
+            {displayName}
+          </span>
         </nav>
 
         {/* ── Hero card ── */}
@@ -123,11 +121,15 @@ export default function LandlordProfilePage({ params }: PageProps) {
             {/* Name & badges */}
             <div className="mt-4 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {displayName}
+                </h1>
                 {landlord.identityVerified && (
                   <Badge className="gap-1 bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
                     <BadgeCheck className="h-3.5 w-3.5" />
-                    {landlord.identityTestMode ? "Test identity check" : "Identity verified"}
+                    {landlord.identityTestMode
+                      ? "Test identity check"
+                      : "Identity verified"}
                   </Badge>
                 )}
               </div>
@@ -139,7 +141,9 @@ export default function LandlordProfilePage({ params }: PageProps) {
               )}
 
               {landlord.occupation && (
-                <p className="text-sm text-muted-foreground">{landlord.occupation}</p>
+                <p className="text-sm text-muted-foreground">
+                  {landlord.occupation}
+                </p>
               )}
 
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
@@ -241,33 +245,7 @@ export default function LandlordProfilePage({ params }: PageProps) {
 
           {/* Reviews tab */}
           <TabsContent value="reviews">
-            {reviews === undefined ? (
-              <div className="flex flex-col gap-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32 rounded-xl" />
-                ))}
-              </div>
-            ) : reviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-                <Star className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-muted-foreground text-sm">
-                  No reviews yet.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {reviews.map((review) => (
-                  <ReviewCard
-                    key={review._id}
-                    rating={review.rating}
-                    comment={review.comment}
-                    reviewerName={review.reviewerName}
-                    reviewerAvatar={review.reviewerAvatar}
-                    createdAt={review.createdAt}
-                  />
-                ))}
-              </div>
-            )}
+            <PublicReviews landlordId={landlord._id} />
           </TabsContent>
         </Tabs>
       </div>

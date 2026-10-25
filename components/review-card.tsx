@@ -4,9 +4,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StarRating } from "@/components/star-rating";
+import type { Id } from "@/convex/_generated/dataModel";
+import { ReviewActions } from "./review-actions";
 import { cn } from "@/lib/utils";
 
 interface ReviewCardProps {
+  reviewId?: Id<"reviews">;
+  title?: string;
+  response?: { body: string; createdAt: number };
   rating: number;
   comment: string;
   reviewerName: string;
@@ -34,6 +39,9 @@ function formatReviewDate(timestamp: number): string {
 }
 
 export function ReviewCard({
+  reviewId,
+  title,
+  response,
   rating,
   comment,
   reviewerName,
@@ -70,12 +78,28 @@ export function ReviewCard({
         {/* Star rating */}
         <StarRating rating={rating} size="sm" showNumeric={false} />
 
+        {title && <h3 className="font-semibold text-slate-900">{title}</h3>}
         {/* Comment */}
-        <p className="text-sm text-muted-foreground leading-relaxed">{comment}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {comment}
+        </p>
 
+        {response && (
+          <div className="rounded-lg border-l-2 border-slate-300 bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-600">
+              Response from the reviewed party ·{" "}
+              {formatReviewDate(response.createdAt)}
+            </p>
+            <p className="whitespace-pre-wrap text-sm mt-1">{response.body}</p>
+          </div>
+        )}
+        {reviewId && <ReviewActions id={reviewId} />}
         {/* Optional listing badge */}
         {listingTitle && (
-          <Badge variant="secondary" className="self-start text-xs font-normal truncate max-w-full">
+          <Badge
+            variant="secondary"
+            className="self-start text-xs font-normal truncate max-w-full"
+          >
             {listingTitle}
           </Badge>
         )}

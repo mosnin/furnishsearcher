@@ -40,36 +40,94 @@ const tenantNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
   { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
   { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
-  { label: "Housing Requests", href: "/dashboard/housing-requests", icon: FileText },
-  { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
+  {
+    label: "Housing Requests",
+    href: "/dashboard/housing-requests",
+    icon: FileText,
+  },
+  {
+    label: "Booking Inquiries",
+    href: "/dashboard/inquiries",
+    icon: CalendarDays,
+  },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
-  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
+  {
+    label: "Market Insights",
+    href: "/market-insights",
+    icon: TrendingUp,
+    badge: "NEW",
+  },
 ];
 
 const landlordNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/landlord", icon: LayoutDashboard },
-  { label: "My Listings", href: "/dashboard/landlord/listings", icon: Building2 },
-  { label: "Add Listing", href: "/dashboard/landlord/listings/new", icon: PlusSquare },
-  { label: "Booking Inquiries", href: "/dashboard/inquiries", icon: CalendarDays },
-  { label: "Tenant Requests", href: "/dashboard/landlord/requests", icon: Users },
+  {
+    label: "My Listings",
+    href: "/dashboard/landlord/listings",
+    icon: Building2,
+  },
+  {
+    label: "Add Listing",
+    href: "/dashboard/landlord/listings/new",
+    icon: PlusSquare,
+  },
+  {
+    label: "Booking Inquiries",
+    href: "/dashboard/inquiries",
+    icon: CalendarDays,
+  },
+  {
+    label: "Tenant Requests",
+    href: "/dashboard/landlord/requests",
+    icon: Users,
+  },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Analytics", href: "/dashboard/landlord/analytics", icon: BarChart3 },
+  {
+    label: "Analytics",
+    href: "/dashboard/landlord/analytics",
+    icon: BarChart3,
+  },
   { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },
+  { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
   { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
-  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
+  {
+    label: "Market Insights",
+    href: "/market-insights",
+    icon: TrendingUp,
+    badge: "NEW",
+  },
 ];
 
 const adminNav: NavItem[] = [
   { label: "Overview", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "All Listings", href: "/dashboard/admin/listings", icon: Building2 },
+  {
+    label: "Review Moderation",
+    href: "/dashboard/admin/reviews",
+    icon: MessageSquare,
+  },
   { label: "All Users", href: "/dashboard/admin/users", icon: Users },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Platform Analytics", href: "/dashboard/admin/reports", icon: BarChart3 },
-  { label: "Support & Reports", href: "/dashboard/admin/support", icon: ShieldCheck },
-  { label: "Market Insights", href: "/market-insights", icon: TrendingUp, badge: "NEW" },
+  {
+    label: "Platform Analytics",
+    href: "/dashboard/admin/reports",
+    icon: BarChart3,
+  },
+  {
+    label: "Support & Reports",
+    href: "/dashboard/admin/support",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Market Insights",
+    href: "/market-insights",
+    icon: TrendingUp,
+    badge: "NEW",
+  },
 ];
 
 function NavLink({
@@ -90,7 +148,7 @@ function NavLink({
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors duration-150",
         isActive
           ? "bg-[#0f2044] text-white"
-          : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+          : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900",
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -121,7 +179,9 @@ function SidebarContent({
       <div className="flex h-16 items-center px-4 border-b border-slate-200/80">
         <Link href="/" className="flex items-center gap-2">
           <Home className="h-6 w-6 shrink-0 text-[#0f2044]" />
-          <span className="font-semibold text-[16px] text-[#0f2044]">FurnishFinder</span>
+          <span className="font-semibold text-[16px] text-[#0f2044]">
+            FurnishFinder
+          </span>
         </Link>
       </div>
 
@@ -155,7 +215,9 @@ function SidebarContent({
               }}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">{userName}</p>
+              <p className="text-sm font-medium text-slate-900 truncate">
+                {userName}
+              </p>
             </div>
           </div>
         </div>
@@ -177,7 +239,7 @@ export default function DashboardLayout({
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   useEffect(() => {
@@ -235,7 +297,7 @@ export default function DashboardLayout({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 bg-white/90 border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out md:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="absolute top-4 right-4">
@@ -280,9 +342,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
 
         <MobileNav role={convexUser?.role ?? "tenant"} />
       </div>

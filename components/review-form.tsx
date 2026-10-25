@@ -1,7 +1,6 @@
 "use client";
-
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -10,204 +9,246 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/star-rating";
-import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-const MIN_COMMENT_LENGTH = 20;
-const MAX_COMMENT_LENGTH = 500;
-
-interface ReviewFormProps {
+const day = (timestamp?: number) =>
+  timestamp === undefined ? "" : new Date(timestamp).toISOString().slice(0, 10);
+type Props = {
   listingId: Id<"listings">;
   landlordId: Id<"users">;
   landlordName: string;
   reviewerId: Id<"users">;
   isOpen: boolean;
   onClose: () => void;
-}
-
-export function ReviewForm({
-  listingId,
-  landlordId,
-  landlordName,
-  reviewerId,
-  isOpen,
-  onClose,
-}: ReviewFormProps) {
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const createReview = useMutation(api.reviews.create);
-
-  const canReview = useQuery(api.reviews.canReview, {
-    reviewerId,
-    listingId,
-  });
-
-  const charsRemaining = MAX_COMMENT_LENGTH - comment.length;
-  const isCommentValid =
-    comment.trim().length >= MIN_COMMENT_LENGTH &&
-    comment.length <= MAX_COMMENT_LENGTH;
-  const canSubmit = rating > 0 && isCommentValid && !submitting && canReview === true;
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    setSubmitting(true);
-    setError(null);
-
+  kind?: "property" | "traveler";
+  subjectId?: Id<"users">;
+  bookingId?: Id<"bookingInquiries">;
+  stayStart?: number;
+  stayEnd?: number;
+};
+export function ReviewForm(p: Props) {
+  const { isAuthenticated } = useConvexAuth();
+  const context = useQuery(
+    api.reviews.context,
+    p.isOpen && isAuthenticated
+      ? { listingId: p.listingId, kind: p.kind, subjectId: p.subjectId }
+      : "skip",
+  );
+  const create = useMutation(api.reviews.create);
+  const [rating, setRating] = useState(0),
+    [title, setTitle] = useState(""),
+    [comment, setComment] = useState(""),
+    [phone, setPhone] = useState(""),
+    [start, setStart] = useState(day(p.stayStart)),
+    [end, setEnd] = useState(day(p.stayEnd)),
+    [evidence, setEvidence] = useState(""),
+    [confirmed, setConfirmed] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const existing = context?.existing,
+    bookingId = existing?.bookingId ?? p.bookingId;
+  useEffect(() => {
+    if (!p.isOpen) return;
+    setRating(existing?.rating ?? 0);
+    setTitle(existing?.title ?? "");
+    setComment(existing?.comment ?? "");
+    setPhone(existing?.phone ?? "");
+    setStart(day(existing?.stayStart ?? p.stayStart));
+    setEnd(day(existing?.stayEnd ?? p.stayEnd));
+    setEvidence(existing?.stayEvidence ?? "");
+    setConfirmed(false);
+    setError("");
+  }, [p.isOpen, existing?._id, existing?.revision, p.stayStart, p.stayEnd]);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
     try {
-      await createReview({
-        listingId,
-        landlordId,
-        reviewerId,
+      await create({
+        listingId: p.listingId,
+        landlordId: context?.landlordId ?? p.landlordId,
+        reviewerId: p.reviewerId,
+        kind: p.kind,
+        subjectId: p.subjectId,
+        title,
         rating,
-        comment: comment.trim(),
+        comment,
+        phone,
+        stayStart: Date.parse(`${start}T00:00:00Z`),
+        stayEnd: Date.parse(`${end}T00:00:00Z`),
+        bookingId,
+        stayEvidence: evidence,
+        experienceConfirmed: confirmed,
       });
-      setSubmitted(true);
-      toast.success("Review submitted successfully!");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit review. Please try again."
-      );
+      toast.success("Review submitted for moderation. It is not public yet.");
+      p.onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not submit review.");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  };
-
-  const handleClose = () => {
-    onClose();
-    // Reset after close animation
-    setTimeout(() => {
-      setRating(0);
-      setComment("");
-      setSubmitting(false);
-      setSubmitted(false);
-      setError(null);
-    }, 300);
-  };
-
+  }
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-lg">
-        {submitted ? (
-          /* Success state */
-          <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-            </div>
-            <DialogHeader>
-              <DialogTitle className="text-xl">Review submitted!</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground mt-1">
-                Thank you for sharing your experience. Your review helps other renters
-                make informed decisions.
-              </DialogDescription>
-            </DialogHeader>
-            <Button onClick={handleClose} className="mt-2 w-full sm:w-auto">
-              Done
-            </Button>
-          </div>
-        ) : canReview === false ? (
-          /* Already reviewed state */
-          <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <DialogHeader>
-              <DialogTitle>Already reviewed</DialogTitle>
-              <DialogDescription>
-                You&apos;ve already reviewed this listing. You can only submit one review per
-                listing.
-              </DialogDescription>
-            </DialogHeader>
-            <Button onClick={handleClose} variant="outline" className="mt-2">
-              Close
+    <Dialog
+      open={p.isOpen}
+      onOpenChange={(value) => !value && !busy && p.onClose()}
+    >
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            {p.kind === "traveler" ? "Review traveler" : "Review property"}
+          </DialogTitle>
+          <DialogDescription>
+            {context?.listingTitle ?? p.landlordName} · Reviews and responses
+            are moderated before publication.
+          </DialogDescription>
+        </DialogHeader>
+        {!context ? (
+          <p role="status">Loading review status…</p>
+        ) : !context.canSubmit ? (
+          <div className="space-y-3">
+            <p>
+              Your review is {existing?.status ?? "unavailable"}. Use My reviews
+              to follow its status or request removal.
+            </p>
+            <Button asChild variant="outline">
+              <a href="/dashboard/reviews">My reviews</a>
             </Button>
           </div>
         ) : (
-          /* Form state */
-          <>
-            <DialogHeader>
-              <DialogTitle>Write a Review for {landlordName}</DialogTitle>
-              <DialogDescription>
-                Share your honest experience to help other renters.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex flex-col gap-5 mt-1">
-              {/* Star selector */}
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium text-foreground">Your Rating</p>
-                <StarRating
-                  rating={rating}
-                  size="lg"
-                  interactive
-                  onChange={setRating}
-                  showNumeric
-                />
-                {rating === 0 && (
-                  <p className="text-xs text-muted-foreground">Click a star to rate</p>
-                )}
-              </div>
-
-              {/* Comment textarea */}
-              <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-medium text-foreground">Your Review</p>
-                <Textarea
-                  placeholder={`Describe your experience renting from ${landlordName}. What was communication like? Would you rent from them again?`}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={5}
-                  maxLength={MAX_COMMENT_LENGTH}
-                  className="resize-none text-sm"
-                  disabled={submitting}
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0 ? (
-                      <span className="text-amber-600">
-                        {MIN_COMMENT_LENGTH - comment.trim().length} more characters needed
-                      </span>
-                    ) : null}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-xs",
-                      charsRemaining < 50 ? "text-amber-600" : "text-muted-foreground"
-                    )}
-                  >
-                    {charsRemaining} remaining
-                  </span>
-                </div>
-              </div>
-
-              {error && (
-                <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
-                  {error}
-                </p>
-              )}
+          <form onSubmit={submit} className="space-y-4">
+            {existing?.moderationNote && (
+              <p className="rounded border p-3 text-sm">
+                Staff feedback: {existing.moderationNote}
+              </p>
+            )}
+            <div>
+              <p className="text-sm font-medium">Rating</p>
+              <StarRating rating={rating} interactive onChange={setRating} />
             </div>
-
-            <DialogFooter className="mt-2 gap-2 sm:gap-0">
-              <Button variant="outline" onClick={handleClose} disabled={submitting}>
+            <label className="block text-sm font-medium">
+              Review title
+              <Input
+                required
+                minLength={3}
+                maxLength={100}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Your review
+              <Textarea
+                required
+                minLength={20}
+                maxLength={1000}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={5}
+              />
+              <span className="text-xs text-slate-500">
+                {comment.length}/1000 · Do not include names, addresses, contact
+                details, threats or promotional content.
+              </span>
+            </label>
+            <label className="block text-sm font-medium">
+              Private contact phone
+              <Input
+                type="tel"
+                autoComplete="tel"
+                required
+                maxLength={30}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <span className="text-xs text-slate-500">
+                Only you and staff can see this. Providing a number does not
+                verify it.
+              </span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm font-medium">
+                Check-in
+                <Input
+                  type="date"
+                  required
+                  readOnly={!!bookingId}
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                />
+              </label>
+              <label className="text-sm font-medium">
+                Check-out
+                <Input
+                  type="date"
+                  required
+                  readOnly={!!bookingId}
+                  min={start}
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                />
+              </label>
+            </div>
+            {bookingId ? (
+              <p className="text-xs text-slate-600">
+                Linked to your accepted inquiry. Staff still review the actual
+                stay and content.
+              </p>
+            ) : (
+              <label className="block text-sm font-medium">
+                Private stay context
+                <Textarea
+                  required
+                  minLength={20}
+                  maxLength={1000}
+                  value={evidence}
+                  onChange={(e) => setEvidence(e.target.value)}
+                  placeholder="Explain how the stay was arranged and confirmed. Do not include ID documents, payment details or private addresses."
+                />
+                <span className="text-xs text-slate-500">
+                  A stay arranged outside this app needs staff review. Support
+                  may ask for more information.
+                </span>
+              </label>
+            )}
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                required
+                checked={confirmed}
+                onChange={(e) => setConfirmed(e.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                I personally experienced this stay. This review is accurate,
+                unbiased, contains no private information, and is not
+                incentivized or about my own, a friend’s, or a relative’s
+                property.
+              </span>
+            </label>
+            {error && (
+              <p role="alert" className="text-sm text-red-700">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={p.onClose}
+                disabled={busy}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} disabled={!canSubmit}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting…
-                  </>
-                ) : (
-                  "Submit Review"
-                )}
+              <Button type="submit" disabled={busy || rating < 1 || !confirmed}>
+                {busy ? "Submitting…" : "Submit for review"}
               </Button>
-            </DialogFooter>
-          </>
+            </div>
+          </form>
         )}
       </DialogContent>
     </Dialog>

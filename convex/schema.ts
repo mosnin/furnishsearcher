@@ -1,7 +1,12 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { housingRequestFields } from "./validators/housing";
-import { caseFields, replyFields, auditFields } from "./validators/support";
+import {
+  caseFields,
+  replyFields,
+  auditFields,
+  deliveryStatus,
+} from "./validators/support";
 import {
   messageFields,
   conversationFields,
@@ -16,6 +21,7 @@ import { photoAsset } from "./validators/photos";
 
 import { subscriptionStatus } from "./validators/billing";
 
+import { reviewStatus, reviewKind } from "./validators/reviews";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
@@ -260,16 +266,74 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_tenant", ["tenantId"])
     .index("by_landlord", ["landlordId"])
-    .index("by_listing_tenant", ["listingId", "tenantId"]),
+    .index("by_listing_tenant", ["listingId", "tenantId"])
+    .index("by_tenant_landlord", ["tenantId", "landlordId"]),
 
+  reviewNotices: defineTable({
+    reviewId: v.optional(v.id("reviews")),
+    inquiryId: v.optional(v.id("bookingInquiries")),
+    recipientId: v.id("users"),
+    senderId: v.optional(v.id("users")),
+    kind: v.union(v.literal("decision"), v.literal("invitation")),
+    body: v.string(),
+    emailStatus: deliveryStatus,
+    createdAt: v.number(),
+    lastAttemptAt: v.optional(v.number()),
+  })
+    .index("by_recipient", ["recipientId"])
+    .index("by_inquiry_recipient", ["inquiryId", "recipientId"])
+    .index("by_recipient_kind", ["recipientId", "kind"]),
+  reviewStats: defineTable({
+    key: v.string(),
+    count: v.number(),
+    sum: v.number(),
+  }).index("by_key", ["key"]),
+  reviewEvents: defineTable({
+    reviewId: v.id("reviews"),
+    actorId: v.id("users"),
+    action: v.string(),
+    note: v.string(),
+    revision: v.number(),
+    snapshot: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_review", ["reviewId"]),
   reviews: defineTable({
     listingId: v.id("listings"),
     landlordId: v.id("users"),
     reviewerId: v.id("users"),
     rating: v.number(),
     comment: v.string(),
+    kind: v.optional(reviewKind),
+    subjectId: v.optional(v.id("users")),
+    title: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    stayStart: v.optional(v.number()),
+    stayEnd: v.optional(v.number()),
+    bookingId: v.optional(v.id("bookingInquiries")),
+    stayEvidence: v.optional(v.string()),
+    experienceConfirmed: v.optional(v.boolean()),
+    status: v.optional(reviewStatus),
+    revision: v.optional(v.number()),
+    moderationNote: v.optional(v.string()),
+    counted: v.optional(v.boolean()),
+    removalRequested: v.optional(v.boolean()),
+    removalReason: v.optional(v.string()),
+    response: v.optional(v.string()),
+    responseStatus: v.optional(reviewStatus),
+    responseRevision: v.optional(v.number()),
+    responseAt: v.optional(v.number()),
+    responseNote: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
+    .index("by_listing_status", ["listingId", "status"])
+    .index("by_listing_kind_status", ["listingId", "kind", "status"])
+    .index("by_landlord_kind_status", ["landlordId", "kind", "status"])
+    .index("by_subject_kind_status", ["subjectId", "kind", "status"])
+    .index("by_reviewer_kind_subject", ["reviewerId", "kind", "subjectId"])
+    .index("by_status", ["status"])
+    .index("by_response_status", ["responseStatus"])
+    .index("by_removal", ["removalRequested"])
     .index("by_listing", ["listingId"])
     .index("by_landlord", ["landlordId"])
     .index("by_reviewer", ["reviewerId"])
@@ -445,7 +509,9 @@ export default defineSchema({
   })
     .index("by_tenantId", ["tenantId"])
     .index("by_landlordId", ["landlordId"])
-    .index("by_listingId_and_status", ["listingId", "status"]),
+    .index("by_listingId_and_status", ["listingId", "status"])
+    .index("by_tenant_landlord", ["tenantId", "landlordId"])
+    .index("by_listing_tenant", ["listingId", "tenantId"]),
 
   // Referral program
   referrals: defineTable({

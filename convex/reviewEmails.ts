@@ -1,0 +1,57 @@
+"use node";
+import { v } from "convex/values";
+import { Resend } from "resend";
+import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+export const deliver = internalAction({
+  args: { id: v.id("reviewNotices") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const details = await ctx.runQuery(
+      internal.reviewNotices.emailDetails,
+      args,
+    );
+    if (!details) {
+      await ctx.runMutation(internal.reviewNotices.record, {
+        ...args,
+        status: "failed",
+      });
+      return null;
+    }
+    if (
+      !process.env.RESEND_API_KEY ||
+      !process.env.EMAIL_FROM ||
+      !process.env.NEXT_PUBLIC_APP_URL
+    ) {
+      await ctx.runMutation(internal.reviewNotices.record, {
+        ...args,
+        status: "unconfigured",
+      });
+      return null;
+    }
+    try {
+      const url = new URL(details.path, process.env.NEXT_PUBLIC_APP_URL);
+      if (!["https:", "http:"].includes(url.protocol))
+        throw new Error("Invalid app URL");
+      const result = await new Resend(process.env.RESEND_API_KEY).emails.send(
+        {
+          from: process.env.EMAIL_FROM,
+          to: details.email,
+          subject: "Review update · FurnishSearcher",
+          text: `${details.body}\n\nView this update in your private account: ${url.toString()}`,
+        },
+        { idempotencyKey: `review-${args.id}` },
+      );
+      await ctx.runMutation(internal.reviewNotices.record, {
+        ...args,
+        status: result.error || !result.data?.id ? "failed" : "sent",
+      });
+    } catch {
+      await ctx.runMutation(internal.reviewNotices.record, {
+        ...args,
+        status: "failed",
+      });
+    }
+    return null;
+  },
+});
