@@ -1,3 +1,4 @@
+import { receive as receiveClerkContacts } from "./clerkContactWebhook";
 import {
   confirm as confirmContact,
   options as contactOptions,
@@ -110,6 +111,11 @@ const webhook = httpAction(async (ctx, request) => {
   }
 });
 const http = httpRouter();
+http.route({
+  path: "/webhooks/clerk-contacts",
+  method: "POST",
+  handler: receiveClerkContacts,
+});
 http.route({
   path: "/webhooks/resend-replies",
   method: "POST",

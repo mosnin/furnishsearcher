@@ -28,7 +28,9 @@
     "test:local-market": "node scripts/local-market-smoke.mjs",
     "test:local-performance": "node scripts/local-performance-smoke.mjs",
     "test:local-phone-contact": "node scripts/local-phone-contact-smoke.mjs",
-    "test:local-unmatched-leads": "node scripts/local-unmatched-leads-smoke.mjs"
+    "test:local-unmatched-leads": "node scripts/local-unmatched-leads-smoke.mjs",
+    "test:local-lead-email": "node scripts/local-lead-email-smoke.mjs",
+    "test:local-clerk-contact-events": "node scripts/local-clerk-contact-events-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

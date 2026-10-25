@@ -325,6 +325,22 @@ export default defineSchema({
   })
     .index("by_actor", ["actor", "day"])
     .index("by_day", ["day"]),
+  clerkContactSnapshots: defineTable({
+    clerkId: v.string(),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    instanceId: v.string(),
+    updatedAt: v.number(),
+    eventAt: v.number(),
+    deleted: v.boolean(),
+    uncertain: v.boolean(),
+    emailHash: v.union(v.string(), v.null()),
+    phoneHash: v.union(v.string(), v.null()),
+    emailChangedAt: v.optional(v.number()),
+    phoneChangedAt: v.optional(v.number()),
+    eventId: v.string(),
+    appliedAt: v.number(),
+  }).index("by_clerk_mode", ["clerkId", "mode"]),
+
   users: defineTable({
     identityCheckId: v.optional(v.id("identityChecks")),
     identityHold: v.optional(v.boolean()),

@@ -1,3 +1,4 @@
+import { assertProviderContact } from "./lib/providerContacts";
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -95,6 +96,14 @@ async function confirmEmail(
     throw new Error(
       "Development sign-in accounts cannot establish production email confirmation.",
     );
+  await assertProviderContact(
+    ctx,
+    user.clerkId,
+    mode,
+    "email",
+    email,
+    issued as number,
+  );
   await ctx.db.patch(user._id, {
     messageEmailsEnabled: true,
     notificationEmail: email,

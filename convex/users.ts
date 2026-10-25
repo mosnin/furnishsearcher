@@ -1,3 +1,4 @@
+import { assertProviderContact } from "./lib/providerContacts";
 import type { MutationCtx } from "./_generated/server";
 import { billingMode } from "../lib/billing";
 import { identityPassed } from "./lib/publication";
@@ -240,6 +241,14 @@ async function confirmPhoneProof(
     throw new Error(
       "Development sign-in accounts cannot establish production phone confirmation.",
     );
+  await assertProviderContact(
+    ctx,
+    user.clerkId,
+    mode,
+    "phone",
+    phone,
+    issued as number,
+  );
   const expiresAt = now + PHONE_PROOF_LIFETIME;
   await ctx.db.patch(user._id, {
     phone,
