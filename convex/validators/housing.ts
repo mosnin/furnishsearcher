@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 export const housingCriteria = {
+  allowUnmatched: v.optional(v.boolean()),
   city: v.string(),
   state: v.string(),
   moveInDate: v.number(),

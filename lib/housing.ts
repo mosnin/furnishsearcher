@@ -66,6 +66,7 @@ export function prepareCriteria(input: HousingCriteria) {
     throw new Error("Choose up to 30 amenities.");
   return {
     ...input,
+    allowUnmatched: input.allowUnmatched === true,
     city,
     state,
     moveOutDate,
@@ -78,7 +79,7 @@ export function prepareCriteria(input: HousingCriteria) {
   };
 }
 
-export function matchesCriteria(
+export function housingAreaMatches(
   listing: Doc<"listings">,
   request: HousingCriteria,
 ) {
@@ -88,20 +89,59 @@ export function matchesCriteria(
   return (
     listing.status === "active" &&
     normalizeState(listing.state) === normalizeState(request.state) &&
-    cities.includes(normalizeCity(listing.city)) &&
-    listing.price <= request.maxBudget &&
-    (listing.maxOccupancy === undefined ||
-      (request.occupants ?? 1) <= listing.maxOccupancy) &&
-    listing.bedrooms >= request.bedrooms &&
-    (!request.petFriendly || listing.petFriendly) &&
-    (!request.propertyType ||
-      listing.propertyType.toLowerCase() ===
-        request.propertyType.toLowerCase()) &&
-    (!request.utilitiesIncluded || listing.utilitiesIncluded) &&
-    (!request.parkingIncluded || listing.parkingIncluded) &&
-    (request.amenities ?? []).every((a) =>
-      listing.amenities.some((b) => a.toLowerCase() === b.toLowerCase()),
-    ) &&
+    cities.includes(normalizeCity(listing.city))
+  );
+}
+export function housingDifferences(
+  listing: Doc<"listings">,
+  request: HousingCriteria,
+) {
+  const differences: { field: string; requested: string; offered: string }[] =
+    [];
+  const add = (field: string, requested: string, offered: string) =>
+    differences.push({ field, requested, offered });
+  if (listing.price > request.maxBudget)
+    add(
+      "Monthly budget",
+      `${request.maxBudget.toFixed(2)} USD maximum`,
+      `${listing.price.toFixed(2)} USD listed`,
+    );
+  if (listing.bedrooms < request.bedrooms)
+    add("Bedrooms", `At least ${request.bedrooms}`, `${listing.bedrooms}`);
+  if (request.petFriendly && !listing.petFriendly)
+    add("Pets", "Pets allowed", "Pets not allowed");
+  if (
+    request.propertyType &&
+    listing.propertyType.toLowerCase() !== request.propertyType.toLowerCase()
+  )
+    add("Property type", request.propertyType, listing.propertyType);
+  if (request.utilitiesIncluded && !listing.utilitiesIncluded)
+    add("Utilities", "Included", "Not included");
+  if (request.parkingIncluded && !listing.parkingIncluded)
+    add("Parking", "Included", "Not included");
+  if (
+    listing.maxOccupancy !== undefined &&
+    (request.occupants ?? 1) > listing.maxOccupancy
+  )
+    add(
+      "Occupants",
+      `${request.occupants ?? 1}`,
+      `Maximum ${listing.maxOccupancy}`,
+    );
+  const missing = (request.amenities ?? []).filter(
+    (a) => !listing.amenities.some((b) => a.toLowerCase() === b.toLowerCase()),
+  );
+  if (missing.length)
+    add("Amenities", missing.join(", "), "Not listed for this rental space");
+  return differences;
+}
+export function matchesCriteria(
+  listing: Doc<"listings">,
+  request: HousingCriteria,
+) {
+  return (
+    housingAreaMatches(listing, request) &&
+    housingDifferences(listing, request).length === 0 &&
     isAvailable(
       listing,
       [],

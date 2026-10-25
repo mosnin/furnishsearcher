@@ -39,8 +39,11 @@ export const notifyOwner = internalAction({
         {
           from: process.env.EMAIL_FROM,
           to: details.email,
-          subject: `A housing request matches your property in ${details.city}`,
-          text: `A traveler is looking for housing in ${details.city}, ${details.state}. Review the dates and matching properties, then reply in your dashboard: ${url}`,
+          subject:
+            details.kind === "unmatched"
+              ? `A housing request may be a fit in ${details.city}`
+              : `A housing request matches your property in ${details.city}`,
+          text: `A traveler is looking for housing in ${details.city}, ${details.state}. Review the dates, property details and any mismatched criteria, then reply in your dashboard: ${url}`,
         },
         { idempotencyKey: `housing-request-${args.deliveryId}` },
       );

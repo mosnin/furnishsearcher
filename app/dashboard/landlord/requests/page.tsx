@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useConvexAuth, useMutation, usePaginatedQuery } from "convex/react";
+import {
+  useConvexAuth,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -29,6 +36,7 @@ function RequestCard({ item }: { item: InboxItem }) {
   const [listingId, setListingId] = useState<Id<"listings"> | "">("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState("");
   const markRead = useMutation(api.housingRequests.markRead);
   const reply = useMutation(api.housingRequests.reply);
@@ -43,6 +51,10 @@ function RequestCard({ item }: { item: InboxItem }) {
   );
   const chosen =
     properties.find((p) => p.listingId === listingId) ?? properties[0];
+  useEffect(
+    () => setAcknowledged(false),
+    [chosen?.listingId, chosen?.differenceKey],
+  );
   const active =
     r.status === "open" && r.moveInDate >= Math.floor(Date.now() / DAY) * DAY;
   async function expand() {
@@ -64,6 +76,12 @@ function RequestCard({ item }: { item: InboxItem }) {
         requestId: r._id,
         listingId: chosen.listingId,
         message,
+        ...(chosen.kind === "unmatched"
+          ? {
+              acknowledgeDifferences: acknowledged,
+              expectedDifferences: chosen.differenceKey,
+            }
+          : {}),
       });
       router.push(`/dashboard/messages?conv=${id}`);
     } catch (e) {
@@ -87,6 +105,11 @@ function RequestCard({ item }: { item: InboxItem }) {
                   : r.status === "open"
                     ? "Dates passed"
                     : r.status}
+              </Badge>
+              <Badge variant="outline">
+                {item.kind === "unmatched"
+                  ? "Unmatched when delivered"
+                  : "Matched when delivered"}
               </Badge>
               {!item.read && <Badge variant="outline">New</Badge>}
             </div>
@@ -124,7 +147,7 @@ function RequestCard({ item }: { item: InboxItem }) {
           </p>
         )}
         <Button type="button" variant="outline" onClick={expand}>
-          {expanded ? "Hide properties" : "View my matching properties"}
+          {expanded ? "Hide properties" : "Review my properties"}
         </Button>
         {expanded && (
           <div className="space-y-4 border-t pt-4">
@@ -132,8 +155,9 @@ function RequestCard({ item }: { item: InboxItem }) {
               <p role="status">Checking current availability…</p>
             ) : properties.length === 0 ? (
               <p className="text-sm text-slate-600">
-                None of your properties currently match these requirements and
-                dates. Availability may have changed since this request arrived.
+                No eligible properties are shown in the loaded pages. Check
+                availability, publication status and lead preferences, or load
+                more properties.
               </p>
             ) : (
               <>
@@ -143,6 +167,7 @@ function RequestCard({ item }: { item: InboxItem }) {
                 <select
                   id={`property-${r._id}`}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  disabled={busy}
                   value={chosen?.listingId ?? ""}
                   onChange={(e) =>
                     setListingId(e.target.value as Id<"listings">)
@@ -151,6 +176,7 @@ function RequestCard({ item }: { item: InboxItem }) {
                   {properties.map((p) => (
                     <option key={p.listingId} value={p.listingId}>
                       {p.title} · {formatPrice(p.price)}/mo
+                      {p.kind === "unmatched" ? " · Differences to review" : ""}
                     </option>
                   ))}
                 </select>
@@ -161,6 +187,32 @@ function RequestCard({ item }: { item: InboxItem }) {
                   >
                     View property details
                   </Link>
+                )}
+                {chosen?.kind === "unmatched" && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm space-y-3">
+                    <h3 className="font-semibold text-rose-900">
+                      This rental does not meet every requirement
+                    </h3>
+                    <dl className="space-y-2">
+                      {chosen.differences?.map((d) => (
+                        <div key={d.field}>
+                          <dt className="font-medium text-rose-900">
+                            {d.field}
+                          </dt>
+                          <dd className="text-rose-800">
+                            Requested: {d.requested}
+                            <br />
+                            Listed: {d.offered}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p>
+                      Discuss alternatives without confirming a booking.
+                      Occupancy limits, stay requirements and current
+                      availability still apply.
+                    </p>
+                  </div>
                 )}
                 {chosen?.conversationId ? (
                   <Button asChild>
@@ -180,16 +232,37 @@ function RequestCard({ item }: { item: InboxItem }) {
                         id={`reply-${r._id}`}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        maxLength={2000}
+                        maxLength={chosen?.kind === "unmatched" ? 1700 : 2000}
                         required
                         placeholder="Let the traveler know how your property fits their needs."
                       />
+                      {chosen?.kind === "unmatched" && (
+                        <label className="flex items-start gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={acknowledged}
+                            disabled={busy}
+                            onChange={(e) => setAcknowledged(e.target.checked)}
+                            className="mt-1"
+                          />
+                          I reviewed these differences and will explain my
+                          proposed alternative terms. This does not confirm a
+                          booking.
+                        </label>
+                      )}
                       {error && (
                         <p className="text-sm text-red-700" role="alert">
                           {error}
                         </p>
                       )}
-                      <Button type="submit" disabled={busy || !message.trim()}>
+                      <Button
+                        type="submit"
+                        disabled={
+                          busy ||
+                          !message.trim() ||
+                          (chosen?.kind === "unmatched" && !acknowledged)
+                        }
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
                         {busy ? "Sending…" : "Send private reply"}
                       </Button>
@@ -204,7 +277,7 @@ function RequestCard({ item }: { item: InboxItem }) {
                 variant="outline"
                 onClick={() => loadMore(20)}
               >
-                Show more matching properties
+                Show more properties
               </Button>
             )}
           </div>
@@ -215,7 +288,39 @@ function RequestCard({ item }: { item: InboxItem }) {
 }
 
 export default function TenantRequestsPage() {
+  const { userId, isLoaded } = useAuth();
+  if (!isLoaded) return <p role="status">Loading account…</p>;
+  return userId ? (
+    <AccountRequests key={userId} />
+  ) : (
+    <p>Please sign in to view tenant leads.</p>
+  );
+}
+function AccountRequests() {
   const { isAuthenticated } = useConvexAuth();
+  const preferences = useQuery(
+    api.housingRequests.leadPreferences,
+    isAuthenticated ? {} : "skip",
+  );
+  const savePreferences = useMutation(api.housingRequests.setLeadPreferences);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  async function changePreferences(change: {
+    receiveUnmatched?: boolean;
+    emailEnabled?: boolean;
+  }) {
+    setSavingPreferences(true);
+    try {
+      await savePreferences(change);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not save lead preferences.",
+      );
+    } finally {
+      setSavingPreferences(false);
+    }
+  }
   const { results, status, loadMore } = usePaginatedQuery(
     api.housingRequests.inbox,
     isAuthenticated ? {} : "skip",
@@ -228,17 +333,87 @@ export default function TenantRequestsPage() {
           Tenant Housing Requests
         </h1>
         <p className="text-slate-600 text-sm mt-1">
-          Requests matched to your properties. Review current availability and
-          reply directly to the traveler.
+          Review requests delivered to your properties and reply privately.
+          Closed, fulfilled and expired requests are removed from this list.
         </p>
       </div>
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <h2 className="font-semibold">Lead preferences</h2>
+          <p className="text-sm text-slate-600">
+            These settings apply to all your rental spaces.
+          </p>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={preferences?.receiveUnmatched ?? false}
+              disabled={!preferences || savingPreferences}
+              onChange={(e) =>
+                changePreferences({ receiveUnmatched: e.target.checked })
+              }
+              className="mt-1"
+            />
+            <span>
+              Receive unmatched leads
+              <br />
+              <span className="text-slate-600">
+                Include requests in the selected area with compatible dates but
+                different budget or other requirements. This does not turn email
+                on.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={preferences?.emailEnabled ?? false}
+              disabled={
+                !preferences ||
+                savingPreferences ||
+                (!preferences.canEmail && !preferences.emailEnabled)
+              }
+              onChange={(e) =>
+                changePreferences({ emailEnabled: e.target.checked })
+              }
+              className="mt-1"
+            />
+            <span>
+              Email new lead notifications
+              <br />
+              <span className="text-slate-600">
+                New leads use your confirmed account email. Your inbox stays
+                available when email is off.
+              </span>
+            </span>
+          </label>
+          {preferences && !preferences.canEmail && (
+            <p className="text-sm text-slate-600">
+              Email delivery requires current account-email confirmation.{" "}
+              <Link href="/dashboard/profile" className="underline">
+                Review email confirmation in your profile
+              </Link>
+              .
+            </p>
+          )}
+          <p className="text-xs text-slate-500">
+            Enabling unmatched leads scans your published rentals for open
+            requests. Results may arrive as the scan completes. Calendar
+            conflicts are excluded. Phone contact is not shared with an owner
+            who has only received an unmatched request.
+          </p>
+        </CardContent>
+      </Card>
       {status === "LoadingFirstPage" ? (
-        <p role="status">Loading matched requests…</p>
+        <p role="status">Loading requests…</p>
       ) : results.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center py-16 text-center gap-3">
             <Home className="h-12 w-12 text-slate-400" />
-            <h2 className="font-medium">No matched requests yet</h2>
+            <h2 className="font-medium">
+              {status === "CanLoadMore"
+                ? "No visible requests in the loaded pages"
+                : "No delivered requests yet"}
+            </h2>
             <p className="text-sm text-slate-600">
               Keep your listing details and calendar up to date so travelers
               with suitable requests can find you.

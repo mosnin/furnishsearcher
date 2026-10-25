@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T20:04:11.230Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedSyntheticIdentities": true,
+  "nativeScheduledBackfill": true,
+  "travelerAlternativeConsentRequired": true,
+  "ownerUnmatchedOptInRequired": true,
+  "currentDifferencesShown": true,
+  "phoneWithheld": true,
+  "anonymousAndForeignOwnerDenied": true,
+  "missingAndStaleAcknowledgementDenied": true,
+  "concurrentReplyCount": 1,
+  "privateTravelerConversationAccepted": true,
+  "ownerOptOutRechecked": true,
+  "realEmailSent": false,
+  "realProviderOrHumanAcceptance": false
+}

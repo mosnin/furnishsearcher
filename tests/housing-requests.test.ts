@@ -2,6 +2,7 @@ import {
   seedPublishedFixtures,
   approveFixtureEdit,
 } from "./helpers/publication";
+import type { FunctionReturnType } from "convex/server";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
@@ -20,6 +21,11 @@ async function fixture() {
       ctx.db.insert("users", {
         clerkId,
         role,
+        housingLeadEmailsEnabled: role === "landlord",
+        notificationEmail: `${clerkId}@example.test`,
+        notificationEmailVerifiedAt: Date.now(),
+        notificationEmailExpiresAt: Date.now() + 30 * DAY,
+        notificationEmailMode: "test",
         name: clerkId,
         email: `${clerkId}@example.test`,
         createdAt: 0,
@@ -554,4 +560,426 @@ describe("housing request delivery", () => {
       vi.unstubAllGlobals();
     }
   });
+});
+
+describe("unmatched lead intake and proposals", () => {
+  it("defaults new owners to matched-only, separate email opt-in and proof-bound recipients", async () => {
+    const f = await fixture();
+    const freshId = await f.t.run((ctx) =>
+      ctx.db.insert("users", {
+        clerkId: "fresh-owner",
+        role: "landlord",
+        name: "Synthetic new owner",
+        email: "unconfirmed@example.test",
+        createdAt: Date.now(),
+      }),
+    );
+    const fresh = f.t.withIdentity({ subject: "fresh-owner" });
+    expect(await fresh.query(api.housingRequests.leadPreferences, {})).toEqual({
+      receiveUnmatched: false,
+      emailEnabled: false,
+      canEmail: false,
+    });
+    await expect(
+      fresh.mutation(api.housingRequests.setLeadPreferences, {
+        emailEnabled: true,
+      }),
+    ).rejects.toThrow(/Confirm/);
+    await fresh.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    expect(
+      (await fresh.query(api.housingRequests.leadPreferences, {})).emailEnabled,
+    ).toBe(false);
+    await expect(
+      f.tenant.mutation(api.housingRequests.setLeadPreferences, {
+        receiveUnmatched: true,
+      }),
+    ).rejects.toThrow(/Landlord/);
+    await expect(
+      f.t.query(api.housingRequests.leadPreferences, {}),
+    ).rejects.toThrow(/sign in/);
+  });
+  it("backfills opted-in partial matches, explains differences and withholds phone until an exact delivery", async () => {
+    const f = await fixture();
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+      contactPreference: "phone",
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toEqual([]);
+    expect(
+      (await f.tenant.query(api.housingRequests.getMine, { paginationOpts }))
+        .page[0].matchedProperties,
+    ).toBe(0);
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const inbox = await f.owner.query(api.housingRequests.inbox, {
+      paginationOpts,
+    });
+    expect(inbox.page).toHaveLength(1);
+    expect(inbox.page[0]).toMatchObject({ kind: "unmatched", phone: null });
+    const properties = await f.owner.query(
+      api.housingRequests.matchingProperties,
+      { requestId, paginationOpts },
+    );
+    expect(properties.page).toHaveLength(3);
+    expect(
+      properties.page.every(
+        (p) =>
+          p.kind === "unmatched" &&
+          p.differences?.some((d) => d.field === "Monthly budget"),
+      ),
+    ).toBe(true);
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: false,
+    });
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toEqual([]);
+    expect(
+      (
+        await f.owner.query(api.housingRequests.matchingProperties, {
+          requestId,
+          paginationOpts,
+        })
+      ).page,
+    ).toEqual([]);
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, {
+        requestId,
+        listingId: f.ids.listing,
+        message: "Alternative proposal",
+        acknowledgeDifferences: true,
+        expectedDifferences: properties.page[0].differenceKey,
+      }),
+    ).rejects.toThrow(/no longer matches/);
+  });
+  it("excludes date conflicts, insufficient calendar coverage and unavailable starts rather than treating them as negotiable leads", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    await f.t.run(async (ctx) => {
+      await ctx.db.insert("availabilityBlocks", {
+        listingId: f.ids.listing,
+        startDate: start + DAY,
+        endDate: start + 2 * DAY,
+        type: "unavailable",
+        createdAt: Date.now(),
+      });
+      await ctx.db.patch(f.ids.second, { availableFrom: start + DAY });
+      await ctx.db.patch(f.ids.expensive, { calendarSyncThrough: end - DAY });
+    });
+    await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toEqual([]);
+    expect(
+      await f.t.run((ctx) => ctx.db.query("housingRequestMatches").collect()),
+    ).toHaveLength(0);
+  });
+  it("requires acknowledgement of the current differences and sends one explicitly unconfirmed private proposal", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.ids.listing, {
+        price: 5000,
+        bedrooms: 1,
+        petFriendly: false,
+        propertyType: "Apartment",
+        utilitiesIncluded: false,
+        parkingIncluded: false,
+        amenities: [],
+        maxOccupancy: 1,
+      }),
+    );
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    let property = (
+      await f.owner.query(api.housingRequests.matchingProperties, {
+        requestId,
+        paginationOpts,
+      })
+    ).page.find((p) => p.listingId === f.ids.listing)!;
+    expect(property.differences?.map((d) => d.field).sort()).toEqual(
+      [
+        "Monthly budget",
+        "Bedrooms",
+        "Pets",
+        "Property type",
+        "Utilities",
+        "Parking",
+        "Occupants",
+        "Amenities",
+      ].sort(),
+    );
+    const args = {
+      requestId,
+      listingId: f.ids.listing,
+      message: "I can discuss an alternative, subject to a new agreement.",
+    };
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, args),
+    ).rejects.toThrow(/acknowledge/);
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, {
+        ...args,
+        acknowledgeDifferences: true,
+        expectedDifferences: "old",
+      }),
+    ).rejects.toThrow(/criteria changed/);
+    const oldKey = property.differenceKey;
+    await f.t.run((ctx) => ctx.db.patch(f.ids.listing, { price: 5100 }));
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, {
+        ...args,
+        acknowledgeDifferences: true,
+        expectedDifferences: oldKey,
+      }),
+    ).rejects.toThrow(/criteria changed/);
+    property = (
+      await f.owner.query(api.housingRequests.matchingProperties, {
+        requestId,
+        paginationOpts,
+      })
+    ).page.find((p) => p.listingId === f.ids.listing)!;
+    const acknowledged = {
+      ...args,
+      acknowledgeDifferences: true,
+      expectedDifferences: property.differenceKey,
+    };
+    await expect(
+      f.owner.mutation(api.housingRequests.reply, {
+        ...acknowledged,
+        message: "x".repeat(1701),
+      }),
+    ).rejects.toThrow(/1700/);
+    const conversations = await Promise.all([
+      f.owner.mutation(api.housingRequests.reply, acknowledged),
+      f.owner.mutation(api.housingRequests.reply, acknowledged),
+    ]);
+    expect(conversations[0]).toBe(conversations[1]);
+    const messages = await f.t.run((ctx) => ctx.db.query("messages").collect());
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toContain(
+      "No booking or change of terms is confirmed.",
+    );
+    expect(messages[0].content).toContain(args.message);
+    expect(
+      await f.t.run((ctx) => ctx.db.query("bookingInquiries").collect()),
+    ).toHaveLength(0);
+    await expect(
+      f.stranger.mutation(api.housingRequests.reply, acknowledged),
+    ).rejects.toThrow(/authorized/);
+  });
+  it("upgrades an unmatched delivery once and preserves legacy exact-match history across later changes", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+      contactPreference: "phone",
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    await f.t.run((ctx) => ctx.db.patch(f.ids.listing, { price: 900 }));
+    await f.t.mutation(internal.housingRequests.scanListing, {
+      listingId: f.ids.listing,
+      cursor: null,
+    });
+    expect(
+      (await f.tenant.query(api.housingRequests.getMine, { paginationOpts }))
+        .page[0].matchedProperties,
+    ).toBe(1);
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts }))
+        .page[0],
+    ).toMatchObject({ kind: "matched", phone: "+15555550123" });
+    const row = await f.t.run((ctx) =>
+      ctx.db
+        .query("housingRequestMatches")
+        .withIndex("by_requestId_and_listingId", (q) =>
+          q.eq("requestId", requestId).eq("listingId", f.ids.listing),
+        )
+        .unique(),
+    );
+    await f.t.run((ctx) =>
+      ctx.db.patch(row!._id, { kind: undefined, matchedAt: undefined }),
+    );
+    for (const price of [5000, 900, 900]) {
+      await f.t.run((ctx) => ctx.db.patch(f.ids.listing, { price }));
+      await f.t.mutation(internal.housingRequests.scanListing, {
+        listingId: f.ids.listing,
+        cursor: null,
+      });
+    }
+    expect(
+      (await f.tenant.query(api.housingRequests.getMine, { paginationOpts }))
+        .page[0].matchedProperties,
+    ).toBe(1);
+    expect(
+      (
+        await f.owner.query(api.listingPerformance.report, {
+          listingId: f.ids.listing,
+          days: 7,
+        })
+      ).rows.reduce((n, row) => n + row.matchedLeads, 0),
+    ).toBe(1);
+  });
+  it("removes closed, fulfilled and expired requests and suppresses unmatched notifications after opt-out or proof expiry", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      maxBudget: 1000,
+      allowUnmatched: true,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const delivery = (
+      await f.owner.query(api.housingRequests.inbox, { paginationOpts })
+    ).page[0];
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.ids.owner, { email: "wrong@example.test" }),
+    );
+    const details = await f.t.query(
+      internal.housingRequests.notificationDetails,
+      { deliveryId: delivery.deliveryId },
+    );
+    expect(details?.email).toBe("owner@example.test");
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: false,
+    });
+    expect(
+      await f.t.query(internal.housingRequests.notificationDetails, {
+        deliveryId: delivery.deliveryId,
+      }),
+    ).toBeNull();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      receiveUnmatched: true,
+    });
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.ids.owner, { notificationEmailExpiresAt: Date.now() - 1 }),
+    );
+    expect(
+      await f.t.query(internal.housingRequests.notificationDetails, {
+        deliveryId: delivery.deliveryId,
+      }),
+    ).toBeNull();
+    for (const status of ["closed", "fulfilled"] as const) {
+      await f.t.run((ctx) => ctx.db.patch(requestId, { status }));
+      expect(
+        (await f.owner.query(api.housingRequests.inbox, { paginationOpts }))
+          .page,
+      ).toHaveLength(0);
+    }
+    await f.t.run((ctx) =>
+      ctx.db.patch(requestId, {
+        status: "open",
+        moveInDate: Date.now() - 2 * DAY,
+      }),
+    );
+    expect(
+      (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+    ).toHaveLength(0);
+  });
+});
+it("preserves existing travelers' exact-match sharing choice when an owner enables unmatched leads", async () => {
+  const f = await fixture();
+  await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+    receiveUnmatched: true,
+  });
+  const exactOnly = await f.tenant.mutation(api.housingRequests.create, {
+    ...f.criteria,
+    maxBudget: 1000,
+    userId: f.ids.tenant,
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(
+    (await f.owner.query(api.housingRequests.inbox, { paginationOpts })).page,
+  ).toHaveLength(0);
+  const alternatives = await f.tenant.mutation(api.housingRequests.create, {
+    ...f.criteria,
+    maxBudget: 1000,
+    allowUnmatched: true,
+    userId: f.ids.tenant,
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  const inbox = await f.owner.query(api.housingRequests.inbox, {
+    paginationOpts,
+  });
+  expect(inbox.page.map((item) => item.request._id)).toEqual([alternatives]);
+  expect(
+    (
+      await f.owner.query(api.housingRequests.matchingProperties, {
+        requestId: exactOnly,
+        paginationOpts,
+      })
+    ).page,
+  ).toHaveLength(0);
+});
+it("pages all backfilled unmatched requests instead of stopping at the first scan or inbox page", async () => {
+  const f = await fixture();
+  const requestIds = await f.t.run(async (ctx) => {
+    const ids = [];
+    for (let i = 0; i < 55; i++)
+      ids.push(
+        await ctx.db.insert("housingRequests", {
+          ...f.criteria,
+          allowUnmatched: true,
+          maxBudget: 1000,
+          userId: f.ids.tenant,
+          status: "open",
+          createdAt: Date.now() + i,
+        }),
+      );
+    return ids;
+  });
+  await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+    receiveUnmatched: true,
+    emailEnabled: false,
+  });
+  await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  const found = [];
+  let cursor: string | null = null;
+  for (let i = 0; i < 10; i++) {
+    const page: FunctionReturnType<typeof api.housingRequests.inbox> =
+      await f.owner.query(api.housingRequests.inbox, {
+        paginationOpts: { cursor, numItems: 25 },
+      });
+    found.push(...page.page.map((item) => item.request._id));
+    if (page.isDone) break;
+    cursor = page.continueCursor;
+  }
+  expect(new Set(found).size).toBe(55);
+  expect([...new Set(found)].sort()).toEqual(requestIds.sort());
+  expect(
+    (await f.owner.query(api.housingRequests.leadPreferences, {})).emailEnabled,
+  ).toBe(false);
 });

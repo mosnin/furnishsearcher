@@ -344,6 +344,8 @@ export default defineSchema({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     displayName: v.optional(v.string()),
+    receiveUnmatchedLeads: v.optional(v.boolean()),
+    housingLeadEmailsEnabled: v.optional(v.boolean()),
     phone: v.optional(v.string()),
     phoneVerified: v.optional(v.boolean()),
     phoneVerificationSource: v.optional(v.literal("clerk")),
@@ -789,6 +791,9 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   housingRequestMatches: defineTable({
+    kind: v.optional(v.union(v.literal("matched"), v.literal("unmatched"))),
+    matchedAt: v.optional(v.number()),
+    unmatchedAt: v.optional(v.number()),
     requestId: v.id("housingRequests"),
     listingId: v.id("listings"),
     landlordId: v.id("users"),
@@ -800,6 +805,7 @@ export default defineSchema({
     .index("by_requestId_and_landlordId", ["requestId", "landlordId"]),
 
   housingRequestDeliveries: defineTable({
+    kind: v.optional(v.union(v.literal("matched"), v.literal("unmatched"))),
     requestId: v.id("housingRequests"),
     landlordId: v.id("users"),
     createdAt: v.number(),

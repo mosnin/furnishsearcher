@@ -16,12 +16,15 @@ import { housingCriteria, housingRequestDoc } from "./validators/housing";
 import { requireUser } from "./lib/auth";
 import {
   listingFits,
+  classifyLead,
   prepareCriteria,
   type HousingCriteria,
 } from "./lib/housing";
 import { blockState, requireMessagingAllowed } from "./lib/messageAccess";
 import { sendListingMessage } from "./lib/messaging";
 import { DAY } from "../lib/stays";
+import { emailProofCurrent } from "../lib/email-contact";
+import { emailContactMode } from "./lib/emailContact";
 import { currentPhoneProof } from "./lib/contacts";
 
 const pageFields = { continueCursor: v.string(), isDone: v.boolean() };
@@ -32,6 +35,17 @@ const propertySummary = v.object({
   state: v.string(),
   price: v.number(),
   conversationId: v.union(v.id("conversations"), v.null()),
+  kind: v.optional(v.union(v.literal("matched"), v.literal("unmatched"))),
+  differenceKey: v.optional(v.string()),
+  differences: v.optional(
+    v.array(
+      v.object({
+        field: v.string(),
+        requested: v.string(),
+        offered: v.string(),
+      }),
+    ),
+  ),
 });
 
 async function insertRequest(
@@ -183,25 +197,58 @@ async function saveMatch(
   listing: Doc<"listings">,
 ) {
   if (
-    request.userId === listing.landlordId ||
-    !(await listingFits(ctx, listing, request))
+    request.status !== "open" ||
+    request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
+    request.userId === listing.landlordId
   )
     return;
+  const classification = await classifyLead(ctx, listing, request);
+  if (!classification) return;
+  const owner = await ctx.db.get(listing.landlordId);
+  if (
+    !owner ||
+    (classification.kind === "unmatched" && !owner.receiveUnmatchedLeads)
+  )
+    return;
+  const blocked = (await blockState(ctx, request.userId, owner._id))
+    .cannotMessage;
+  if (blocked && classification.kind === "unmatched") return;
   const existing = await ctx.db
     .query("housingRequestMatches")
     .withIndex("by_requestId_and_listingId", (q) =>
       q.eq("requestId", request._id).eq("listingId", listing._id),
     )
     .unique();
-  if (!existing) {
-    await recordPerformance(ctx, listing, "matchedLeads");
+  const firstExact =
+    classification.kind === "matched" &&
+    (!existing ||
+      (existing.kind === "unmatched" && existing.matchedAt === undefined));
+  const now = Date.now();
+  if (!existing)
     await ctx.db.insert("housingRequestMatches", {
       requestId: request._id,
       listingId: listing._id,
-      landlordId: listing.landlordId,
-      createdAt: Date.now(),
+      landlordId: owner._id,
+      createdAt: now,
+      kind: classification.kind,
+      ...(classification.kind === "matched"
+        ? { matchedAt: now }
+        : { unmatchedAt: now }),
     });
-    // Read the current document so multiple properties in the same transaction accumulate correctly.
+  else
+    await ctx.db.patch(existing._id, {
+      kind: classification.kind,
+      ...(existing.kind === undefined && existing.matchedAt === undefined
+        ? { matchedAt: existing.createdAt }
+        : {}),
+      ...(firstExact ? { matchedAt: now } : {}),
+      ...(classification.kind === "unmatched" &&
+      existing.unmatchedAt === undefined
+        ? { unmatchedAt: now }
+        : {}),
+    });
+  if (firstExact) {
+    await recordPerformance(ctx, listing, "matchedLeads");
     const current = await ctx.db.get(request._id);
     await ctx.db.patch(request._id, {
       matchedProperties: (current?.matchedProperties ?? 0) + 1,
@@ -210,28 +257,97 @@ async function saveMatch(
   const delivery = await ctx.db
     .query("housingRequestDeliveries")
     .withIndex("by_requestId_and_landlordId", (q) =>
-      q.eq("requestId", request._id).eq("landlordId", listing.landlordId),
+      q.eq("requestId", request._id).eq("landlordId", owner._id),
     )
     .unique();
   if (!delivery) {
-    const blocked = (await blockState(ctx, request.userId, listing.landlordId))
-      .cannotMessage;
     const deliveryId = await ctx.db.insert("housingRequestDeliveries", {
       requestId: request._id,
-      landlordId: listing.landlordId,
-      createdAt: Date.now(),
-      emailStatus: blocked ? "suppressed" : "queued",
+      landlordId: owner._id,
+      createdAt: now,
+      kind: classification.kind,
+      emailStatus:
+        !blocked && owner.housingLeadEmailsEnabled ? "queued" : "suppressed",
     });
-    if (!blocked)
+    if (!blocked && owner.housingLeadEmailsEnabled)
       await ctx.scheduler.runAfter(
         0,
         internal.housingRequestEmails.notifyOwner,
-        {
-          deliveryId,
-        },
+        { deliveryId },
       );
-  }
+  } else if (classification.kind === "matched" && delivery.kind === "unmatched")
+    await ctx.db.patch(delivery._id, { kind: "matched" });
 }
+export const leadPreferences = query({
+  args: {},
+  returns: v.object({
+    receiveUnmatched: v.boolean(),
+    emailEnabled: v.boolean(),
+    canEmail: v.boolean(),
+  }),
+  handler: async (ctx) => {
+    const owner = await requireUser(ctx);
+    return {
+      receiveUnmatched: owner.receiveUnmatchedLeads === true,
+      emailEnabled: owner.housingLeadEmailsEnabled === true,
+      canEmail: emailProofCurrent(owner, emailContactMode()),
+    };
+  },
+});
+export const setLeadPreferences = mutation({
+  args: {
+    receiveUnmatched: v.optional(v.boolean()),
+    emailEnabled: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const owner = await requireUser(ctx);
+    if (owner.role !== "landlord") throw new Error("Landlord access required.");
+    if (args.emailEnabled && !emailProofCurrent(owner, emailContactMode()))
+      throw new Error(
+        "Confirm your account email in your profile before enabling lead notifications.",
+      );
+    await ctx.db.patch(owner._id, {
+      ...(args.receiveUnmatched !== undefined
+        ? { receiveUnmatchedLeads: args.receiveUnmatched }
+        : {}),
+      ...(args.emailEnabled !== undefined
+        ? { housingLeadEmailsEnabled: args.emailEnabled }
+        : {}),
+    });
+    if (args.receiveUnmatched === true && !owner.receiveUnmatchedLeads)
+      await ctx.scheduler.runAfter(0, internal.housingRequests.scanOwner, {
+        ownerId: owner._id,
+        cursor: null,
+      });
+    return null;
+  },
+});
+export const scanOwner = internalMutation({
+  args: { ownerId: v.id("users"), cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.get(args.ownerId);
+    if (!owner?.receiveUnmatchedLeads) return null;
+    const result = await ctx.db
+      .query("listings")
+      .withIndex("by_landlord_status", (q) =>
+        q.eq("landlordId", owner._id).eq("status", "active"),
+      )
+      .paginate({ cursor: args.cursor, numItems: 30 });
+    for (const listing of result.page)
+      await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, {
+        listingId: listing._id,
+        cursor: null,
+      });
+    if (!result.isDone)
+      await ctx.scheduler.runAfter(0, internal.housingRequests.scanOwner, {
+        ownerId: owner._id,
+        cursor: result.continueCursor,
+      });
+    return null;
+  },
+});
 
 export const scanRequest = internalMutation({
   args: {
@@ -332,6 +448,7 @@ export const getOpen = query({
 
 const inboxItem = v.object({
   deliveryId: v.id("housingRequestDeliveries"),
+  kind: v.union(v.literal("matched"), v.literal("unmatched")),
   request: housingRequestDoc,
   read: v.boolean(),
   name: v.string(),
@@ -347,18 +464,26 @@ export const inbox = query({
       .query("housingRequestDeliveries")
       .withIndex("by_landlordId", (q) => q.eq("landlordId", user._id))
       .order("desc")
-      .paginate(args.paginationOpts);
+      .paginate({
+        ...args.paginationOpts,
+        numItems: Math.min(25, args.paginationOpts.numItems),
+      });
     const page = [];
     for (const delivery of result.page) {
       const request = await ctx.db.get(delivery.requestId);
       if (
         !request ||
+        request.status !== "open" ||
+        request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
+        (delivery.kind === "unmatched" &&
+          (!user.receiveUnmatchedLeads || request.allowUnmatched !== true)) ||
         (await blockState(ctx, request.userId, user._id)).cannotMessage
       )
         continue;
       const tenant = await ctx.db.get(request.userId);
       page.push({
         deliveryId: delivery._id,
+        kind: delivery.kind ?? "matched",
         request,
         read: delivery.readAt !== undefined,
         name:
@@ -367,6 +492,7 @@ export const inbox = query({
           tenant?.name ??
           "Traveler",
         phone:
+          delivery.kind !== "unmatched" &&
           request.status === "open" &&
           request.contactPreference === "phone" &&
           tenant &&
@@ -402,23 +528,38 @@ export const matchingProperties = query({
       .withIndex("by_requestId_and_landlordId", (q) =>
         q.eq("requestId", request._id).eq("landlordId", user._id),
       )
-      .paginate(args.paginationOpts);
+      .paginate({
+        ...args.paginationOpts,
+        numItems: Math.min(25, args.paginationOpts.numItems),
+      });
     const page = [];
+    if (
+      request.status !== "open" ||
+      request.moveInDate < Math.floor(Date.now() / DAY) * DAY
+    )
+      return {
+        page: [],
+        continueCursor: result.continueCursor,
+        isDone: result.isDone,
+      };
     for (const match of result.page) {
       const listing = await ctx.db.get(match.listingId);
+      if (!listing || listing.landlordId !== user._id) continue;
+      const classification = await classifyLead(ctx, listing, request);
       if (
-        listing &&
-        listing.landlordId === user._id &&
-        (await listingFits(ctx, listing, request))
+        !classification ||
+        (classification.kind === "unmatched" && !user.receiveUnmatchedLeads)
       )
-        page.push({
-          listingId: listing._id,
-          title: listing.title,
-          city: listing.city,
-          state: listing.state,
-          price: listing.price,
-          conversationId: match.conversationId ?? null,
-        });
+        continue;
+      page.push({
+        listingId: listing._id,
+        title: listing.title,
+        city: listing.city,
+        state: listing.state,
+        price: listing.price,
+        conversationId: match.conversationId ?? null,
+        ...classification,
+      });
     }
     return {
       page,
@@ -447,6 +588,8 @@ export const reply = mutation({
     requestId: v.id("housingRequests"),
     listingId: v.id("listings"),
     message: v.string(),
+    acknowledgeDifferences: v.optional(v.boolean()),
+    expectedDifferences: v.optional(v.string()),
   },
   returns: v.id("conversations"),
   handler: async (ctx, args) => {
@@ -462,10 +605,12 @@ export const reply = mutation({
       request.userId === owner._id
     )
       throw new Error("Not authorized");
+    const classification = await classifyLead(ctx, listing, request);
     if (
       request.status !== "open" ||
       request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
-      !(await listingFits(ctx, listing, request))
+      !classification ||
+      (classification.kind === "unmatched" && !owner.receiveUnmatchedLeads)
     ) {
       throw new Error(
         "This property no longer matches an open request for these dates.",
@@ -481,12 +626,32 @@ export const reply = mutation({
       throw new Error("This request has not been matched to your property.");
     await requireMessagingAllowed(ctx, owner._id, request.userId);
     if (match.conversationId) return match.conversationId;
+    if (
+      classification!.kind === "unmatched" &&
+      args.acknowledgeDifferences !== true
+    )
+      throw new Error(
+        "Review and acknowledge the mismatched criteria before proposing alternative terms.",
+      );
+    if (
+      classification!.kind === "unmatched" &&
+      args.expectedDifferences !== classification!.differenceKey
+    )
+      throw new Error(
+        "The criteria changed. Review the current differences before replying.",
+      );
+    const maxLength = classification!.kind === "unmatched" ? 1700 : 2000;
+    if (!args.message.trim() || args.message.trim().length > maxLength)
+      throw new Error(`Enter a reply of 1–${maxLength} characters.`);
     const { conversationId } = await sendListingMessage(ctx, {
       senderId: owner._id,
       receiverId: request.userId,
       listingId: listing._id,
       origin: "housing_request",
-      content: args.message,
+      content:
+        classification!.kind === "unmatched"
+          ? `Alternative proposal for a housing request. This rental does not currently meet: ${classification!.differences.map((d) => d.field).join("; ")}. No booking or change of terms is confirmed.\n\n${args.message}`
+          : args.message,
     });
     await ctx.db.patch(match._id, { conversationId, respondedAt: Date.now() });
     return conversationId;
@@ -523,7 +688,12 @@ export const notificationDetails = internalQuery({
   args: { deliveryId: v.id("housingRequestDeliveries") },
   returns: v.union(
     v.null(),
-    v.object({ email: v.string(), city: v.string(), state: v.string() }),
+    v.object({
+      email: v.string(),
+      city: v.string(),
+      state: v.string(),
+      kind: v.union(v.literal("matched"), v.literal("unmatched")),
+    }),
   ),
   handler: async (ctx, args) => {
     const delivery = await ctx.db.get(args.deliveryId);
@@ -535,11 +705,20 @@ export const notificationDetails = internalQuery({
     if (
       !request ||
       request.status !== "open" ||
-      !owner?.email ||
+      !owner?.housingLeadEmailsEnabled ||
+      !emailProofCurrent(owner, emailContactMode()) ||
+      (delivery.kind === "unmatched" &&
+        (!owner.receiveUnmatchedLeads || request.allowUnmatched !== true)) ||
+      request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
       (await blockState(ctx, request.userId, owner._id)).cannotMessage
     )
       return null;
-    return { email: owner.email, city: request.city, state: request.state };
+    return {
+      email: owner.notificationEmail!,
+      city: request.city,
+      state: request.state,
+      kind: delivery.kind ?? "matched",
+    };
   },
 });
 export const recordEmailStatus = internalMutation({

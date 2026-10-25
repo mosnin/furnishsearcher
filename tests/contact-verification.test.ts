@@ -45,7 +45,7 @@ async function fixture() {
       userId: user,
       city: "Austin",
       state: "TX",
-      moveInDate: now + 86400000,
+      moveInDate: now + 60 * 86400000,
       duration: 1,
       maxBudget: 2000,
       bedrooms: 1,
@@ -77,7 +77,7 @@ async function fixture() {
       await owner.query(api.housingRequests.inbox, {
         paginationOpts: { cursor: null, numItems: 20 },
       })
-    ).page[0]?.phone;
+    ).page[0]?.phone ?? null;
   return { t, ids, claims, tenant, owner, shared };
 }
 it("normalizes formatting while requiring an explicit valid country code", () => {

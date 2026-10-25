@@ -122,6 +122,7 @@ export default function HousingRequestPage() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [workplace, setWorkplace] = useState("");
+  const [allowUnmatched, setAllowUnmatched] = useState(false);
   const [contact, setContact] = useState<"platform" | "phone">("platform");
   const [travelers, setTravelers] = useState<Traveler[]>([
     { name: "", moveIn: "", moveOut: "", workplace: "" },
@@ -160,6 +161,7 @@ export default function HousingRequestPage() {
       description,
       workplace: traveler?.workplace || workplace,
       contactPreference: contact,
+      allowUnmatched,
     });
   }
   function updateTraveler(index: number, key: keyof Traveler, value: string) {
@@ -675,12 +677,27 @@ export default function HousingRequestPage() {
                       rows={5}
                     />
                     <p className="text-xs text-slate-500">
-                      Only owners with matching properties receive your request.
+                      {allowUnmatched
+                        ? "Owners in your selected areas with compatible dates may receive your request even if their budget or other listed terms differ. Alternative proposals use platform messages; your phone is shared only through an exact-match delivery when you choose phone contact."
+                        : "Only owners with matching properties receive your request."}
                     </p>
                   </div>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={allowUnmatched}
+                      onChange={(e) => setAllowUnmatched(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span>
+                      Allow alternative offers from owners whose listed budget
+                      or requirements differ. Dates must still be compatible.
+                      Close this request to stop further sharing.
+                    </span>
+                  </label>
                   <fieldset className="space-y-2">
                     <legend className="font-semibold">
-                      How may matching owners contact you?
+                      How may fully matching owners contact you?
                     </legend>
                     <label className="flex items-center gap-2 text-sm">
                       <input
@@ -752,7 +769,10 @@ export default function HousingRequestPage() {
                       <Link href="/terms" className="underline">
                         terms of use
                       </Link>{" "}
-                      and to sharing this request with matching property owners.
+                      and to sharing this request{" "}
+                      {allowUnmatched
+                        ? "with eligible owners in the selected areas, including alternative offers as selected above."
+                        : "with matching property owners."}
                     </span>
                   </label>
                   {error && (
