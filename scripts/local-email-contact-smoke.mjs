@@ -152,6 +152,23 @@ try {
     enabled: false,
   });
 }
+await assert.rejects(
+  call(anonymous, "query", "inboundEmails:mine", {
+    paginationOpts: { cursor: null, numItems: 10 },
+  }),
+);
+assert.deepEqual(
+  (
+    await call(client, "query", "inboundEmails:mine", {
+      paginationOpts: { cursor: null, numItems: 10 },
+    })
+  ).page,
+  [],
+);
+const site = new URL(url);
+site.port = String(cfg.ports.site);
+site.pathname = "/webhooks/resend-replies";
+assert.equal((await fetch(site, { method: "POST", body: "{}" })).status, 503);
 writeFileSync(
   "docs/evidence/local-email-contact-smoke.json",
   JSON.stringify(
@@ -171,6 +188,10 @@ writeFileSync(
       optOutPersisted: true,
       oldTokenReplayRejected: true,
       finalSyntheticBindingRemoved: true,
+      anonymousReplyActivityDenied: true,
+      ownEmptyReplyActivity: true,
+      unconfiguredReceivingHttpRejected: true,
+      actualInboundEmailReceived: false,
     },
     null,
     2,

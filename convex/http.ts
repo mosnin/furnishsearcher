@@ -7,6 +7,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { uploadPhoto, uploadOptions } from "./files";
+import { receive as receiveEmail } from "./emailIngress";
 import {
   upload as uploadProfileImage,
   options as profileImageOptions,
@@ -105,6 +106,11 @@ const webhook = httpAction(async (ctx, request) => {
   }
 });
 const http = httpRouter();
+http.route({
+  path: "/webhooks/resend-replies",
+  method: "POST",
+  handler: receiveEmail,
+});
 http.route({ path: "/photos/upload", method: "POST", handler: uploadPhoto });
 http.route({
   path: "/photos/upload",

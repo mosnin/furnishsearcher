@@ -64,3 +64,15 @@ crons.interval(
   {},
 );
 export default crons;
+crons.interval(
+  "recover inbound email work",
+  { minutes: 5 },
+  internal.inboundEmails.recover,
+  {},
+);
+crons.interval(
+  "remove expired email reply bindings",
+  { hours: 24 },
+  internal.inboundEmails.cleanupBindings,
+  {},
+);

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
+import Link from "next/link";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -97,8 +98,8 @@ function AccountEmailSettings() {
           <p className="text-sm text-gray-600">
             Notifications may contain a message preview. Turning them off keeps
             your conversations available in the inbox. Emails already sent
-            cannot be recalled. Reply in your inbox; replies to notification
-            emails are not connected yet.
+            cannot be recalled. Only notifications that explicitly offer email
+            replies can accept one. You can always reply in your inbox.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" disabled={busy} onClick={enable}>
@@ -134,6 +135,90 @@ function AccountEmailSettings() {
           {error}
         </p>
       )}
+      <EmailReplyActivity />
     </section>
+  );
+}
+
+function EmailReplyActivity() {
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.inboundEmails.mine,
+    {},
+    { initialNumItems: 10 },
+  );
+  const reasons: Record<string, string> = {
+    sender_mismatch:
+      "Send from your confirmed account email, or reply in your inbox.",
+    sender_unverified:
+      "The sending email could not be authenticated. Reply in your inbox.",
+    expired_binding:
+      "This reply address expired or was disconnected. Use a recent notification or your inbox.",
+    automated_email: "Automatic responses are not added to conversations.",
+    attachments_only:
+      "Attachments are not imported. Send a text reply or share a document in your stay workspace.",
+    empty_reply: "No new reply text was found above the quoted notification.",
+    message_too_long:
+      "Send up to 2,000 characters of new reply text, or reply in your inbox.",
+    blocked: "Messaging is unavailable between these accounts.",
+    conversation_unavailable: "The original conversation is unavailable.",
+  };
+  return (
+    <div className="space-y-2 pt-3">
+      <h3 className="text-sm font-semibold">Email reply activity</h3>
+      {status === "LoadingFirstPage" ? (
+        <p role="status" className="text-sm">
+          Loading reply activity…
+        </p>
+      ) : results.length === 0 ? (
+        <p className="text-xs text-gray-500">
+          No email replies are recorded for your account. Replies without a
+          recognized private reply address cannot appear here.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {results.map((row) => (
+            <li key={row.id} className="text-sm border rounded-lg p-3">
+              <p>
+                {row.state === "accepted"
+                  ? "Added to conversation"
+                  : row.state === "rejected"
+                    ? "Reply was not added"
+                    : "Processing reply"}{" "}
+                · {new Date(row.createdAt).toLocaleString()}
+              </p>
+              {row.reason && (
+                <p className="text-xs text-gray-600">
+                  {reasons[row.reason] ??
+                    "This email could not be imported. Reply in your inbox."}
+                </p>
+              )}
+              {row.attachmentsOmitted && (
+                <p className="text-xs text-gray-600">
+                  Images and attachments were not included.
+                </p>
+              )}
+              {row.conversationId && (
+                <Link
+                  className="text-xs underline"
+                  href={`/dashboard/messages?conv=${row.conversationId}`}
+                >
+                  Open conversation
+                </Link>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {status === "CanLoadMore" && (
+        <Button type="button" variant="outline" onClick={() => loadMore(10)}>
+          More reply activity
+        </Button>
+      )}
+      {status === "LoadingMore" && (
+        <p role="status" className="text-xs">
+          Loading more…
+        </p>
+      )}
+    </div>
   );
 }

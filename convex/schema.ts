@@ -158,6 +158,43 @@ export default defineSchema({
     "caseId",
     "createdAt",
   ]),
+  emailReplyBindings: defineTable({
+    digest: v.string(),
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    conversationId: v.id("conversations"),
+    email: v.string(),
+    revision: v.number(),
+    domain: v.string(),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    expiresAt: v.number(),
+  })
+    .index("by_digest", ["digest"])
+    .index("by_source", ["messageId"])
+    .index("by_expiry", ["expiresAt"]),
+  inboundEmailReceipts: defineTable({
+    bindingId: v.optional(v.id("emailReplyBindings")),
+    emailId: v.string(),
+    state: v.union(
+      v.literal("queued"),
+      v.literal("processing"),
+      v.literal("retrying"),
+      v.literal("accepted"),
+      v.literal("rejected"),
+    ),
+    attempt: v.number(),
+    dueAt: v.number(),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    conversationId: v.optional(v.id("conversations")),
+    messageId: v.optional(v.id("messages")),
+    attachmentsOmitted: v.optional(v.boolean()),
+  })
+    .index("by_email", ["emailId"])
+    .index("by_due", ["state", "dueAt"])
+    .index("by_user", ["userId"]),
   users: defineTable({
     identityCheckId: v.optional(v.id("identityChecks")),
     identityHold: v.optional(v.boolean()),

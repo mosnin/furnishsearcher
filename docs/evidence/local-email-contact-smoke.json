@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-25T03:58:18.644Z",
+  "checkedAt": "2026-10-25T04:12:50.674Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "privilegedSyntheticClaims": true,
@@ -13,5 +13,9 @@
   "privateTravelerProfile": true,
   "optOutPersisted": true,
   "oldTokenReplayRejected": true,
-  "finalSyntheticBindingRemoved": true
+  "finalSyntheticBindingRemoved": true,
+  "anonymousReplyActivityDenied": true,
+  "ownEmptyReplyActivity": true,
+  "unconfiguredReceivingHttpRejected": true,
+  "actualInboundEmailReceived": false
 }

@@ -12,6 +12,7 @@ export const messageEmailStatus = v.union(
   v.literal("suppressed"),
 );
 export const messageFields = {
+  emailAttachmentsOmitted: v.optional(v.boolean()),
   requestBindingVersion: v.optional(v.literal(2)),
   rentalInquiryId: v.optional(v.id("bookingInquiries")),
   conversationId: v.string(),
@@ -23,7 +24,7 @@ export const messageFields = {
   read: v.boolean(),
   readAt: v.optional(v.number()),
   createdAt: v.number(),
-  origin: v.optional(messageOrigin),
+  origin: v.optional(v.union(messageOrigin, v.literal("email"))),
   clientRequestId: v.optional(v.string()),
   emailStatus: v.optional(messageEmailStatus),
 };

@@ -112,6 +112,14 @@ function MessageBubble({
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {message.origin === "email" && (
+          <p className="text-xs mt-1 opacity-75">
+            Sent by email
+            {message.emailAttachmentsOmitted
+              ? " · Images and attachments not included"
+              : ""}
+          </p>
+        )}
         {!mine && <ReportDialog messageId={message._id} />}
         <div
           className={cn(
@@ -125,23 +133,24 @@ function MessageBubble({
               minute: "2-digit",
             })}
           </time>
-          {mine && message.origin === "inbox" && (
-            <span
-              className="inline-flex gap-1 items-center"
-              title={
-                message.read
-                  ? "Recipient opened the conversation"
-                  : "Saved in the recipient's inbox"
-              }
-            >
-              {message.read ? (
-                <CheckCheck className="h-4 w-4 text-sky-300" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              {message.read ? "Read" : "Sent"}
-            </span>
-          )}
+          {mine &&
+            (message.origin === "inbox" || message.origin === "email") && (
+              <span
+                className="inline-flex gap-1 items-center"
+                title={
+                  message.read
+                    ? "Recipient opened the conversation"
+                    : "Saved in the recipient's inbox"
+                }
+              >
+                {message.read ? (
+                  <CheckCheck className="h-4 w-4 text-sky-300" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                {message.read ? "Read" : "Sent"}
+              </span>
+            )}
         </div>
       </div>
     </div>

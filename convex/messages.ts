@@ -342,6 +342,7 @@ export const notificationDetails = internalQuery({
       title: v.string(),
       preview: v.string(),
       conversationId: v.id("conversations"),
+      recipientRevision: v.number(),
     }),
   ),
   handler: async (ctx, args) => {
@@ -373,6 +374,7 @@ export const notificationDetails = internalQuery({
       title: listing?.title ?? "A property conversation",
       preview: message.content.slice(0, 200),
       conversationId: conv._id,
+      recipientRevision: receiver.notificationEmailRevision ?? 0,
     };
   },
 });
