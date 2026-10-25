@@ -20,6 +20,7 @@ export async function sendListingMessage(
     clientRequestId?: string;
     origin?: "inbox" | "property" | "housing_request";
     rentalInquiryId?: Id<"bookingInquiries">;
+    housingRequestId?: Id<"housingRequests">;
   },
 ) {
   const sender = await requireUser(ctx);
@@ -63,6 +64,7 @@ export async function sendListingMessage(
         previous.receiverId !== args.receiverId ||
         previous.listingId !== args.listingId ||
         previous.content !== content ||
+        previous.housingRequestId !== args.housingRequestId ||
         !previous.conversationDocId ||
         ((previous.requestBindingVersion === 2 ||
           previous.rentalInquiryId !== undefined) &&
@@ -101,6 +103,17 @@ export async function sendListingMessage(
       inquiry.tenantId !== tenantId
     )
       throw new Error("This property is not accepting new messages.");
+  }
+  if (args.housingRequestId) {
+    const request = await ctx.db.get(args.housingRequestId);
+    if (
+      !request ||
+      request.userId !== receiver._id ||
+      listing.landlordId !== sender._id
+    )
+      throw new Error(
+        "This housing request does not belong to these offer participants.",
+      );
   }
   const key = conversationKey(sender._id, receiver._id, listing._id),
     now = Date.now();
@@ -162,6 +175,9 @@ export async function sendListingMessage(
   }
   await syncInbox(ctx, conversationId);
   const messageId = await ctx.db.insert("messages", {
+    ...(args.housingRequestId
+      ? { housingRequestId: args.housingRequestId }
+      : {}),
     ...(args.rentalInquiryId ? { rentalInquiryId: args.rentalInquiryId } : {}),
     conversationId: key,
     conversationDocId: conversationId,

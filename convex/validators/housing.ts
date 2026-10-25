@@ -1,5 +1,15 @@
 import { v } from "convex/values";
 
+export const leadResponse = v.object({
+  conversationId: v.id("conversations"),
+  listingId: v.id("listings"),
+  propertyId: v.optional(v.id("properties")),
+  propertyTitle: v.optional(v.string()),
+  title: v.string(),
+  unitName: v.optional(v.string()),
+  respondedAt: v.optional(v.number()),
+});
+
 export const housingCriteria = {
   allowUnmatched: v.optional(v.boolean()),
   city: v.string(),

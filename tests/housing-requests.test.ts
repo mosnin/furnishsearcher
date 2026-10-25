@@ -301,20 +301,28 @@ describe("housing request delivery", () => {
 
   it("only shares a phone when consent and verified ownership are both present", async () => {
     const { t, ids, tenant, owner, criteria } = await fixture();
-    await tenant.mutation(api.housingRequests.create, {
+    const requestId = await tenant.mutation(api.housingRequests.create, {
       ...criteria,
       contactPreference: "phone",
       userId: ids.tenant,
     });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
-      (await owner.query(api.housingRequests.inbox, { paginationOpts })).page[0]
-        .phone,
+      (
+        await owner.query(api.housingRequests.leadContact, {
+          requestId,
+          listingId: ids.listing,
+        })
+      ).phone,
     ).toBe("+15555550123");
     await t.run((ctx) => ctx.db.patch(ids.tenant, { phoneVerified: false }));
     expect(
-      (await owner.query(api.housingRequests.inbox, { paginationOpts })).page[0]
-        .phone,
+      (
+        await owner.query(api.housingRequests.leadContact, {
+          requestId,
+          listingId: ids.listing,
+        })
+      ).phone,
     ).toBeNull();
     await expect(
       tenant.mutation(api.housingRequests.create, {
@@ -779,9 +787,9 @@ describe("unmatched lead intake and proposals", () => {
     await expect(
       f.owner.mutation(api.housingRequests.reply, {
         ...acknowledged,
-        message: "x".repeat(1701),
+        message: "x".repeat((property.maxReplyLength ?? 1700) + 1),
       }),
-    ).rejects.toThrow(/1700/);
+    ).rejects.toThrow(String(property.maxReplyLength));
     const conversations = await Promise.all([
       f.owner.mutation(api.housingRequests.reply, acknowledged),
       f.owner.mutation(api.housingRequests.reply, acknowledged),
@@ -825,7 +833,15 @@ describe("unmatched lead intake and proposals", () => {
     expect(
       (await f.owner.query(api.housingRequests.inbox, { paginationOpts }))
         .page[0],
-    ).toMatchObject({ kind: "matched", phone: "+15555550123" });
+    ).toMatchObject({ kind: "matched", phone: null });
+    expect(
+      (
+        await f.owner.query(api.housingRequests.leadContact, {
+          requestId,
+          listingId: f.ids.listing,
+        })
+      ).phone,
+    ).toBe("+15555550123");
     const row = await f.t.run((ctx) =>
       ctx.db
         .query("housingRequestMatches")

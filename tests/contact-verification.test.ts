@@ -1,3 +1,4 @@
+import { seedPublishedFixtures } from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
@@ -62,8 +63,39 @@ async function fixture() {
       createdAt: now,
       emailStatus: "unconfigured",
     });
-    return { user, owner, request };
+    const listing = await ctx.db.insert("listings", {
+      landlordId: owner,
+      title: "Synthetic matched phone rental",
+      description: "Test only",
+      address: "Private synthetic street",
+      city: "Austin",
+      state: "TX",
+      zip: "78701",
+      price: 1500,
+      bedrooms: 1,
+      bathrooms: 1,
+      propertyType: "Apartment",
+      amenities: [],
+      photos: [],
+      petFriendly: false,
+      utilitiesIncluded: true,
+      parkingIncluded: false,
+      availableFrom: now,
+      minStay: 1,
+      status: "active",
+      createdAt: now,
+      views: 0,
+    });
+    await ctx.db.insert("housingRequestMatches", {
+      requestId: request,
+      listingId: listing,
+      landlordId: owner,
+      kind: "matched",
+      createdAt: now,
+    });
+    return { user, owner, request, listing };
   });
+  await seedPublishedFixtures(t);
   const claims = {
     subject: "tenant",
     phoneNumber: phone,
@@ -74,10 +106,11 @@ async function fixture() {
     owner = t.withIdentity({ subject: "owner" });
   const shared = async () =>
     (
-      await owner.query(api.housingRequests.inbox, {
-        paginationOpts: { cursor: null, numItems: 20 },
+      await owner.query(api.housingRequests.leadContact, {
+        requestId: ids.request,
+        listingId: ids.listing,
       })
-    ).page[0]?.phone ?? null;
+    ).phone;
   return { t, ids, claims, tenant, owner, shared };
 }
 it("normalizes formatting while requiring an explicit valid country code", () => {
@@ -100,7 +133,12 @@ it("ignores legacy flags and accepts only an exact signed verified number", asyn
   ).toBe(false);
   expect(await shared()).toBeNull();
   const result = await tenant.mutation(api.users.confirmPhone, { phone });
-  expect(result).toEqual({ phone, expiresAt: now + PHONE_PROOF_LIFETIME });
+  expect(result.phone).toBe(phone);
+  const saved = (await tenant.query(api.users.getByClerkId, {
+    clerkId: "tenant",
+  }))!;
+  expect(result.expiresAt - saved.phoneVerifiedAt!).toBe(PHONE_PROOF_LIFETIME);
+  expect(saved.phoneVerificationExpiresAt).toBe(result.expiresAt);
   expect(await shared()).toBe(phone);
 });
 it("rejects missing, false, string, mismatched and stale claims", async () => {

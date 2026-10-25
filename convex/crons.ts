@@ -2,6 +2,12 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
 crons.interval(
+  "rank existing housing lead options",
+  { minutes: 15 },
+  internal.leadOffers.backfill,
+  {},
+);
+crons.interval(
   "clean unused listing photos",
   { hours: 24 },
   internal.photoRetention.maintenance,

@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import {
   useQuery,
   useMutation,
   usePaginatedQuery,
   useConvexAuth,
+  useConvex,
 } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
@@ -101,6 +102,30 @@ function MessageBubble({
   message: Doc<"messages">;
   mine: boolean;
 }) {
+  const convex = useConvex(),
+    router = useRouter();
+  const [openingOffer, setOpeningOffer] = useState(false);
+  async function openOffer() {
+    setOpeningOffer(true);
+    try {
+      const offer = await convex.query(api.housingRequests.offerLink, {
+        messageId: message._id,
+      });
+      if (!offer) {
+        toast.error("This offered rental is no longer available to view.");
+        return;
+      }
+      const params = new URLSearchParams({
+        moveIn: new Date(offer.moveIn).toISOString().slice(0, 10),
+        moveOut: new Date(offer.moveOut).toISOString().slice(0, 10),
+      });
+      router.push(`/listings/${offer.listingId}?${params}`);
+    } catch {
+      toast.error("Unable to open this offer. Please try again.");
+    } finally {
+      setOpeningOffer(false);
+    }
+  }
   return (
     <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
       <div
@@ -112,6 +137,16 @@ function MessageBubble({
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {message.origin === "housing_request" && message.housingRequestId && (
+          <button
+            type="button"
+            disabled={openingOffer}
+            onClick={() => void openOffer()}
+            className="mt-2 text-xs underline underline-offset-2 disabled:opacity-60"
+          >
+            {openingOffer ? "Opening rental…" : "View offered rental"}
+          </button>
+        )}
         {message.origin === "email" && (
           <p className="text-xs mt-1 opacity-75">
             Sent by email

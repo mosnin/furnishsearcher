@@ -14,6 +14,7 @@ import {
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useContactClock } from "@/components/listing-phone-contact";
 import { LeadEmailPreferences } from "@/components/lead-email-preferences";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,17 +48,34 @@ function RequestCard({ item }: { item: InboxItem }) {
     loadMore,
   } = usePaginatedQuery(
     api.housingRequests.matchingProperties,
-    expanded ? { requestId: r._id } : "skip",
+    expanded ? { requestId: r._id, orderVersion: 1 } : "skip",
     { initialNumItems: 20 },
   );
-  const chosen =
-    properties.find((p) => p.listingId === listingId) ?? properties[0];
+  const chosen = listingId
+    ? properties.find((p) => p.listingId === listingId)
+    : properties[0];
   useEffect(
     () => setAcknowledged(false),
     [chosen?.listingId, chosen?.differenceKey],
   );
+  const contactOption = item.response
+    ? properties.find((p) => p.listingId === item.response!.listingId)
+    : chosen;
+  const contact = useQuery(
+    api.housingRequests.leadContact,
+    expanded && contactOption
+      ? { requestId: r._id, listingId: contactOption.listingId }
+      : "skip",
+  );
+  const contactNow = useContactClock(contact?.expiresAt);
+  const requestNow = useContactClock(r.moveInDate + DAY);
+  const groups = new Map<string, typeof properties>();
+  for (const option of properties) {
+    const key = option.propertyId ?? option.listingId;
+    groups.set(key, [...(groups.get(key) ?? []), option]);
+  }
   const active =
-    r.status === "open" && r.moveInDate >= Math.floor(Date.now() / DAY) * DAY;
+    r.status === "open" && r.moveInDate >= Math.floor(requestNow / DAY) * DAY;
   async function expand() {
     setExpanded(!expanded);
     if (!item.read)
@@ -138,13 +156,29 @@ function RequestCard({ item }: { item: InboxItem }) {
             {r.description}
           </p>
         )}
-        {item.phone && (
-          <p className="text-sm">
-            Traveler shared their phone
-            {item.phoneTestMode ? " (test account confirmation)" : ""}:{" "}
-            <a className="underline" href={`tel:${item.phone}`}>
-              {item.phone}
-            </a>
+        {item.response && (
+          <div className="rounded-lg border bg-slate-50 p-4 space-y-2">
+            <p className="text-sm font-medium break-words">
+              First offered: {item.response.title}
+              {item.response.unitName ? ` · ${item.response.unitName}` : ""}
+            </p>
+            <p className="text-sm text-slate-600">
+              This request already has a response. Continue that conversation
+              when discussing other units. No booking is confirmed.
+            </p>
+            <Button asChild>
+              <Link
+                href={`/dashboard/messages?conv=${item.response.conversationId}`}
+              >
+                Continue conversation
+              </Link>
+            </Button>
+          </div>
+        )}
+        {item.historyNeedsReview && (
+          <p className="text-sm text-amber-800">
+            An earlier response needs support review. Your existing
+            conversations remain in Messages.
           </p>
         )}
         <Button type="button" variant="outline" onClick={expand}>
@@ -152,6 +186,12 @@ function RequestCard({ item }: { item: InboxItem }) {
         </Button>
         {expanded && (
           <div className="space-y-4 border-t pt-4">
+            {listingId && !chosen && status !== "LoadingFirstPage" && (
+              <p role="status" className="text-sm text-amber-800">
+                Your selected rental is no longer eligible. Choose another
+                available option before replying; your draft is kept.
+              </p>
+            )}
             {status === "LoadingFirstPage" ? (
               <p role="status">Checking current availability…</p>
             ) : properties.length === 0 ? (
@@ -163,24 +203,56 @@ function RequestCard({ item }: { item: InboxItem }) {
             ) : (
               <>
                 <Label htmlFor={`property-${r._id}`}>
-                  Respond with a property
+                  Choose a property and rental space
                 </Label>
                 <select
                   id={`property-${r._id}`}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-10 w-full max-w-full rounded-md border border-input bg-background px-3 text-sm"
                   disabled={busy}
                   value={chosen?.listingId ?? ""}
                   onChange={(e) =>
                     setListingId(e.target.value as Id<"listings">)
                   }
                 >
-                  {properties.map((p) => (
-                    <option key={p.listingId} value={p.listingId}>
-                      {p.title} · {formatPrice(p.price)}/mo
-                      {p.kind === "unmatched" ? " · Differences to review" : ""}
-                    </option>
+                  <option value="" disabled>
+                    Choose a rental space
+                  </option>
+                  {[...groups.entries()].map(([key, options]) => (
+                    <optgroup
+                      key={key}
+                      label={options[0].propertyTitle ?? options[0].title}
+                    >
+                      {options.map((p) => (
+                        <option key={p.listingId} value={p.listingId}>
+                          {p.unitName ?? p.title} · {formatPrice(p.price)}/mo
+                          {p.kind === "unmatched"
+                            ? " · Differences to review"
+                            : ""}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
+                <p className="text-xs text-slate-500">
+                  Properties are grouped; suggestions use recorded match,
+                  requested city, bedrooms and rent. Current availability is
+                  checked again when you reply.
+                </p>
+                {contact?.phone &&
+                  contact.expiresAt &&
+                  contact.expiresAt > contactNow && (
+                    <p className="text-sm">
+                      Traveler shared their phone for this currently matching
+                      rental
+                      {contact.phoneTestMode
+                        ? " (test account confirmation)"
+                        : ""}
+                      :{" "}
+                      <a className="underline" href={`tel:${contact.phone}`}>
+                        {contact.phone}
+                      </a>
+                    </p>
+                  )}
                 {chosen && (
                   <Link
                     className="text-sm underline"
@@ -215,7 +287,8 @@ function RequestCard({ item }: { item: InboxItem }) {
                     </p>
                   </div>
                 )}
-                {chosen?.conversationId ? (
+                {item.response ||
+                item.historyNeedsReview ? null : chosen?.conversationId ? (
                   <Button asChild>
                     <Link
                       href={`/dashboard/messages?conv=${chosen.conversationId}`}
@@ -224,7 +297,8 @@ function RequestCard({ item }: { item: InboxItem }) {
                     </Link>
                   </Button>
                 ) : (
-                  active && (
+                  active &&
+                  chosen && (
                     <form onSubmit={send} className="space-y-3">
                       <Label htmlFor={`reply-${r._id}`}>
                         Introduce your property
@@ -232,18 +306,36 @@ function RequestCard({ item }: { item: InboxItem }) {
                       <Textarea
                         id={`reply-${r._id}`}
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        maxLength={chosen?.kind === "unmatched" ? 1700 : 2000}
+                        onChange={(e) => {
+                          if (!listingId && chosen)
+                            setListingId(chosen.listingId);
+                          setMessage(e.target.value);
+                        }}
+                        maxLength={
+                          chosen?.maxReplyLength ??
+                          (chosen?.kind === "unmatched" ? 1700 : 2000)
+                        }
                         required
                         placeholder="Let the traveler know how your property fits their needs."
                       />
+                      <p className="text-xs text-slate-500">
+                        Up to{" "}
+                        {chosen?.maxReplyLength ??
+                          (chosen?.kind === "unmatched" ? 1700 : 2000)}{" "}
+                        characters. The offered rental space is included in your
+                        reply.
+                      </p>
                       {chosen?.kind === "unmatched" && (
                         <label className="flex items-start gap-2 text-sm">
                           <input
                             type="checkbox"
                             checked={acknowledged}
                             disabled={busy}
-                            onChange={(e) => setAcknowledged(e.target.checked)}
+                            onChange={(e) => {
+                              if (!listingId && chosen)
+                                setListingId(chosen.listingId);
+                              setAcknowledged(e.target.checked);
+                            }}
                             className="mt-1"
                           />
                           I reviewed these differences and will explain my
@@ -261,6 +353,8 @@ function RequestCard({ item }: { item: InboxItem }) {
                         disabled={
                           busy ||
                           !message.trim() ||
+                          message.trim().length >
+                            (chosen?.maxReplyLength ?? 2000) ||
                           (chosen?.kind === "unmatched" && !acknowledged)
                         }
                       >

@@ -15,6 +15,7 @@ export const messageFields = {
   emailAttachmentsOmitted: v.optional(v.boolean()),
   requestBindingVersion: v.optional(v.literal(2)),
   rentalInquiryId: v.optional(v.id("bookingInquiries")),
+  housingRequestId: v.optional(v.id("housingRequests")),
   conversationId: v.string(),
   conversationDocId: v.optional(v.id("conversations")),
   senderId: v.id("users"),

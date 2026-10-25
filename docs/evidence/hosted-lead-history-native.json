@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-25T23:37:44.661Z",
+  "deployment": "cheerful-ferret-182",
+  "actualOwnerClerkDevelopmentJwt": true,
+  "privilegedPrivateSyntheticHistoryOnly": true,
+  "nativeLegacyResponseLookupWithoutTimestamp": true,
+  "responseBoundToOwnRentalAndTraveler": true,
+  "currentPrivateRentalCannotGenerateNewOfferOrPhoneDisclosure": true,
+  "seededMessageRequestBindingPreserved": true,
+  "ownerOfferLinkCarriesOriginalDates": true,
+  "privateOfferLinkDeniedToTraveler": true,
+  "publicOfferOrRealMessageCreationAcceptance": false,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

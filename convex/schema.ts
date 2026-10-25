@@ -15,7 +15,7 @@ import {
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { bucket as marketBucket, demandKind } from "./validators/market";
-import { housingRequestFields } from "./validators/housing";
+import { housingRequestFields, leadResponse } from "./validators/housing";
 import {
   caseFields,
   replyFields,
@@ -863,6 +863,12 @@ export default defineSchema({
     .index("by_status", ["status"]),
 
   housingRequestMatches: defineTable({
+    rankVersion: v.optional(v.literal(1)),
+    offerKind: v.optional(v.number()),
+    offerDifferences: v.optional(v.number()),
+    offerArea: v.optional(v.number()),
+    offerBedrooms: v.optional(v.number()),
+    offerPrice: v.optional(v.number()),
     kind: v.optional(v.union(v.literal("matched"), v.literal("unmatched"))),
     matchedAt: v.optional(v.number()),
     unmatchedAt: v.optional(v.number()),
@@ -874,9 +880,31 @@ export default defineSchema({
     conversationId: v.optional(v.id("conversations")),
   })
     .index("by_requestId_and_listingId", ["requestId", "listingId"])
-    .index("by_requestId_and_landlordId", ["requestId", "landlordId"]),
+    .index("by_requestId_and_landlordId", ["requestId", "landlordId"])
+    .index("by_request_owner_response", [
+      "requestId",
+      "landlordId",
+      "respondedAt",
+    ])
+    .index("by_request_owner_conversation", [
+      "requestId",
+      "landlordId",
+      "conversationId",
+    ])
+    .index("by_rank_version", ["rankVersion"])
+    .index("by_request_owner_rank", [
+      "requestId",
+      "landlordId",
+      "rankVersion",
+      "offerKind",
+      "offerDifferences",
+      "offerArea",
+      "offerBedrooms",
+      "offerPrice",
+    ]),
 
   housingRequestDeliveries: defineTable({
+    response: v.optional(leadResponse),
     emailGeneration: v.optional(v.number()),
     emailSelectionStartedAt: v.optional(v.number()),
     notificationListingId: v.optional(v.id("listings")),

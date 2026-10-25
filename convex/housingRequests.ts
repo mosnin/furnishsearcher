@@ -3,7 +3,17 @@ import {
   leadEmailDetails,
   queueLeadEmail,
 } from "./lib/leadEmail";
+import {
+  offerRank,
+  orderedOffers,
+  offerContext,
+  offerPrefix,
+  replyLimit,
+  existingLeadResponse,
+} from "./lib/leadOffers";
 import { recordPerformance } from "./lib/performance";
+import { publiclyVisible } from "./lib/publication";
+import { findConversationByKey } from "./lib/messageAccess";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { recordDemand } from "./lib/market";
@@ -17,7 +27,11 @@ import {
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
-import { housingCriteria, housingRequestDoc } from "./validators/housing";
+import {
+  housingCriteria,
+  housingRequestDoc,
+  leadResponse,
+} from "./validators/housing";
 import { requireUser } from "./lib/auth";
 import {
   listingFits,
@@ -35,6 +49,10 @@ import { currentPhoneProof } from "./lib/contacts";
 const pageFields = { continueCursor: v.string(), isDone: v.boolean() };
 const propertySummary = v.object({
   listingId: v.id("listings"),
+  propertyId: v.optional(v.id("properties")),
+  propertyTitle: v.optional(v.string()),
+  unitName: v.optional(v.string()),
+  maxReplyLength: v.optional(v.number()),
   title: v.string(),
   city: v.string(),
   state: v.string(),
@@ -209,8 +227,18 @@ async function saveMatch(
     return;
   const requester = await ctx.db.get(request.userId);
   if (!requester || requester.clerkDeletedAt !== undefined) return;
+  const existing = await ctx.db
+    .query("housingRequestMatches")
+    .withIndex("by_requestId_and_listingId", (q) =>
+      q.eq("requestId", request._id).eq("listingId", listing._id),
+    )
+    .unique();
   const classification = await classifyLead(ctx, listing, request);
-  if (!classification) return;
+  if (!classification) {
+    if (existing)
+      await ctx.db.patch(existing._id, offerRank(request, listing, null));
+    return;
+  }
   const owner = await ctx.db.get(listing.landlordId);
   if (
     !owner ||
@@ -220,12 +248,6 @@ async function saveMatch(
   const blocked = (await blockState(ctx, request.userId, owner._id))
     .cannotMessage;
   if (blocked && classification.kind === "unmatched") return;
-  const existing = await ctx.db
-    .query("housingRequestMatches")
-    .withIndex("by_requestId_and_listingId", (q) =>
-      q.eq("requestId", request._id).eq("listingId", listing._id),
-    )
-    .unique();
   const firstExact =
     classification.kind === "matched" &&
     (!existing ||
@@ -241,12 +263,14 @@ async function saveMatch(
       landlordId: owner._id,
       createdAt: now,
       kind: classification.kind,
+      ...offerRank(request, listing, classification),
       ...(classification.kind === "matched"
         ? { matchedAt: now }
         : { unmatchedAt: now }),
     });
   else
     await ctx.db.patch(existing._id, {
+      ...offerRank(request, listing, classification),
       kind: classification.kind,
       ...(existing.kind === undefined && existing.matchedAt === undefined
         ? { matchedAt: existing.createdAt }
@@ -471,6 +495,8 @@ const inboxItem = v.object({
   name: v.string(),
   phone: v.union(v.string(), v.null()),
   phoneTestMode: v.boolean(),
+  response: v.union(leadResponse, v.null()),
+  historyNeedsReview: v.boolean(),
 });
 export const inbox = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -508,16 +534,8 @@ export const inbox = query({
           tenant?.displayName ??
           tenant?.name ??
           "Traveler",
-        phone:
-          delivery.kind !== "unmatched" &&
-          request.status === "open" &&
-          request.contactPreference === "phone" &&
-          tenant &&
-          currentPhoneProof(tenant) &&
-          request.contactPhoneRevision !== undefined &&
-          request.contactPhoneRevision === (tenant.phoneRevision ?? 0)
-            ? (tenant.phone ?? null)
-            : null,
+        phone: null,
+        ...(await existingLeadResponse(ctx, delivery, request)),
         phoneTestMode: tenant?.phoneVerificationMode !== "prod",
       });
     }
@@ -532,6 +550,7 @@ export const inbox = query({
 export const matchingProperties = query({
   args: {
     requestId: v.id("housingRequests"),
+    orderVersion: v.optional(v.literal(1)),
     paginationOpts: paginationOptsValidator,
   },
   returns: v.object({ ...pageFields, page: v.array(propertySummary) }),
@@ -540,15 +559,19 @@ export const matchingProperties = query({
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found.");
     await requireMessagingAllowed(ctx, user._id, request.userId);
-    const result = await ctx.db
-      .query("housingRequestMatches")
-      .withIndex("by_requestId_and_landlordId", (q) =>
-        q.eq("requestId", request._id).eq("landlordId", user._id),
-      )
-      .paginate({
-        ...args.paginationOpts,
-        numItems: Math.min(25, args.paginationOpts.numItems),
-      });
+    const offers =
+      args.orderVersion === 1
+        ? orderedOffers(ctx, request._id, user._id)
+        : ctx.db
+            .query("housingRequestMatches")
+            .withIndex("by_requestId_and_landlordId", (q) =>
+              q.eq("requestId", request._id).eq("landlordId", user._id),
+            )
+            .order("asc");
+    const result = await offers.paginate({
+      ...args.paginationOpts,
+      numItems: Math.min(25, args.paginationOpts.numItems),
+    });
     const page = [];
     if (
       request.status !== "open" ||
@@ -569,6 +592,8 @@ export const matchingProperties = query({
       )
         continue;
       page.push({
+        ...(await offerContext(ctx, listing)),
+        maxReplyLength: replyLimit(listing, classification, request),
         listingId: listing._id,
         title: listing.title,
         city: listing.city,
@@ -582,6 +607,119 @@ export const matchingProperties = query({
       page,
       continueCursor: result.continueCursor,
       isDone: result.isDone,
+    };
+  },
+});
+
+export const offerLink = query({
+  args: { messageId: v.id("messages") },
+  returns: v.union(
+    v.object({
+      listingId: v.id("listings"),
+      moveIn: v.number(),
+      moveOut: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx),
+      message = await ctx.db.get(args.messageId);
+    if (
+      !message ||
+      ![message.senderId, message.receiverId].includes(user._id) ||
+      message.origin !== "housing_request" ||
+      !message.housingRequestId
+    )
+      return null;
+    const conversation = message.conversationDocId
+      ? await ctx.db.get(message.conversationDocId)
+      : await findConversationByKey(ctx, message.conversationId);
+    if (
+      !conversation ||
+      conversation.listingId !== message.listingId ||
+      conversation.landlordId !== message.senderId ||
+      conversation.tenantId !== message.receiverId
+    )
+      return null;
+    const [request, listing] = await Promise.all([
+      ctx.db.get(message.housingRequestId),
+      ctx.db.get(message.listingId),
+    ]);
+    if (
+      !request ||
+      request.userId !== message.receiverId ||
+      !listing ||
+      listing.landlordId !== message.senderId ||
+      (user._id !== listing.landlordId &&
+        !(await publiclyVisible(ctx, listing)))
+    )
+      return null;
+    const moveOut =
+      request.moveOutDate ?? request.moveInDate + request.duration * 30 * DAY;
+    if (
+      !Number.isFinite(new Date(request.moveInDate).getTime()) ||
+      !Number.isFinite(new Date(moveOut).getTime())
+    )
+      return null;
+    return { listingId: listing._id, moveIn: request.moveInDate, moveOut };
+  },
+});
+
+export const leadContact = query({
+  args: { requestId: v.id("housingRequests"), listingId: v.id("listings") },
+  returns: v.object({
+    phone: v.union(v.string(), v.null()),
+    phoneTestMode: v.boolean(),
+    expiresAt: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const owner = await requireUser(ctx);
+    const [request, listing] = await Promise.all([
+      ctx.db.get(args.requestId),
+      ctx.db.get(args.listingId),
+    ]);
+    if (
+      !request ||
+      !listing ||
+      listing.landlordId !== owner._id ||
+      request.userId === owner._id
+    )
+      throw new Error("Not authorized");
+    const none = { phone: null, phoneTestMode: false, expiresAt: null };
+    if (
+      request.status !== "open" ||
+      request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
+      request.contactPreference !== "phone" ||
+      (await blockState(ctx, owner._id, request.userId)).cannotMessage
+    )
+      return none;
+    const match = await ctx.db
+      .query("housingRequestMatches")
+      .withIndex("by_requestId_and_listingId", (q) =>
+        q.eq("requestId", request._id).eq("listingId", listing._id),
+      )
+      .unique();
+    if (
+      !match ||
+      match.landlordId !== owner._id ||
+      (await classifyLead(ctx, listing, request))?.kind !== "matched"
+    )
+      return none;
+    const traveler = await ctx.db.get(request.userId);
+    if (
+      !traveler ||
+      !currentPhoneProof(traveler) ||
+      request.contactPhoneRevision === undefined ||
+      request.contactPhoneRevision !== (traveler.phoneRevision ?? 0)
+    )
+      return none;
+    return {
+      phone: traveler.phone ?? null,
+      phoneTestMode: traveler.phoneVerificationMode !== "prod",
+      expiresAt: Math.min(
+        traveler.phoneVerificationExpiresAt!,
+        request.moveInDate + DAY,
+      ),
     };
   },
 });
@@ -642,7 +780,37 @@ export const reply = mutation({
     if (!match || match.landlordId !== owner._id)
       throw new Error("This request has not been matched to your property.");
     await requireMessagingAllowed(ctx, owner._id, request.userId);
-    if (match.conversationId) return match.conversationId;
+    let delivery = await ctx.db
+      .query("housingRequestDeliveries")
+      .withIndex("by_requestId_and_landlordId", (q) =>
+        q.eq("requestId", request._id).eq("landlordId", owner._id),
+      )
+      .unique();
+    if (!delivery) {
+      const id = await ctx.db.insert("housingRequestDeliveries", {
+        requestId: request._id,
+        landlordId: owner._id,
+        createdAt: Date.now(),
+        kind: classification.kind,
+        emailStatus: "suppressed",
+      });
+      delivery = (await ctx.db.get(id))!;
+    }
+    const previous = await existingLeadResponse(ctx, delivery, request);
+    if (previous.historyNeedsReview)
+      throw new Error(
+        "An earlier response needs support review. Continue from Messages.",
+      );
+    if (previous.response) {
+      if (previous.response.listingId !== listing._id)
+        throw new Error(
+          "You already replied with another rental. Continue the existing conversation before offering a different unit.",
+        );
+      if (!delivery.response)
+        await ctx.db.patch(delivery._id, { response: previous.response });
+      return previous.response.conversationId;
+    }
+
     if (
       classification!.kind === "unmatched" &&
       args.acknowledgeDifferences !== true
@@ -657,7 +825,7 @@ export const reply = mutation({
       throw new Error(
         "The criteria changed. Review the current differences before replying.",
       );
-    const maxLength = classification!.kind === "unmatched" ? 1700 : 2000;
+    const maxLength = replyLimit(listing, classification, request);
     if (!args.message.trim() || args.message.trim().length > maxLength)
       throw new Error(`Enter a reply of 1–${maxLength} characters.`);
     const { conversationId } = await sendListingMessage(ctx, {
@@ -665,10 +833,18 @@ export const reply = mutation({
       receiverId: request.userId,
       listingId: listing._id,
       origin: "housing_request",
+      housingRequestId: request._id,
       content:
-        classification!.kind === "unmatched"
-          ? `Alternative proposal for a housing request. This rental does not currently meet: ${classification!.differences.map((d) => d.field).join("; ")}. No booking or change of terms is confirmed.\n\n${args.message}`
-          : args.message,
+        offerPrefix(listing, classification, request) + args.message.trim(),
+    });
+    await ctx.db.patch(delivery._id, {
+      response: {
+        conversationId,
+        listingId: listing._id,
+        title: listing.title,
+        respondedAt: Date.now(),
+        ...(await offerContext(ctx, listing)),
+      },
     });
     await ctx.db.patch(match._id, { conversationId, respondedAt: Date.now() });
     return conversationId;

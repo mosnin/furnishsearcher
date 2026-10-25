@@ -36,6 +36,7 @@ export async function leadEmailContext(
   if (
     !request ||
     !owner ||
+    !!delivery.response ||
     request.status !== "open" ||
     request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
     !emailProofCurrent(owner, emailContactMode()) ||
@@ -79,6 +80,7 @@ export async function queueLeadEmail(
   force = false,
 ) {
   if (
+    !!delivery.response ||
     delivery.emailStatus === "sent" ||
     delivery.emailAttemptedAt !== undefined ||
     delivery.emailStatus === "failed" ||
@@ -94,6 +96,7 @@ export async function queueLeadEmail(
     notificationListingId: undefined,
   });
   await ctx.scheduler.runAfter(0, internal.leadNotifications.selectProperty, {
+    orderVersion: 1,
     deliveryId: delivery._id,
     generation,
     cursor: null,

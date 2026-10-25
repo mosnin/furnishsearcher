@@ -10,6 +10,7 @@ import {
   leadEmailDetails,
   queueLeadEmail,
 } from "./lib/leadEmail";
+import { orderedOffers } from "./lib/leadOffers";
 import { classifyLead } from "./lib/housing";
 export const preferences = query({
   args: { listingId: v.id("listings") },
@@ -84,6 +85,7 @@ export const setPreference = mutation({
 });
 export const selectProperty = internalMutation({
   args: {
+    orderVersion: v.optional(v.literal(1)),
     deliveryId: v.id("housingRequestDeliveries"),
     generation: v.number(),
     cursor: v.union(v.string(), v.null()),
@@ -106,14 +108,21 @@ export const selectProperty = internalMutation({
       });
       return null;
     }
-    const matches = await ctx.db
-      .query("housingRequestMatches")
-      .withIndex("by_requestId_and_landlordId", (q) =>
-        q
-          .eq("requestId", delivery.requestId)
-          .eq("landlordId", delivery.landlordId),
-      )
-      .paginate({ cursor: args.cursor, numItems: 25 });
+    const options =
+      args.orderVersion === 1
+        ? orderedOffers(ctx, delivery.requestId, delivery.landlordId)
+        : ctx.db
+            .query("housingRequestMatches")
+            .withIndex("by_requestId_and_landlordId", (q) =>
+              q
+                .eq("requestId", delivery.requestId)
+                .eq("landlordId", delivery.landlordId),
+            )
+            .order("asc");
+    const matches = await options.paginate({
+      cursor: args.cursor,
+      numItems: 25,
+    });
     for (const match of matches.page) {
       const listing = await ctx.db.get(match.listingId);
       if (
