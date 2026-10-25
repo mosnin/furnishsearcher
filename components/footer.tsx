@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { Home, Twitter, Facebook, Linkedin, Instagram } from "lucide-react";
+import { Home } from "lucide-react";
 
 const FOOTER_LINKS = {
   "For Renters": [
     { label: "Search Listings", href: "/search" },
     { label: "How It Works", href: "/#how-it-works" },
-    { label: "Saved Listings", href: "/dashboard/tenant" },
+    { label: "Saved Listings", href: "/dashboard/tenant/saved" },
     { label: "Renter Resources", href: "/resources" },
     { label: "FAQ", href: "/resources" },
   ],
   "For Landlords": [
     { label: "List Your Property", href: "/list-your-property" },
-    { label: "Landlord Dashboard", href: "/dashboard" },
+    { label: "Landlord Dashboard", href: "/dashboard/landlord" },
     { label: "Pricing", href: "/pricing" },
     { label: "Landlord Resources", href: "/resources" },
     { label: "Success Stories", href: "/success-stories" },
@@ -31,13 +31,6 @@ const FOOTER_LINKS = {
     { label: "Affiliates", href: "/affiliates" },
   ],
 };
-
-const SOCIAL_LINKS = [
-  { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-  { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
-  { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-  { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
-];
 
 const LEGAL_LINKS = [
   { label: "Privacy Policy", href: "/privacy" },
@@ -66,38 +59,9 @@ export default function Footer() {
 
             {/* Tagline */}
             <p className="text-blue-200/60 text-[14px] leading-relaxed max-w-[220px]">
-              The #1 marketplace for furnished monthly rentals — connecting
-              renters and landlords directly.
+              A marketplace for furnished monthly rentals, connecting renters
+              and landlords directly.
             </p>
-
-            {/* Social icons */}
-            <div className="flex items-center gap-3">
-              {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-                >
-                  <Icon className="w-4 h-4 text-blue-200" />
-                </a>
-              ))}
-            </div>
-
-            {/* Award badge */}
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="text-yellow-400 text-base">★</span>
-              <div>
-                <p className="text-white text-xs font-semibold leading-none">
-                  Newsweek Award
-                </p>
-                <p className="text-blue-200/60 text-[10px] mt-0.5">
-                  Best Online Platform 2025
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* Link columns */}
@@ -127,7 +91,7 @@ export default function Footer() {
       <div className="border-t border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-blue-200/45 text-[12px]">
-            &copy; {new Date().getFullYear()} FurnishFinder, Inc. All rights
+            &copy; {new Date().getFullYear()} FurnishFinder. All rights
             reserved.
           </p>
           <div className="flex items-center gap-4 flex-wrap justify-center">

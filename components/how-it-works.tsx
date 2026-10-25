@@ -6,7 +6,7 @@ const STEPS = [
     icon: Search,
     title: "Search",
     description:
-      "Browse 300,000+ furnished rentals filtered by location, move-in date, and budget. Save favorites and compare options side by side.",
+      "Search furnished rentals by location, stay dates and monthly budget. Save favorites and review listing details.",
     color: "bg-blue-50",
     iconColor: "text-blue-600",
     borderColor: "border-blue-100",
@@ -26,7 +26,7 @@ const STEPS = [
     icon: KeyRound,
     title: "Move In",
     description:
-      "Flexible monthly terms with everything included. Furnished, WiFi-ready, and set up for your arrival — just bring your suitcase.",
+      "Confirm the lease, utilities, deposit and arrival arrangements with the owner before your stay.",
     color: "bg-emerald-50",
     iconColor: "text-emerald-600",
     borderColor: "border-emerald-100",
@@ -35,10 +35,7 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section
-      id="how-it-works"
-      className="py-20 lg:py-28 bg-white"
-    >
+    <section id="how-it-works" className="py-20 lg:py-28 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">

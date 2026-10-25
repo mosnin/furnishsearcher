@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,10 +14,11 @@ export default function AffiliateForm() {
     promotion: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
+  const submitContact = useMutation(api.support.submitContact);
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
@@ -26,11 +30,24 @@ export default function AffiliateForm() {
       return;
     }
     setSubmitting(true);
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setSubmitting(false);
-    setSubmitted(true);
-    toast.success("Application received! We'll be in touch within 3 business days.");
+    try {
+      const reference = await submitContact({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: "Partnership",
+        message: `Partnership inquiry\nWebsite: ${form.website.trim() || "Not provided"}\n\n${form.promotion.trim()}`,
+      });
+      setSubmitted(reference);
+      toast.success("Your partnership inquiry has been saved.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not save your inquiry. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -52,13 +69,16 @@ export default function AffiliateForm() {
           </svg>
         </div>
         <h3 className="text-xl font-bold text-slate-900 mb-2">
-          Application Received!
+          Partnership inquiry saved
         </h3>
         <p className="text-slate-600 text-sm">
-          Thanks, <strong>{form.name}</strong>. We&apos;ll review your application
-          and get back to you at <strong>{form.email}</strong> within 3
-          business days.
+          Thanks, <strong>{form.name}</strong>. Keep this reference:{" "}
+          <strong>{submitted}</strong>. If you submitted while signed in, you
+          can follow your case and replies in your account.
         </p>
+        <Link className="inline-block mt-4 underline" href="/dashboard/support">
+          View support cases
+        </Link>
       </div>
     );
   }
@@ -79,6 +99,8 @@ export default function AffiliateForm() {
           id="name"
           name="name"
           type="text"
+          maxLength={100}
+          disabled={submitting}
           required
           value={form.name}
           onChange={handleChange}
@@ -98,6 +120,8 @@ export default function AffiliateForm() {
           id="email"
           name="email"
           type="email"
+          maxLength={254}
+          disabled={submitting}
           required
           value={form.email}
           onChange={handleChange}
@@ -118,6 +142,8 @@ export default function AffiliateForm() {
           id="website"
           name="website"
           type="url"
+          maxLength={500}
+          disabled={submitting}
           value={form.website}
           onChange={handleChange}
           placeholder="https://your-site.com"
@@ -130,17 +156,19 @@ export default function AffiliateForm() {
           htmlFor="promotion"
           className="block text-sm font-semibold text-slate-700 mb-1.5"
         >
-          How will you promote FurnishFinder?{" "}
-          <span className="text-red-500">*</span>
+          Describe your partnership idea <span className="text-red-500">*</span>
         </label>
         <textarea
           id="promotion"
           name="promotion"
+          minLength={10}
+          maxLength={3800}
+          disabled={submitting}
           required
           rows={4}
           value={form.promotion}
           onChange={handleChange}
-          placeholder="e.g. I run a travel nurse community on Facebook with 12,000 members and publish weekly housing guides..."
+          placeholder="Tell us about the collaboration you have in mind."
           className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent resize-none"
         />
       </div>
@@ -150,11 +178,11 @@ export default function AffiliateForm() {
         disabled={submitting}
         className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] disabled:bg-[#1e3a8a]/60 text-white font-bold py-3 rounded-lg transition-colors text-sm"
       >
-        {submitting ? "Submitting..." : "Submit Application"}
+        {submitting ? "Submitting..." : "Send partnership inquiry"}
       </button>
 
       <p className="text-xs text-slate-400 text-center">
-        By applying you agree to our{" "}
+        Read our{" "}
         <a href="/terms" className="underline hover:text-slate-600">
           Terms of Service
         </a>{" "}

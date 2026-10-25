@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | FurnishFinder",
   },
   description:
-    "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
+    "Search furnished monthly rentals by location, dates, budget and amenities. Contact owners and manage your stay requests.",
   keywords: [
     "furnished rentals",
     "monthly rentals",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "FurnishFinder",
     title: "FurnishFinder | Monthly Furnished Rentals",
     description:
-      "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
+      "Search furnished monthly rentals by location, dates, budget and amenities. Contact owners and manage your stay requests.",
     type: "website",
     locale: "en_US",
   },
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FurnishFinder | Monthly Furnished Rentals",
     description:
-      "Find furnished monthly rentals for corporate travelers, travel nurses, relocating families & digital nomads. 300,000+ listings, no booking fees.",
+      "Search furnished monthly rentals by location, dates, budget and amenities. Contact owners and manage your stay requests.",
   },
 };
 

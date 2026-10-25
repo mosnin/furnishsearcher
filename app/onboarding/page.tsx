@@ -32,8 +32,8 @@ const roleOptions: RoleOption[] = [
     title: "I'm Looking for a Rental",
     subtitle: "Renter",
     description:
-      "Find furnished monthly rentals from verified landlords. No booking fees.",
-    badge: "300k+ listings",
+      "Search furnished monthly rentals by location, dates and budget.",
+    badge: "Monthly rental search",
     badgeColor: "bg-blue-50 text-blue-700",
     accentColor: "text-blue-600",
     hoverBorder: "hover:border-blue-300 hover:shadow-blue-100",
@@ -46,8 +46,8 @@ const roleOptions: RoleOption[] = [
     title: "I'm a Property Owner",
     subtitle: "Landlord",
     description:
-      "List your furnished property and connect directly with quality tenants.",
-    badge: "No platform fees",
+      "List your furnished property and manage availability, inquiries and messages.",
+    badge: "Publication requirements apply",
     badgeColor: "bg-emerald-50 text-emerald-700",
     accentColor: "text-emerald-600",
     hoverBorder: "hover:border-emerald-300 hover:shadow-emerald-100",
@@ -108,7 +108,10 @@ export default function OnboardingPage() {
       // Apply referral code if provided (silently ignore errors)
       if (referralCode.trim()) {
         try {
-          await applyReferral({ code: referralCode.trim().toUpperCase(), newUserId: convexUser._id });
+          await applyReferral({
+            code: referralCode.trim().toUpperCase(),
+            newUserId: convexUser._id,
+          });
         } catch {
           // Invalid or already-used code — not a fatal error
         }
@@ -125,7 +128,7 @@ export default function OnboardingPage() {
       router.push(
         selectedRole === "landlord"
           ? "/dashboard/landlord"
-          : "/dashboard/tenant"
+          : "/dashboard/tenant",
       );
     } catch (err) {
       console.error("Onboarding error:", err);
@@ -168,14 +171,8 @@ export default function OnboardingPage() {
                   "disabled:pointer-events-none disabled:opacity-60",
                   "shadow-sm hover:shadow-md",
                   isSelected
-                    ? cn(
-                        option.selectedBorder,
-                        option.selectedBg
-                      )
-                    : cn(
-                        "border-border bg-white",
-                        option.hoverBorder
-                      )
+                    ? cn(option.selectedBorder, option.selectedBg)
+                    : cn("border-border bg-white", option.hoverBorder),
                 )}
                 aria-pressed={isSelected}
               >
@@ -185,7 +182,7 @@ export default function OnboardingPage() {
                     "absolute top-4 right-4 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                     isSelected
                       ? cn("border-current", option.accentColor, "bg-current")
-                      : "border-border bg-white"
+                      : "border-border bg-white",
                   )}
                 >
                   {isSelected && (
@@ -194,7 +191,14 @@ export default function OnboardingPage() {
                       fill="currentColor"
                       viewBox="0 0 12 12"
                     >
-                      <path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      <path
+                        d="M10 3L5 8.5 2 5.5"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill="none"
+                      />
                     </svg>
                   )}
                 </div>
@@ -205,13 +209,13 @@ export default function OnboardingPage() {
                     "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
                     isSelected
                       ? cn("bg-current/10", option.accentColor)
-                      : "bg-muted group-hover:bg-muted/80"
+                      : "bg-muted group-hover:bg-muted/80",
                   )}
                 >
                   <Icon
                     className={cn(
                       "w-6 h-6 transition-colors",
-                      isSelected ? option.accentColor : "text-muted-foreground"
+                      isSelected ? option.accentColor : "text-muted-foreground",
                     )}
                   />
                 </div>
@@ -229,7 +233,7 @@ export default function OnboardingPage() {
                   <span
                     className={cn(
                       "inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full",
-                      option.badgeColor
+                      option.badgeColor,
                     )}
                   >
                     {option.badge}
@@ -259,7 +263,10 @@ export default function OnboardingPage() {
                 className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-center tracking-widest font-mono uppercase focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
-                onClick={() => { setShowReferral(false); setReferralCode(""); }}
+                onClick={() => {
+                  setShowReferral(false);
+                  setReferralCode("");
+                }}
                 className="text-muted-foreground hover:text-foreground text-sm"
               >
                 ✕
@@ -279,7 +286,7 @@ export default function OnboardingPage() {
               "disabled:pointer-events-none disabled:opacity-50",
               selectedRole
                 ? "bg-[#0f2044] text-white hover:bg-[#1a3360] shadow-sm hover:shadow-md"
-                : "bg-muted text-muted-foreground"
+                : "bg-muted text-muted-foreground",
             )}
           >
             {isLoading ? (
@@ -295,11 +302,17 @@ export default function OnboardingPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           By continuing you agree to our{" "}
-          <a href="/terms" className="underline hover:text-foreground transition-colors">
+          <a
+            href="/terms"
+            className="underline hover:text-foreground transition-colors"
+          >
             Terms of Service
           </a>{" "}
           and{" "}
-          <a href="/privacy" className="underline hover:text-foreground transition-colors">
+          <a
+            href="/privacy"
+            className="underline hover:text-foreground transition-colors"
+          >
             Privacy Policy
           </a>
           .

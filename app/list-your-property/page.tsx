@@ -15,9 +15,9 @@ import {
 const BENEFITS = [
   {
     icon: DollarSign,
-    title: "No Listing Fees",
+    title: "Prepare Your Listing",
     description:
-      "List your furnished property completely free. No monthly fees, no commissions — ever.",
+      "Create a draft with property details and photos. Paid access and publication checks are required to appear in search.",
   },
   {
     icon: MessageCircle,
@@ -27,15 +27,15 @@ const BENEFITS = [
   },
   {
     icon: Users,
-    title: "300k+ Monthly Renters",
+    title: "Stay Requests",
     description:
-      "Get your property in front of hundreds of thousands of verified renters every month.",
+      "Review proposed dates and tenant messages before accepting a stay.",
   },
   {
     icon: LayoutDashboard,
     title: "Easy Listing Management",
     description:
-      "Update availability, photos, and pricing in seconds from your landlord dashboard.",
+      "Manage availability, photos, pricing and individual rental spaces from your landlord dashboard.",
   },
 ];
 
@@ -44,19 +44,19 @@ const HOW_IT_WORKS = [
     step: 1,
     title: "Create Your Listing",
     description:
-      "Sign up for free and add your property details, photos, and availability in minutes.",
+      "Create an account and prepare property details, photos and availability.",
   },
   {
     step: 2,
-    title: "Get Inquiries",
+    title: "Complete Publication Checks",
     description:
-      "Qualified renters browse your listing and reach out through our secure messaging platform.",
+      "Complete identity verification, an active paid landlord subscription and staff review before your listing can be published.",
   },
   {
     step: 3,
     title: "Choose Your Tenant",
     description:
-      "Review profiles, verify employment, and select the tenant that's the best fit for you.",
+      "Review inquiries, discuss terms and accept or decline proposed stays. Arrange screening with your chosen provider.",
   },
 ];
 
@@ -64,12 +64,12 @@ const FAQS = [
   {
     question: "How much does it cost?",
     answer:
-      "FurnishFinder is completely free for landlords. There are no listing fees, no subscription costs, and no commissions on rent collected. We make money through optional premium upgrades for tenants.",
+      "You can prepare a draft before purchasing a subscription. Publishing requires active paid landlord access and completed verification and review. See Pricing for plan details; confirm the amount and billing terms at checkout.",
   },
   {
     question: "How do I get paid?",
     answer:
-      "Payment is arranged directly between you and your tenant — by bank transfer, check, or whichever method you both agree on. FurnishFinder does not handle rent payments, which means you keep every dollar.",
+      "Payment is arranged directly between you and your tenant — by bank transfer, check, or whichever method you both agree on. Confirm rent, deposits and any provider fees with your tenant before signing.",
   },
   {
     question: "Can I choose my tenants?",
@@ -86,12 +86,12 @@ export default function ListYourPropertyPage() {
       <section className="bg-[#0f2044] text-white py-24 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-            List Your Furnished Property —{" "}
-            <span className="text-amber-400">For Free</span>
+            List Your Furnished Property{" "}
+            <span className="text-amber-400">For Monthly Stays</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto">
-            Join 240,000+ landlords who use FurnishFinder to fill vacancies fast
-            with pre-screened, high-quality monthly renters.
+            Prepare your rental details, manage availability and communicate
+            directly with prospective tenants.
           </p>
           <div className="mt-10">
             <Button
@@ -99,11 +99,12 @@ export default function ListYourPropertyPage() {
               size="lg"
               className="bg-amber-400 hover:bg-amber-300 text-[#0f2044] font-bold text-lg px-10 py-6 rounded-xl shadow-lg"
             >
-              <Link href="/sign-up">Start Earning Today</Link>
+              <Link href="/sign-up">Prepare Your Listing</Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-blue-200">
-            No credit card required · Free forever
+            Draft first. Paid access, verification and review are required for
+            publication.
           </p>
         </div>
       </section>
@@ -112,7 +113,7 @@ export default function ListYourPropertyPage() {
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-slate-900 mb-12">
-            Why Landlords Love FurnishFinder
+            Tools for Landlords
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {BENEFITS.map((benefit) => {
@@ -148,7 +149,10 @@ export default function ListYourPropertyPage() {
             <div className="hidden md:block absolute top-8 left-[calc(16.67%-1px)] right-[calc(16.67%-1px)] h-0.5 bg-[#0f2044]/20" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
               {HOW_IT_WORKS.map((item) => (
-                <div key={item.step} className="flex flex-col items-center text-center">
+                <div
+                  key={item.step}
+                  className="flex flex-col items-center text-center"
+                >
                   <div className="h-16 w-16 rounded-full bg-[#0f2044] text-white flex items-center justify-center text-2xl font-extrabold shadow-md z-10 relative">
                     {item.step}
                   </div>
@@ -167,23 +171,22 @@ export default function ListYourPropertyPage() {
 
       <Separator />
 
-      {/* Testimonial */}
-      <section className="py-20 px-4 bg-blue-50">
+      <section className="py-16 px-4 bg-blue-50">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="text-5xl text-[#0f2044]/30 font-serif leading-none mb-4">"</div>
-          <blockquote className="text-xl sm:text-2xl font-medium text-slate-800 leading-snug">
-            I listed my condo on a Friday and had three qualified inquiries by
-            Sunday morning. FurnishFinder is the only platform I use now.
-          </blockquote>
-          <div className="mt-8 flex flex-col items-center gap-2">
-            <div className="h-14 w-14 rounded-full bg-[#0f2044] text-white flex items-center justify-center text-xl font-bold">
-              MR
-            </div>
-            <span className="font-semibold text-slate-900">Marcus Reynolds</span>
-            <span className="text-sm text-slate-500">
-              Landlord · Austin, TX · Member since 2021
-            </span>
-          </div>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Before you publish
+          </h2>
+          <p className="mt-4 text-slate-600">
+            A subscription alone does not approve a property. Keep your photos,
+            pricing and availability current, complete the required
+            verification, and submit your listing for staff review.
+          </p>
+          <Link
+            href="/pricing"
+            className="inline-block mt-6 font-semibold text-[#1e3a8a] underline"
+          >
+            Review plans and publication requirements
+          </Link>
         </div>
       </section>
 
@@ -225,7 +228,8 @@ export default function ListYourPropertyPage() {
             Ready to list?
           </h2>
           <p className="mt-4 text-blue-200 text-lg">
-            Join thousands of landlords earning more with less hassle.
+            Prepare your property details and review the publication
+            requirements.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -233,7 +237,7 @@ export default function ListYourPropertyPage() {
               size="lg"
               className="bg-amber-400 hover:bg-amber-300 text-[#0f2044] font-bold px-8"
             >
-              <Link href="/sign-up">Sign Up Free</Link>
+              <Link href="/sign-up">Create an Account</Link>
             </Button>
             <Button
               asChild

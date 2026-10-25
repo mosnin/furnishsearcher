@@ -3,8 +3,8 @@ import SearchBar from "@/components/search-bar";
 import { CheckCircle } from "lucide-react";
 
 const TRUST_ITEMS = [
-  "No booking fees",
-  "300,000+ listings",
+  "Monthly stay filters",
+  "Exact or flexible dates",
   "Direct landlord contact",
 ];
 
@@ -33,7 +33,7 @@ export default function Hero() {
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-white/90 text-[12px] font-semibold uppercase tracking-widest">
-              #1 Furnished Rental Marketplace
+              Furnished Monthly Rentals
             </span>
           </div>
 
@@ -52,8 +52,8 @@ export default function Hero() {
           {/* Subtitle */}
           <p className="text-lg sm:text-xl text-white/75 mb-10 max-w-xl leading-relaxed font-[450]">
             Furnished homes for corporate travelers, travel nurses, relocating
-            families &amp; digital nomads. Monthly terms, no short-term
-            premiums.
+            families &amp; digital nomads. Search by location, stay dates and
+            monthly budget.
           </p>
 
           {/* Search Bar */}
@@ -64,7 +64,9 @@ export default function Hero() {
             {TRUST_ITEMS.map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/70 text-[14px] font-medium">{item}</span>
+                <span className="text-white/70 text-[14px] font-medium">
+                  {item}
+                </span>
               </div>
             ))}
           </div>
