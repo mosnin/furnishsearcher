@@ -41,6 +41,12 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  listingLeadEmailPreferences: defineTable({
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    enabled: v.optional(v.boolean()),
+    updatedAt: v.number(),
+  }).index("by_listing_owner", ["listingId", "ownerId"]),
   listingPhoneLimits: defineTable({
     userId: v.id("users"),
     day: v.number(),
@@ -807,6 +813,11 @@ export default defineSchema({
     .index("by_requestId_and_landlordId", ["requestId", "landlordId"]),
 
   housingRequestDeliveries: defineTable({
+    emailGeneration: v.optional(v.number()),
+    emailSelectionStartedAt: v.optional(v.number()),
+    notificationListingId: v.optional(v.id("listings")),
+    emailAttemptedAt: v.optional(v.number()),
+    emailProviderId: v.optional(v.string()),
     kind: v.optional(v.union(v.literal("matched"), v.literal("unmatched"))),
     requestId: v.id("housingRequests"),
     landlordId: v.id("users"),
@@ -817,11 +828,13 @@ export default defineSchema({
       v.literal("sent"),
       v.literal("unconfigured"),
       v.literal("failed"),
+      v.literal("unknown"),
       v.literal("suppressed"),
     ),
   })
     .index("by_requestId_and_landlordId", ["requestId", "landlordId"])
-    .index("by_landlordId", ["landlordId"]),
+    .index("by_landlordId", ["landlordId"])
+    .index("by_email_status_time", ["emailStatus", "emailSelectionStartedAt"]),
 
   calendarFeeds: defineTable(calendarFeedFields)
     .index("by_listingId_and_provider", ["listingId", "provider"])

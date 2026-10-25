@@ -540,7 +540,7 @@ describe("housing request delivery", () => {
     }
   });
 
-  it("records provider failures without presenting them as delivered", async () => {
+  it("records uncertain network outcomes without claiming delivery or retrying", async () => {
     const { t, ids, tenant, owner, criteria } = await fixture();
     vi.stubEnv("RESEND_API_KEY", "re_fixture");
     vi.stubEnv("EMAIL_FROM", "requests@example.test");
@@ -559,8 +559,10 @@ describe("housing request delivery", () => {
         await owner.query(api.housingRequests.inbox, { paginationOpts })
       ).page[0].deliveryId;
       expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.emailStatus).toBe(
-        "failed",
+        "unknown",
       );
+      await t.action(internal.housingRequestEmails.notifyOwner, { deliveryId });
+      expect(fetch).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -1259,5 +1261,314 @@ describe("dated unmatched lead metrics", () => {
     });
     expect(report.rows).toHaveLength(0);
     expect(report.unmatchedStartedAt).toBeNull();
+  });
+});
+
+describe("per-space lead email preferences and send fencing", () => {
+  async function delivered() {
+    const f = await fixture();
+    const requestId = await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const delivery = await f.t.run((ctx) =>
+      ctx.db
+        .query("housingRequestDeliveries")
+        .withIndex("by_requestId_and_landlordId", (q) =>
+          q.eq("requestId", requestId).eq("landlordId", f.ids.owner),
+        )
+        .unique(),
+    );
+    return { ...f, requestId, delivery: delivery! };
+  }
+  it("inherits and resets owner-bound settings without changing publication or revision", async () => {
+    const f = await fixture();
+    const before = await f.t.run((ctx) => ctx.db.get(f.ids.listing));
+    expect(
+      await f.owner.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).toMatchObject({ override: null, enabled: true });
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.listing,
+      emailEnabled: false,
+    });
+    expect(
+      await f.owner.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).toMatchObject({ override: false, enabled: false });
+    expect(await f.t.run((ctx) => ctx.db.get(f.ids.listing))).toEqual(before);
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.listing,
+      emailEnabled: null,
+    });
+    expect(
+      await f.owner.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).toMatchObject({ override: null, enabled: true });
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.listing,
+      emailEnabled: false,
+    });
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.ids.listing, { landlordId: f.ids.stranger }),
+    );
+    expect(
+      await f.stranger.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).toMatchObject({ override: null, enabled: true });
+    await expect(
+      f.owner.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).rejects.toThrow("Not authorized");
+  });
+  it("denies anonymous/foreign owners and requires current proof to turn a space on", async () => {
+    const f = await fixture();
+    await expect(
+      f.t.query(api.leadNotifications.preferences, {
+        listingId: f.ids.listing,
+      }),
+    ).rejects.toThrow("sign in");
+    await expect(
+      f.stranger.mutation(api.leadNotifications.setPreference, {
+        listingId: f.ids.listing,
+        emailEnabled: false,
+      }),
+    ).rejects.toThrow("Not authorized");
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.ids.owner, { notificationEmailExpiresAt: Date.now() - 1 }),
+    );
+    await expect(
+      f.owner.mutation(api.leadNotifications.setPreference, {
+        listingId: f.ids.listing,
+        emailEnabled: true,
+      }),
+    ).rejects.toThrow("Confirm");
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.listing,
+      emailEnabled: false,
+    });
+    expect(
+      (
+        await f.owner.query(api.leadNotifications.preferences, {
+          listingId: f.ids.listing,
+        })
+      ).enabled,
+    ).toBe(false);
+  });
+  it("keeps a muted space's lead in the inbox and allows a second space to override default-off", async () => {
+    const f = await fixture();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      emailEnabled: false,
+    });
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.second,
+      emailEnabled: true,
+    });
+    await f.tenant.mutation(api.housingRequests.create, {
+      ...f.criteria,
+      userId: f.ids.tenant,
+    });
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const inbox = await f.owner.query(api.housingRequests.inbox, {
+      paginationOpts,
+    });
+    expect(inbox.page).toHaveLength(1);
+    const properties = await f.owner.query(
+      api.housingRequests.matchingProperties,
+      { requestId: inbox.page[0].request._id, paginationOpts },
+    );
+    expect(properties.page).toHaveLength(2);
+    const delivery = await f.t.run((ctx) =>
+      ctx.db.get(inbox.page[0].deliveryId),
+    );
+    expect(delivery).toMatchObject({
+      notificationListingId: f.ids.second,
+      emailStatus: "unconfigured",
+    });
+    // Editing a preference alone never sends old leads.
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.ids.second,
+      emailEnabled: false,
+    });
+    expect(await f.t.run((ctx) => ctx.db.get(delivery!._id))).toEqual(delivery);
+  });
+  it("reselects after a queued space is muted and rejects obsolete jobs and status updates", async () => {
+    const f = await delivered();
+    const oldGeneration = f.delivery.emailGeneration!;
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: f.delivery.notificationListingId!,
+      emailEnabled: false,
+    });
+    expect(
+      await f.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: f.delivery._id,
+        generation: oldGeneration,
+        configured: true,
+      }),
+    ).toBeNull();
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    const updated = (await f.t.run((ctx) => ctx.db.get(f.delivery._id)))!;
+    expect(updated.emailGeneration).toBeGreaterThan(oldGeneration);
+    expect(updated.notificationListingId).not.toBe(
+      f.delivery.notificationListingId,
+    );
+    expect(
+      await f.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: f.delivery._id,
+        generation: oldGeneration,
+        configured: true,
+      }),
+    ).toBeNull();
+    await f.t.mutation(internal.leadNotifications.finish, {
+      deliveryId: f.delivery._id,
+      generation: oldGeneration,
+      status: "sent",
+    });
+    await f.t.mutation(internal.housingRequests.recordEmailStatus, {
+      deliveryId: f.delivery._id,
+      status: "sent",
+    });
+    expect(
+      (await f.t.run((ctx) => ctx.db.get(f.delivery._id)))?.emailStatus,
+    ).toBe("unconfigured");
+  });
+  it("allows only one provider attempt even for concurrent actions and leaves stale attempts unknown", async () => {
+    const f = await delivered();
+    const prepared = await Promise.all(
+      [1, 2].map(() =>
+        f.t.mutation(internal.leadNotifications.prepareSend, {
+          deliveryId: f.delivery._id,
+          generation: f.delivery.emailGeneration,
+          configured: true,
+        }),
+      ),
+    );
+    expect(prepared.filter(Boolean)).toHaveLength(1);
+    await f.t.run((ctx) =>
+      ctx.db.patch(f.delivery._id, {
+        emailStatus: "queued",
+        emailSelectionStartedAt: Date.now() - 16 * 60_000,
+      }),
+    );
+    await f.t.mutation(internal.leadNotifications.recover, {});
+    expect(
+      (await f.t.run((ctx) => ctx.db.get(f.delivery._id)))?.emailStatus,
+    ).toBe("unknown");
+    expect(
+      await f.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: f.delivery._id,
+        configured: true,
+      }),
+    ).toBeNull();
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+  it("pages beyond 25 candidates to find an enabled space and recovers pre-upgrade queued work", async () => {
+    const f = await delivered();
+    await f.owner.mutation(api.housingRequests.setLeadPreferences, {
+      emailEnabled: false,
+    });
+    const last = await f.t.run(async (ctx) => {
+      await ctx.db.delete(f.delivery._id);
+      for (const row of await ctx.db.query("housingRequestMatches").collect())
+        await ctx.db.delete(row._id);
+      let last = f.ids.listing;
+      for (let i = 0; i < 28; i++) {
+        last = await ctx.db.insert("listings", {
+          ...f.ids.data,
+          title: `Paged home ${i}`,
+        });
+        await ctx.db.insert("housingRequestMatches", {
+          listingId: last,
+          requestId: f.requestId,
+          landlordId: f.ids.owner,
+          createdAt: Date.now(),
+          kind: "matched",
+        });
+      }
+      return last;
+    });
+    await seedPublishedFixtures(f.t);
+    await f.owner.mutation(api.leadNotifications.setPreference, {
+      listingId: last,
+      emailEnabled: true,
+    });
+    const deliveryId = await f.t.run((ctx) =>
+      ctx.db.insert("housingRequestDeliveries", {
+        requestId: f.requestId,
+        landlordId: f.ids.owner,
+        createdAt: Date.now(),
+        emailStatus: "queued",
+      }),
+    );
+    await f.t.mutation(internal.leadNotifications.recover, {});
+    await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(await f.t.run((ctx) => ctx.db.get(deliveryId))).toMatchObject({
+      notificationListingId: last,
+      emailStatus: "unconfigured",
+      emailGeneration: 1,
+    });
+  });
+  it("rechecks request status and current email proof before the provider attempt", async () => {
+    const f = await delivered();
+    await f.tenant.mutation(api.housingRequests.close, { id: f.requestId });
+    expect(
+      await f.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: f.delivery._id,
+        configured: true,
+      }),
+    ).toBeNull();
+    expect(
+      (await f.t.run((ctx) => ctx.db.get(f.delivery._id)))?.emailStatus,
+    ).toBe("suppressed");
+    const g = await delivered();
+    await g.t.run((ctx) =>
+      ctx.db.patch(g.ids.owner, { notificationEmailExpiresAt: Date.now() - 1 }),
+    );
+    expect(
+      await g.t.mutation(internal.leadNotifications.prepareSend, {
+        deliveryId: g.delivery._id,
+        configured: true,
+      }),
+    ).toBeNull();
+    expect(
+      (await g.t.run((ctx) => ctx.db.get(g.delivery._id)))?.emailAttemptedAt,
+    ).toBeUndefined();
+  });
+  it("distinguishes explicit provider rejection from uncertain network outcomes", async () => {
+    const f = await delivered();
+    vi.stubEnv("RESEND_API_KEY", "re_fixture");
+    vi.stubEnv("EMAIL_FROM", "requests@example.test");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.test");
+    const send = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ name: "validation_error", message: "Rejected" }),
+          { status: 422 },
+        ),
+      );
+    vi.stubGlobal("fetch", send);
+    try {
+      await f.t.action(internal.housingRequestEmails.notifyOwner, {
+        deliveryId: f.delivery._id,
+        generation: f.delivery.emailGeneration,
+      });
+      expect(
+        (await f.t.run((ctx) => ctx.db.get(f.delivery._id)))?.emailStatus,
+      ).toBe("failed");
+      await f.t.action(internal.housingRequestEmails.notifyOwner, {
+        deliveryId: f.delivery._id,
+        generation: f.delivery.emailGeneration,
+      });
+      expect(send).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

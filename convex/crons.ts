@@ -117,4 +117,10 @@ crons.interval(
   internal.phoneContacts.cleanup,
   {},
 );
+crons.interval(
+  "recover queued housing lead email",
+  { minutes: 15 },
+  internal.leadNotifications.recover,
+  {},
+);
 export default crons;

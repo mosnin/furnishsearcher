@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-25T20:44:52.994Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedSyntheticIdentities": true,
+  "syntheticEmailProof": true,
+  "defaultOffPropertyOverrideOnAccepted": true,
+  "nativeCandidateSelectionResolved": true,
+  "effectiveSettingRecheckedAfterMute": true,
+  "inboxPreservedAfterMute": true,
+  "anonymousAndForeignOwnerDenied": true,
+  "inheritanceResetAccepted": true,
+  "listingRevisionAndStatusUnchanged": true,
+  "realEmailSent": false,
+  "providerAcceptance": false
+}

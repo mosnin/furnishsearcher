@@ -1,3 +1,8 @@
+import {
+  leadEmailPreference,
+  leadEmailDetails,
+  queueLeadEmail,
+} from "./lib/leadEmail";
 import { recordPerformance } from "./lib/performance";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
@@ -264,23 +269,29 @@ async function saveMatch(
       q.eq("requestId", request._id).eq("landlordId", owner._id),
     )
     .unique();
-  if (!delivery) {
-    const deliveryId = await ctx.db.insert("housingRequestDeliveries", {
+  let current = delivery;
+  if (!current) {
+    const id = await ctx.db.insert("housingRequestDeliveries", {
       requestId: request._id,
       landlordId: owner._id,
       createdAt: now,
       kind: classification.kind,
-      emailStatus:
-        !blocked && owner.housingLeadEmailsEnabled ? "queued" : "suppressed",
+      emailStatus: "suppressed",
     });
-    if (!blocked && owner.housingLeadEmailsEnabled)
-      await ctx.scheduler.runAfter(
-        0,
-        internal.housingRequestEmails.notifyOwner,
-        { deliveryId },
-      );
-  } else if (classification.kind === "matched" && delivery.kind === "unmatched")
-    await ctx.db.patch(delivery._id, { kind: "matched" });
+    current = await ctx.db.get(id);
+  } else if (
+    classification.kind === "matched" &&
+    current.kind === "unmatched"
+  ) {
+    await ctx.db.patch(current._id, { kind: "matched" });
+    current = { ...current, kind: "matched" };
+  }
+  if (
+    current &&
+    !blocked &&
+    (await leadEmailPreference(ctx, owner, listing)).enabled
+  )
+    await queueLeadEmail(ctx, current);
 }
 export const leadPreferences = query({
   args: {},
@@ -701,28 +712,7 @@ export const notificationDetails = internalQuery({
   ),
   handler: async (ctx, args) => {
     const delivery = await ctx.db.get(args.deliveryId);
-    if (!delivery || delivery.emailStatus === "sent") return null;
-    const [request, owner] = await Promise.all([
-      ctx.db.get(delivery.requestId),
-      ctx.db.get(delivery.landlordId),
-    ]);
-    if (
-      !request ||
-      request.status !== "open" ||
-      !owner?.housingLeadEmailsEnabled ||
-      !emailProofCurrent(owner, emailContactMode()) ||
-      (delivery.kind === "unmatched" &&
-        (!owner.receiveUnmatchedLeads || request.allowUnmatched !== true)) ||
-      request.moveInDate < Math.floor(Date.now() / DAY) * DAY ||
-      (await blockState(ctx, request.userId, owner._id)).cannotMessage
-    )
-      return null;
-    return {
-      email: owner.notificationEmail!,
-      city: request.city,
-      state: request.state,
-      kind: delivery.kind ?? "matched",
-    };
+    return delivery ? leadEmailDetails(ctx, delivery) : null;
   },
 });
 export const recordEmailStatus = internalMutation({
@@ -738,7 +728,11 @@ export const recordEmailStatus = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const delivery = await ctx.db.get(args.deliveryId);
-    if (delivery && delivery.emailStatus !== "sent")
+    if (
+      delivery &&
+      delivery.emailGeneration === undefined &&
+      delivery.emailStatus !== "sent"
+    )
       await ctx.db.patch(delivery._id, { emailStatus: args.status });
     return null;
   },

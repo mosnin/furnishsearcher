@@ -14,6 +14,7 @@ import {
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { LeadEmailPreferences } from "@/components/lead-email-preferences";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -341,7 +342,8 @@ function AccountRequests() {
         <CardContent className="p-5 space-y-4">
           <h2 className="font-semibold">Lead preferences</h2>
           <p className="text-sm text-slate-600">
-            These settings apply to all your rental spaces.
+            Unmatched lead intake applies to all your rental spaces. Choose
+            email settings separately below.
           </p>
           <label className="flex items-start gap-3 text-sm">
             <input
@@ -363,38 +365,7 @@ function AccountRequests() {
               </span>
             </span>
           </label>
-          <label className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={preferences?.emailEnabled ?? false}
-              disabled={
-                !preferences ||
-                savingPreferences ||
-                (!preferences.canEmail && !preferences.emailEnabled)
-              }
-              onChange={(e) =>
-                changePreferences({ emailEnabled: e.target.checked })
-              }
-              className="mt-1"
-            />
-            <span>
-              Email new lead notifications
-              <br />
-              <span className="text-slate-600">
-                New leads use your confirmed account email. Your inbox stays
-                available when email is off.
-              </span>
-            </span>
-          </label>
-          {preferences && !preferences.canEmail && (
-            <p className="text-sm text-slate-600">
-              Email delivery requires current account-email confirmation.{" "}
-              <Link href="/dashboard/profile" className="underline">
-                Review email confirmation in your profile
-              </Link>
-              .
-            </p>
-          )}
+          <LeadEmailPreferences />
           <p className="text-xs text-slate-500">
             Enabling unmatched leads scans your published rentals for open
             requests. Results may arrive as the scan completes. Calendar
