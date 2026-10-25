@@ -1,3 +1,9 @@
+import {
+  createPropertyGroup,
+  validateUnitName,
+  unitDeleteGuard,
+} from "./lib/units";
+import { setupIssues } from "./lib/unitSetup";
 import { syncGeo, removeGeo } from "./lib/geo";
 import { addressKey } from "../lib/geo";
 import {
@@ -29,6 +35,9 @@ import { listingPhotos, validatePhotoAssets } from "./lib/photos";
 
 export const create = mutation({
   args: {
+    parentListingId: v.optional(v.id("listings")),
+    unitName: v.optional(v.string()),
+    independentSpace: v.optional(v.boolean()),
     landlordId: v.id("users"),
     title: v.string(),
     description: v.string(),
@@ -51,6 +60,7 @@ export const create = mutation({
     availableFrom: v.number(),
     minStay: v.optional(v.number()),
   },
+  returns: v.id("listings"),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
@@ -79,7 +89,43 @@ export const create = mutation({
     const photoAssets = args.photoAssets
       ? await validatePhotoAssets(ctx, args.landlordId, args.photoAssets, [])
       : undefined;
-    return await ctx.db.insert("listings", {
+    let group: import("./_generated/dataModel").Doc<"properties"> | undefined;
+    let unitFields = {};
+    if (args.parentListingId) {
+      const parent = await ctx.db.get(args.parentListingId);
+      if (
+        !parent ||
+        parent.landlordId !== args.landlordId ||
+        !args.independentSpace
+      )
+        throw new Error(
+          "Choose your own property and confirm this is a separate rentable space.",
+        );
+      const current = parent.propertyGroupId
+        ? await ctx.db.get(parent.propertyGroupId)
+        : null;
+      const root = current
+        ? await ctx.db.get(current.primaryListingId)
+        : parent;
+      if (!root) throw new Error("Main rental space is missing.");
+      const issues = await setupIssues(ctx, root, current);
+      if (issues.length) throw new Error(issues.join(" "));
+      if (addressKey(current ?? root) !== addressKey(args))
+        throw new Error("A unit must use the same property address.");
+      group = await createPropertyGroup(ctx, root, caller._id);
+      unitFields = {
+        ...(await validateUnitName(ctx, group._id, args.unitName ?? "")),
+        propertyGroupId: group._id,
+        parentListingId: group.primaryListingId,
+        propertyLocationVersion: group.locationVersion,
+        mapLatitude: group.mapLatitude,
+        mapLongitude: group.mapLongitude,
+        locationConfirmedAt: group.locationConfirmedAt,
+        independentSpaceConfirmedAt: Date.now(),
+      };
+    }
+    const listingId = await ctx.db.insert("listings", {
+      ...unitFields,
       revision: 1,
       approvalStatus: "pending",
       publicationRequested: false,
@@ -113,12 +159,26 @@ export const create = mutation({
       createdAt: Date.now(),
       views: 0,
     });
+    if (group) {
+      await ctx.db.patch(group._id, { unitCount: group.unitCount + 1 });
+      await syncGeo(ctx, (await ctx.db.get(listingId))!);
+      await ctx.db.insert("unitAudit", {
+        propertyId: group._id,
+        listingId,
+        actorId: caller._id,
+        action: "unit_created",
+        note: "Owner confirms a separate independently rentable space; content requires its own review",
+        createdAt: Date.now(),
+      });
+    }
+    return listingId;
   },
 });
 
 export const update = mutation({
   args: {
     id: v.id("listings"),
+    unitName: v.optional(v.string()),
     details: v.optional(listingDetails),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -141,7 +201,15 @@ export const update = mutation({
     minStay: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { id, maxOccupancy, details, photoAssets, photos, ...fields } = args;
+    const {
+      id,
+      unitName,
+      maxOccupancy,
+      details,
+      photoAssets,
+      photos,
+      ...fields
+    } = args;
     if (
       maxOccupancy !== undefined &&
       maxOccupancy !== null &&
@@ -183,7 +251,19 @@ export const update = mutation({
       Object.entries(fields).filter(([, val]) => val !== undefined),
     );
 
+    if (unitName !== undefined && !listing.propertyGroupId)
+      throw new Error("Only grouped property spaces have unit names.");
+    const names =
+      unitName !== undefined
+        ? await validateUnitName(
+            ctx,
+            listing.propertyGroupId!,
+            unitName,
+            listing._id,
+          )
+        : {};
     const patch = {
+      ...names,
       ...updates,
       ...(assets
         ? { photoAssets: assets, photos: [] }
@@ -197,7 +277,10 @@ export const update = mutation({
     };
     const locationChanged =
       addressKey({ ...listing, ...patch }) !== addressKey(listing);
-    if (locationChanged && listing.firstPublishedAt)
+    if (
+      locationChanged &&
+      (listing.firstPublishedAt || listing.propertyGroupId)
+    )
       throw new Error(
         "A published property's address is locked. Contact support for a minor correction; use a new listing for a different property.",
       );
@@ -317,6 +400,10 @@ export const unpublish = mutation({
       publicationRequested: false,
     });
     await syncGeo(ctx, { ...listing, status: "inactive" });
+    await ctx.scheduler.runAfter(0, internal.publication.reconcileOwner, {
+      userId: listing.landlordId,
+      cursor: null,
+    });
   },
 });
 
@@ -338,6 +425,7 @@ export const deleteListing = mutation({
       throw new Error("Not authorized");
     }
 
+    await unitDeleteGuard(ctx, listing, caller._id);
     const savedEntries = await ctx.db
       .query("savedListings")
       .filter((q) => q.eq(q.field("listingId"), args.id))
@@ -358,6 +446,10 @@ export const deleteListing = mutation({
       .unique();
     if (privateLocation) await ctx.db.delete(privateLocation._id);
     await ctx.db.delete(args.id);
+    await ctx.scheduler.runAfter(0, internal.publication.reconcileOwner, {
+      userId: listing.landlordId,
+      cursor: null,
+    });
   },
 });
 
@@ -673,6 +765,23 @@ export const approveListing = mutation({
       throw new Error("Review note must be at most 2000 characters.");
     const missing = await contentIssues(ctx, listing);
     if (missing.length) throw new Error(missing.join(" "));
+    if (listing.propertyGroupId) {
+      const p = await ctx.db.get(listing.propertyGroupId);
+      if (
+        p?.primaryListingId === listing._id &&
+        p.locationVersion === listing.propertyLocationVersion &&
+        p.locationConfirmedAt !== undefined
+      ) {
+        await ctx.db.patch(p._id, {
+          approvedLocationVersion: p.locationVersion,
+        });
+        await ctx.scheduler.runAfter(0, internal.units.syncLocation, {
+          propertyId: p._id,
+          version: p.locationVersion,
+          cursor: null,
+        });
+      }
+    }
     const revision = listing.revision ?? 0;
     await ctx.db.insert("listingReviews", {
       listingId: listing._id,

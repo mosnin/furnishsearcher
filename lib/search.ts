@@ -18,6 +18,7 @@ export type SearchFilters = {
   city?: string;
   state?: string;
   propertyId?: string;
+  propertyGroupId?: string;
   minPrice?: number;
   maxPrice?: number;
   bedrooms?: number;
@@ -44,6 +45,7 @@ export const SEARCH_KEYS = [
   "city",
   "state",
   "propertyId",
+  "propertyGroupId",
   "minPrice",
   "maxPrice",
   "bedrooms",
@@ -106,7 +108,13 @@ export function normalizeSearch(input: SearchFilters): SearchFilters {
     }
   }
 
-  for (const key of ["location", "city", "state", "propertyId"] as const) {
+  for (const key of [
+    "location",
+    "city",
+    "state",
+    "propertyId",
+    "propertyGroupId",
+  ] as const) {
     const value = input[key]?.trim().replace(/\s+/g, " ");
     if (value && value.length > (key === "location" ? 200 : 128))
       throw new Error("Search location or property ID is too long.");
@@ -258,7 +266,13 @@ export function parseSearchParams(
   }
   input.nearLabel = params.get("nearLabel") || undefined;
 
-  for (const key of ["location", "city", "state", "propertyId"] as const)
+  for (const key of [
+    "location",
+    "city",
+    "state",
+    "propertyId",
+    "propertyGroupId",
+  ] as const)
     input[key] = params.get(key) || undefined;
   for (const key of [
     "minPrice",
@@ -309,6 +323,7 @@ export function searchParams(filters: SearchFilters) {
     "city",
     "state",
     "propertyId",
+    "propertyGroupId",
     "minPrice",
     "maxPrice",
     "bedrooms",
@@ -357,6 +372,7 @@ export function criteriaOnly(value: SearchFilters): SearchFilters {
 }
 
 type Listing = {
+  propertyGroupId?: string;
   mapLatitude?: number;
   mapLongitude?: number;
   _id?: string;
@@ -375,6 +391,8 @@ type Listing = {
   parkingIncluded: boolean;
 };
 export function matchesSearch(listing: Listing, f: SearchFilters) {
+  if (f.propertyGroupId && listing.propertyGroupId !== f.propertyGroupId)
+    return false;
   if (f.mapBounds || f.nearLatitude !== undefined) {
     if (listing.mapLatitude === undefined || listing.mapLongitude === undefined)
       return false;

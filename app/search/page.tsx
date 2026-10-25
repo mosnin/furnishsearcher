@@ -135,6 +135,7 @@ function SearchPageInner() {
               city: undefined,
               state: undefined,
               propertyId: undefined,
+              propertyGroupId: undefined,
             }),
         moveIn: undefined,
         moveOut: undefined,
@@ -164,13 +165,15 @@ function SearchPageInner() {
       }),
     );
   }
-  const locationLabel = applied.propertyId
-    ? `Property ${applied.propertyId}`
-    : applied.nearLabel ||
-      (applied.mapBounds ? "Selected map area" : undefined) ||
-      applied.location ||
-      [applied.city, applied.state].filter(Boolean).join(", ") ||
-      "All locations";
+  const locationLabel = applied.propertyGroupId
+    ? "Rental spaces at this property"
+    : applied.propertyId
+      ? `Property ${applied.propertyId}`
+      : applied.nearLabel ||
+        (applied.mapBounds ? "Selected map area" : undefined) ||
+        applied.location ||
+        [applied.city, applied.state].filter(Boolean).join(", ") ||
+        "All locations";
   const [viewport, setViewport] = useState<Bounds | null>(null);
   const mapListings: MapListing[] = useMemo(
     () =>

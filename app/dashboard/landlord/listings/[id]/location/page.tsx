@@ -59,6 +59,22 @@ export default function ListingLocation({
       </p>
     );
   if (!listing) return <p className="p-6">This property is unavailable.</p>;
+  if (listing.parentListingId)
+    return (
+      <main className="max-w-3xl p-6 space-y-4">
+        <h1 className="text-2xl font-bold">Shared property location</h1>
+        <p>
+          This unit uses its property’s confirmed address and approximate map
+          area.
+        </p>
+        <Link
+          className="underline"
+          href={`/dashboard/landlord/listings/${listing.parentListingId}/location`}
+        >
+          Manage shared property location
+        </Link>
+      </main>
+    );
   return (
     <main className="mx-auto max-w-3xl p-6 space-y-5">
       <Link className="text-sm underline" href="/dashboard/landlord/listings">

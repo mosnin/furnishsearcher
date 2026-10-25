@@ -45,6 +45,40 @@ export const listings = query({
       const match = listing ? await matchSearch(ctx, listing, filters) : null;
       return { page: match ? [match] : [], isDone: true, continueCursor: "" };
     }
+    if (filters.propertyGroupId) {
+      const groupId = ctx.db.normalizeId("properties", filters.propertyGroupId);
+      if (!groupId) return { page: [], isDone: true, continueCursor: "" };
+      const source =
+        filters.sort === "price_asc" || filters.sort === "price_desc"
+          ? ctx.db
+              .query("listings")
+              .withIndex("by_property_price", (q) =>
+                q.eq("propertyGroupId", groupId).eq("status", "active"),
+              )
+          : filters.sort === "most_viewed"
+            ? ctx.db
+                .query("listings")
+                .withIndex("by_property_views", (q) =>
+                  q.eq("propertyGroupId", groupId).eq("status", "active"),
+                )
+            : ctx.db
+                .query("listings")
+                .withIndex("by_property_newest", (q) =>
+                  q.eq("propertyGroupId", groupId).eq("status", "active"),
+                );
+      const result = await source
+        .order(filters.sort === "price_asc" ? "asc" : "desc")
+        .paginate({
+          ...paginationOpts,
+          numItems: Math.min(24, paginationOpts.numItems),
+        });
+      const page = [];
+      for (const l of result.page) {
+        const m = await matchSearch(ctx, l, filters);
+        if (m) page.push(m);
+      }
+      return { ...result, page };
+    }
     if (filters.mapBounds || filters.nearLatitude !== undefined) {
       const rectangle =
         filters.mapBounds ??

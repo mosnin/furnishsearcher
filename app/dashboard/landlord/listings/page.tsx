@@ -351,6 +351,12 @@ export default function LandlordListingsPage() {
                           ? "Location confirmed"
                           : "Confirm map location"}
                       </Link>
+                      <Link
+                        className="text-xs underline"
+                        href={`/dashboard/landlord/listings/${listing._id}/units`}
+                      >
+                        Property units
+                      </Link>
                       {/* Actions */}
                       <div className="flex items-center gap-2 shrink-0">
                         <Button asChild variant="outline" size="sm">

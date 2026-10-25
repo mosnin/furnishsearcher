@@ -71,6 +71,8 @@ export async function matchSearch(
       : {}),
     publicId: listing.publicId,
     title: listing.title,
+    unitName: listing.unitName,
+    propertyGroupId: listing.propertyGroupId,
     city: listing.city,
     state: listing.state,
     price: listing.price,

@@ -1,3 +1,4 @@
+import { propertyIssues } from "./units";
 import { syncGeo } from "./geo";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
@@ -53,6 +54,7 @@ export async function identityPassed(ctx: Ctx, user: Doc<"users">) {
 export async function readiness(ctx: Ctx, listing: Doc<"listings">) {
   const issues = await contentIssues(ctx, listing),
     revision = listing.revision ?? 0;
+  issues.push(...(await propertyIssues(ctx, listing)));
   if (listing.moderationHold)
     issues.push("This listing is under staff review. Contact support.");
   if (
@@ -74,6 +76,19 @@ export async function readiness(ctx: Ctx, listing: Doc<"listings">) {
   );
   if (!subscription)
     issues.push("Confirm an active paid landlord subscription.");
+  if (subscription?.plan === "landlord_pro") {
+    const slots = await ctx.db
+      .query("listings")
+      .withIndex("by_landlord_status", (q) =>
+        q.eq("landlordId", listing.landlordId).eq("status", "active"),
+      )
+      .order("asc")
+      .take(5);
+    if (slots.length >= 5 && !slots.some((l) => l._id === listing._id))
+      issues.push(
+        "Landlord Pro includes five active rental spaces. Hide another listing or upgrade to Premium to publish this space.",
+      );
+  }
   const eligible = issues.length === 0,
     requested = listing.publicationRequested === true;
   return {

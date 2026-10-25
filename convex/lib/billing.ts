@@ -24,25 +24,39 @@ export async function activePaidSubscription(
     return null;
   }
   const now = Date.now();
-  return ctx.db
-    .query("subscriptions")
-    .withIndex("by_user_paid", (q) =>
-      q
-        .eq("userId", userId)
-        .eq("mode", mode)
-        .eq("status", "active")
-        .gt("paidThrough", now),
-    )
-    .filter((q) =>
-      q.and(
-        ...(landlordOnly ? [q.or(q.eq(q.field("plan"),"landlord_pro"),q.eq(q.field("plan"),"landlord_premium"))] : []),
-        q.neq(q.field("billingHold"), true),
-        q.gt(q.field("verifiedAt"), 0),
-        q.gt(q.field("currentPeriodEnd"), now),
-      ),
-    )
-    .order("desc")
-    .first();
+  const paid = () =>
+    ctx.db
+      .query("subscriptions")
+      .withIndex("by_user_paid", (q) =>
+        q
+          .eq("userId", userId)
+          .eq("mode", mode)
+          .eq("status", "active")
+          .gt("paidThrough", now),
+      )
+      .filter((q) =>
+        q.and(
+          ...(landlordOnly
+            ? [
+                q.or(
+                  q.eq(q.field("plan"), "landlord_pro"),
+                  q.eq(q.field("plan"), "landlord_premium"),
+                ),
+              ]
+            : []),
+          q.neq(q.field("billingHold"), true),
+          q.gt(q.field("verifiedAt"), 0),
+          q.gt(q.field("currentPeriodEnd"), now),
+        ),
+      )
+      .order("desc");
+  if (landlordOnly) {
+    const premium = await paid()
+      .filter((q) => q.eq(q.field("plan"), "landlord_premium"))
+      .first();
+    if (premium) return premium;
+  }
+  return paid().first();
 }
 export async function verifiedFeature(
   ctx: QueryCtx | MutationCtx,

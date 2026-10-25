@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PROPERTY_TYPES, AMENITIES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,11 @@ import { ListingPhotoEditor } from "@/components/listing-photo-editor";
 import { photoAssetsFromDrafts, type PhotoDraft } from "@/lib/photos";
 
 import { ListingDetailsEditor } from "@/components/listing-details-editor";
-import { emptyListingDetails, validateListingDetails, type ListingDetails } from "@/lib/listing-details";
+import {
+  emptyListingDetails,
+  validateListingDetails,
+  type ListingDetails,
+} from "@/lib/listing-details";
 
 interface FormData {
   details: ListingDetails;
@@ -73,7 +77,9 @@ const STEPS = [
   { id: 5, label: "Photos", icon: ImageIcon },
 ];
 
-const BATHROOM_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
+const BATHROOM_OPTIONS = [
+  0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8,
+];
 
 const initialForm: FormData = {
   details: emptyListingDetails(),
@@ -112,8 +118,8 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
                   isCompleted
                     ? "bg-[#0f2044] border-[#0f2044] text-white"
                     : isActive
-                    ? "border-[#0f2044] text-[#0f2044] bg-white"
-                    : "border-slate-200 text-slate-400 bg-white"
+                      ? "border-[#0f2044] text-[#0f2044] bg-white"
+                      : "border-slate-200 text-slate-400 bg-white"
                 }`}
               >
                 {isCompleted ? (
@@ -124,7 +130,11 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               </div>
               <span
                 className={`text-xs mt-1 font-medium ${
-                  isActive ? "text-[#0f2044]" : isCompleted ? "text-slate-600" : "text-slate-400"
+                  isActive
+                    ? "text-[#0f2044]"
+                    : isCompleted
+                      ? "text-slate-600"
+                      : "text-slate-400"
                 }`}
               >
                 {step.label}
@@ -145,6 +155,26 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 export default function NewListingPage() {
+  return (
+    <Suspense fallback={<p className="p-6">Loading rental form…</p>}>
+      <NewListingForm />
+    </Suspense>
+  );
+}
+function NewListingForm() {
+  const parent = useSearchParams().get("parent"),
+    { isAuthenticated } = useConvexAuth();
+  const [unitName, setUnitName] = useState(""),
+    [independentSpace, setIndependentSpace] = useState(false);
+  const property = useQuery(
+    api.units.context,
+    parent && isAuthenticated
+      ? {
+          listingId:
+            parent as import("@/convex/_generated/dataModel").Id<"listings">,
+        }
+      : "skip",
+  );
   const router = useRouter();
   const { userId } = useAuth();
   const [step, setStep] = useState(1);
@@ -154,7 +184,7 @@ export default function NewListingPage() {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
   const createListing = useMutation(api.listings.create);
 
@@ -173,19 +203,46 @@ export default function NewListingPage() {
 
   function validateStep(): boolean {
     if (step === 1) {
-      if (!form.title.trim()) { toast.error("Title is required"); return false; }
-      if (!form.propertyType) { toast.error("Property type is required"); return false; }
-      if (!form.description.trim()) { toast.error("Description is required"); return false; }
+      if (!form.title.trim()) {
+        toast.error("Title is required");
+        return false;
+      }
+      if (!form.propertyType) {
+        toast.error("Property type is required");
+        return false;
+      }
+      if (!form.description.trim()) {
+        toast.error("Description is required");
+        return false;
+      }
     }
-    if (step === 2) {
-      if (!form.address.trim()) { toast.error("Address is required"); return false; }
-      if (!form.city.trim()) { toast.error("City is required"); return false; }
-      if (!form.state.trim()) { toast.error("State is required"); return false; }
-      if (!form.zip.trim()) { toast.error("ZIP code is required"); return false; }
+    if (step === 2 && !parent) {
+      if (!form.address.trim()) {
+        toast.error("Address is required");
+        return false;
+      }
+      if (!form.city.trim()) {
+        toast.error("City is required");
+        return false;
+      }
+      if (!form.state.trim()) {
+        toast.error("State is required");
+        return false;
+      }
+      if (!form.zip.trim()) {
+        toast.error("ZIP code is required");
+        return false;
+      }
     }
     if (step === 3) {
-      if (!form.price || form.price <= 0) { toast.error("Valid price is required"); return false; }
-      if (!form.availableFrom) { toast.error("Available from date is required"); return false; }
+      if (!form.price || form.price <= 0) {
+        toast.error("Valid price is required");
+        return false;
+      }
+      if (!form.availableFrom) {
+        toast.error("Available from date is required");
+        return false;
+      }
     }
     return true;
   }
@@ -203,18 +260,35 @@ export default function NewListingPage() {
       toast.error("User not found. Please try again.");
       return;
     }
+    if (
+      parent &&
+      (!property?.canAdd || !unitName.trim() || !independentSpace)
+    ) {
+      toast.error(
+        "Complete the unit name and independent space confirmation; the main property must be ready.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       const photoAssets = photoAssetsFromDrafts(form.photos);
-      const listingId=await createListing({
+      const listingId = await createListing({
+        ...(parent
+          ? {
+              parentListingId:
+                parent as import("@/convex/_generated/dataModel").Id<"listings">,
+              unitName,
+              independentSpace,
+            }
+          : {}),
         landlordId: convexUser._id,
         title: form.title.trim(),
         description: form.description.trim(),
         propertyType: form.propertyType,
-        address: form.address.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-        zip: form.zip.trim(),
+        address: property?.address ?? form.address.trim(),
+        city: property?.city ?? form.city.trim(),
+        state: property?.state ?? form.state.trim(),
+        zip: property?.zip ?? form.zip.trim(),
         details: validateListingDetails(form.details),
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
@@ -229,10 +303,20 @@ export default function NewListingPage() {
         photos: [],
         photoAssets,
       });
-      toast.success("Draft created. Confirm the address match and request publication when ready.");
-      router.push(`/dashboard/landlord/listings/${listingId}/location`);
+      toast.success(
+        parent
+          ? "Unit draft created. Request publication when ready."
+          : "Draft created. Confirm the address match and request publication when ready.",
+      );
+      router.push(
+        `/dashboard/landlord/listings/${listingId}/${parent ? "units" : "location"}`,
+      );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create listing. Please try again.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Failed to create listing. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -240,6 +324,43 @@ export default function NewListingPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      {parent && (
+        <section className="rounded-xl border p-4 space-y-3 mb-6">
+          <h2 className="font-semibold">
+            Add a rental space at {property?.title ?? "this property"}
+          </h2>
+          <p>
+            {property?.address}, {property?.city}, {property?.state}{" "}
+            {property?.zip}
+          </p>
+          <p className="text-sm">
+            This space inherits the shared address and map area. Add its own
+            photos, rent, amenities and availability below. Each unit uses one
+            active listing slot.
+          </p>
+          {property?.issues.map((issue) => (
+            <p key={issue} role="alert">
+              {issue}
+            </p>
+          ))}
+          <Label htmlFor="unit-name">Unit name</Label>
+          <Input
+            id="unit-name"
+            maxLength={80}
+            value={unitName}
+            onChange={(e) => setUnitName(e.target.value)}
+            placeholder="Garden suite or upstairs bedroom"
+          />
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={independentSpace}
+              onChange={(e) => setIndependentSpace(e.target.checked)}
+            />
+            This is a distinct space that can be rented independently.
+          </label>
+        </section>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -304,7 +425,19 @@ export default function NewListingPage() {
           )}
 
           {/* Step 2 — Location */}
-          {step === 2 && (
+          {step === 2 && parent && (
+            <p className="p-4">
+              Shared address: {property?.address}, {property?.city},{" "}
+              {property?.state} {property?.zip}.{" "}
+              <Link
+                className="underline"
+                href={`/dashboard/landlord/listings/${property?.primaryListingId ?? parent}/location`}
+              >
+                Manage property location
+              </Link>
+            </p>
+          )}
+          {step === 2 && !parent && (
             <div className="space-y-5">
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Location</CardTitle>
@@ -335,7 +468,9 @@ export default function NewListingPage() {
                     placeholder="TX"
                     maxLength={2}
                     value={form.state}
-                    onChange={(e) => update("state", e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      update("state", e.target.value.toUpperCase())
+                    }
                   />
                 </div>
               </div>
@@ -416,8 +551,18 @@ export default function NewListingPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="maxOccupancy">Maximum occupants (optional)</Label>
-                  <Input id="maxOccupancy" type="number" min={1} max={30} value={form.maxOccupancy} onChange={e => update("maxOccupancy", e.target.value)} placeholder="Not specified" />
+                  <Label htmlFor="maxOccupancy">
+                    Maximum occupants (optional)
+                  </Label>
+                  <Input
+                    id="maxOccupancy"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={form.maxOccupancy}
+                    onChange={(e) => update("maxOccupancy", e.target.value)}
+                    placeholder="Not specified"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="minStay">Minimum Stay (months)</Label>
@@ -447,7 +592,10 @@ export default function NewListingPage() {
                   onChange={(e) => update("availableFrom", e.target.value)}
                 />
               </div>
-              <ListingDetailsEditor value={form.details} onChange={details => update("details", details)} />
+              <ListingDetailsEditor
+                value={form.details}
+                onChange={(details) => update("details", details)}
+              />
             </div>
           )}
 
@@ -462,8 +610,12 @@ export default function NewListingPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Pet Friendly</p>
-                    <p className="text-xs text-slate-500">Cats and/or dogs allowed</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Pet Friendly
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Cats and/or dogs allowed
+                    </p>
                   </div>
                   <Switch
                     checked={form.petFriendly}
@@ -472,7 +624,9 @@ export default function NewListingPage() {
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Utilities Included</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Utilities Included
+                    </p>
                     <p className="text-xs text-slate-500">
                       Electric, gas, water included in rent
                     </p>
@@ -484,7 +638,9 @@ export default function NewListingPage() {
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Parking Included</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Parking Included
+                    </p>
                     <p className="text-xs text-slate-500">
                       Off-street or garage parking available
                     </p>
@@ -498,7 +654,9 @@ export default function NewListingPage() {
 
               {/* Amenities grid */}
               <div>
-                <p className="text-sm font-medium text-slate-900 mb-3">Amenities</p>
+                <p className="text-sm font-medium text-slate-900 mb-3">
+                  Amenities
+                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {AMENITIES.map((amenity) => (
                     <label
@@ -524,7 +682,12 @@ export default function NewListingPage() {
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Photos</CardTitle>
               </CardHeader>
-              <ListingPhotoEditor photos={form.photos} onChange={photos => update("photos", photos)} busy={photoBusy} onBusyChange={setPhotoBusy} />
+              <ListingPhotoEditor
+                photos={form.photos}
+                onChange={(photos) => update("photos", photos)}
+                busy={photoBusy}
+                onBusyChange={setPhotoBusy}
+              />
             </div>
           )}
         </CardContent>

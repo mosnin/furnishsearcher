@@ -32,7 +32,7 @@ export async function seedPublishedFixtures(t: TestConvex<typeof schema>) {
           userId,
           creemSubscriptionId: `synthetic-${userId}`,
           creemProductId: "prod_fixture",
-          plan: "landlord_pro",
+          plan: "landlord_premium",
           status: "active",
           mode: "test",
           verifiedAt: Date.now(),

@@ -1,0 +1,21 @@
+{
+  "verifiedAt": "2026-10-25T00:57:22.112Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "propertyGroupId": "q57d7rr9ac0f713y6tc6fh51ch8gyv70",
+  "mainListingId": "k9783bpxpsdy3bjcj5q58p5s7s8gzrm8",
+  "unitListingId": "k972qvx2r6wrgb6v0rkdq2zfnn8gyeyj",
+  "createdThisRun": false,
+  "sharedConfirmedPublicExampleArea": true,
+  "independentDateAvailability": true,
+  "publicGroupSearch": true,
+  "hideMainPreservesUnit": true,
+  "privateStreetOmitted": true,
+  "unrelatedOwnerReadRejected": true,
+  "mainDeletionRejected": true,
+  "syntheticIdentityAndPaidPrerequisites": true,
+  "privilegedLocalSdkAuth": true,
+  "realClerkBrowserJwt": false,
+  "realProviderTransaction": false,
+  "fixturesLeftHidden": true
+}

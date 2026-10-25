@@ -34,6 +34,8 @@ import type * as lib_photos from "../lib/photos.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_reviews from "../lib/reviews.js";
 import type * as lib_search from "../lib/search.js";
+import type * as lib_unitSetup from "../lib/unitSetup.js";
+import type * as lib_units from "../lib/units.js";
 import type * as listings from "../listings.js";
 import type * as messageEmails from "../messageEmails.js";
 import type * as messageTemplates from "../messageTemplates.js";
@@ -53,6 +55,7 @@ import type * as searchAlerts from "../searchAlerts.js";
 import type * as support from "../support.js";
 import type * as supportEmails from "../supportEmails.js";
 import type * as syncCalendars from "../syncCalendars.js";
+import type * as units from "../units.js";
 import type * as users from "../users.js";
 import type * as validators_billing from "../validators/billing.js";
 import type * as validators_calendars from "../validators/calendars.js";
@@ -65,6 +68,7 @@ import type * as validators_photos from "../validators/photos.js";
 import type * as validators_reviews from "../validators/reviews.js";
 import type * as validators_search from "../validators/search.js";
 import type * as validators_support from "../validators/support.js";
+import type * as validators_units from "../validators/units.js";
 
 import type {
   ApiFromModules,
@@ -99,6 +103,8 @@ declare const fullApi: ApiFromModules<{
   "lib/publication": typeof lib_publication;
   "lib/reviews": typeof lib_reviews;
   "lib/search": typeof lib_search;
+  "lib/unitSetup": typeof lib_unitSetup;
+  "lib/units": typeof lib_units;
   listings: typeof listings;
   messageEmails: typeof messageEmails;
   messageTemplates: typeof messageTemplates;
@@ -118,6 +124,7 @@ declare const fullApi: ApiFromModules<{
   support: typeof support;
   supportEmails: typeof supportEmails;
   syncCalendars: typeof syncCalendars;
+  units: typeof units;
   users: typeof users;
   "validators/billing": typeof validators_billing;
   "validators/calendars": typeof validators_calendars;
@@ -130,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "validators/reviews": typeof validators_reviews;
   "validators/search": typeof validators_search;
   "validators/support": typeof validators_support;
+  "validators/units": typeof validators_units;
 }>;
 
 /**

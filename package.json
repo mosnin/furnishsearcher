@@ -15,7 +15,8 @@
     "test:local-billing": "node scripts/local-billing-smoke.mjs",
     "test:local-publication": "node scripts/local-publication-smoke.mjs",
     "test:local-reviews": "node scripts/local-review-smoke.mjs",
-    "test:local-geo": "node scripts/local-geo-smoke.mjs"
+    "test:local-geo": "node scripts/local-geo-smoke.mjs",
+    "test:local-units": "node scripts/local-units-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

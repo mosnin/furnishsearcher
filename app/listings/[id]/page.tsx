@@ -1,5 +1,6 @@
 "use client";
 
+import { PropertyUnits } from "@/components/property-units";
 import { ListingDetails } from "@/components/listing-details";
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
@@ -319,6 +320,9 @@ export default function ListingDetailPage({ params }: PageProps) {
               </div>
             </div>
 
+            {listing.unitName && (
+              <p className="text-sm text-slate-600">{listing.unitName}</p>
+            )}
             {/* Price */}
             <div>
               <p className="text-[36px] font-bold text-[#0f2044] leading-none">
@@ -383,6 +387,12 @@ export default function ListingDetailPage({ params }: PageProps) {
             </section>
 
             <Separator />
+            {listing.propertyGroupId && (
+              <PropertyUnits
+                propertyGroupId={listing.propertyGroupId}
+                currentId={listing._id}
+              />
+            )}
             <ListingDetails
               details={listing.details}
               maxOccupancy={listing.maxOccupancy}

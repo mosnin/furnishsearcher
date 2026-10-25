@@ -70,6 +70,11 @@ export const begin = internalMutation({
       l = await ctx.db.get(args.listingId);
     if (!l || (l.landlordId !== user._id && user.role !== "admin"))
       throw new Error("Not authorized.");
+    if (l.parentListingId)
+      throw new Error(
+        "Manage the shared address through this property’s main rental space.",
+      );
+
     const previous = await ctx.db
       .query("listingLocations")
       .withIndex("by_listing", (q) => q.eq("listingId", l._id))
@@ -356,6 +361,11 @@ export const confirm = mutation({
       l = await ctx.db.get(args.listingId);
     if (!l || (l.landlordId !== user._id && user.role !== "admin"))
       throw new Error("Not authorized.");
+    if (l.parentListingId)
+      throw new Error(
+        "Manage the shared address through this property’s main rental space.",
+      );
+
     const r = await ctx.db
       .query("listingLocations")
       .withIndex("by_listing", (q) => q.eq("listingId", l._id))
@@ -393,6 +403,22 @@ export const confirm = mutation({
       status: "pending" as const,
     };
     await ctx.db.patch(l._id, patch);
+    if (l.propertyGroupId) {
+      const property = await ctx.db.get(l.propertyGroupId);
+      if (!property || property.primaryListingId !== l._id)
+        throw new Error("Shared property needs staff review.");
+      await ctx.db.patch(property._id, {
+        mapLatitude: p.latitude,
+        mapLongitude: p.longitude,
+        locationConfirmedAt: patch.locationConfirmedAt,
+        approvedLocationVersion: undefined,
+      });
+      await ctx.scheduler.runAfter(0, internal.units.syncLocation, {
+        propertyId: property._id,
+        version: property.locationVersion,
+        cursor: null,
+      });
+    }
     await syncGeo(ctx, { ...l, ...patch });
     await ctx.db.insert("locationAudit", {
       listingId: l._id,
@@ -419,6 +445,11 @@ export const correctAddress = mutation({
     if (user.role !== "admin") throw new Error("Staff access required.");
     const l = await ctx.db.get(args.listingId);
     if (!l) throw new Error("Property not found.");
+    if (l.parentListingId)
+      throw new Error(
+        "Manage the shared address through this property’s main rental space.",
+      );
+
     if (
       args.note.trim().length < 10 ||
       args.note.length > 2000 ||
@@ -444,7 +475,28 @@ export const correctAddress = mutation({
       .withIndex("by_listing", (q) => q.eq("listingId", l._id))
       .unique();
     if (r) await ctx.db.delete(r._id);
+    let version = l.propertyLocationVersion;
+    if (l.propertyGroupId) {
+      const property = await ctx.db.get(l.propertyGroupId);
+      if (!property || property.primaryListingId !== l._id)
+        throw new Error("Shared property needs staff review.");
+      version = property.locationVersion + 1;
+      await ctx.db.patch(property._id, {
+        address: args.address.trim(),
+        locationVersion: version,
+        approvedLocationVersion: undefined,
+        mapLatitude: undefined,
+        mapLongitude: undefined,
+        locationConfirmedAt: undefined,
+      });
+      await ctx.scheduler.runAfter(0, internal.units.syncLocation, {
+        propertyId: property._id,
+        version,
+        cursor: null,
+      });
+    }
     await ctx.db.patch(l._id, {
+      ...(l.propertyGroupId ? { propertyLocationVersion: version } : {}),
       address: args.address.trim(),
       mapLatitude: undefined,
       mapLongitude: undefined,

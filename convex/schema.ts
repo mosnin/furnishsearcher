@@ -195,7 +195,37 @@ export default defineSchema({
     note: v.string(),
     createdAt: v.number(),
   }).index("by_listing", ["listingId"]),
+  properties: defineTable({
+    ownerId: v.id("users"),
+    primaryListingId: v.id("listings"),
+    address: v.string(),
+    city: v.string(),
+    state: v.string(),
+    zip: v.string(),
+    locationVersion: v.number(),
+    approvedLocationVersion: v.optional(v.number()),
+    mapLatitude: v.optional(v.number()),
+    mapLongitude: v.optional(v.number()),
+    locationConfirmedAt: v.optional(v.number()),
+    unitCount: v.number(),
+    setupCompletedAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+  unitAudit: defineTable({
+    propertyId: v.id("properties"),
+    listingId: v.id("listings"),
+    actorId: v.id("users"),
+    action: v.string(),
+    note: v.string(),
+    createdAt: v.number(),
+  }).index("by_property", ["propertyId"]),
   listings: defineTable({
+    propertyGroupId: v.optional(v.id("properties")),
+    parentListingId: v.optional(v.id("listings")),
+    propertyLocationVersion: v.optional(v.number()),
+    unitName: v.optional(v.string()),
+    unitNameKey: v.optional(v.string()),
+    independentSpaceConfirmedAt: v.optional(v.number()),
     mapLatitude: v.optional(v.number()),
     mapLongitude: v.optional(v.number()),
     locationConfirmedAt: v.optional(v.number()),
@@ -251,6 +281,11 @@ export default defineSchema({
     featuredPaymentId: v.optional(v.id("payments")),
     featuredMode: v.optional(v.union(v.literal("test"), v.literal("prod"))),
   })
+    .index("by_property", ["propertyGroupId"])
+    .index("by_property_name", ["propertyGroupId", "unitNameKey"])
+    .index("by_property_newest", ["propertyGroupId", "status", "createdAt"])
+    .index("by_property_price", ["propertyGroupId", "status", "price"])
+    .index("by_property_views", ["propertyGroupId", "status", "views"])
     .index("by_landlord", ["landlordId"])
     .index("by_landlord_status", ["landlordId", "status"])
     .index("by_status", ["status"])
@@ -546,6 +581,7 @@ export default defineSchema({
     .index("by_tenantId", ["tenantId"])
     .index("by_landlordId", ["landlordId"])
     .index("by_listingId_and_status", ["listingId", "status"])
+    .index("by_listing_status_end", ["listingId", "status", "moveOut"])
     .index("by_tenant_landlord", ["tenantId", "landlordId"])
     .index("by_listing_tenant", ["listingId", "tenantId"]),
 
