@@ -1,3 +1,8 @@
+import {
+  upload as uploadDocument,
+  download as downloadDocument,
+  options as documentOptions,
+} from "./documentFiles";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -101,6 +106,26 @@ http.route({
   path: "/photos/upload",
   method: "OPTIONS",
   handler: uploadOptions,
+});
+http.route({
+  path: "/documents/upload",
+  method: "POST",
+  handler: uploadDocument,
+});
+http.route({
+  path: "/documents/upload",
+  method: "OPTIONS",
+  handler: documentOptions,
+});
+http.route({
+  path: "/documents/download",
+  method: "GET",
+  handler: downloadDocument,
+});
+http.route({
+  path: "/documents/download",
+  method: "OPTIONS",
+  handler: documentOptions,
 });
 http.route({ path: "/webhooks/creem", method: "POST", handler: webhook });
 export default http;

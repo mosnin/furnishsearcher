@@ -25,4 +25,10 @@ crons.interval(
   internal.geo.cleanupRequests,
   {},
 );
+crons.interval(
+  "refresh outstanding document signatures",
+  { minutes: 5 },
+  internal.rocketSign.pollDue,
+  {},
+);
 export default crons;

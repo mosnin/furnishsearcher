@@ -1,3 +1,10 @@
+import { toolFields } from "./validators/rentalTools";
+import {
+  documentFields,
+  versionFields,
+  signatureFields,
+  documentKind,
+} from "./validators/rentalDocs";
 import {
   inquiryStatus,
   changeFields,
@@ -635,6 +642,53 @@ export default defineSchema({
       "beforeMoveOut",
       "action",
     ]),
+  rentalToolRequests: defineTable(toolFields)
+    .index("by_inquiry", ["inquiryId"])
+    .index("by_owner_request", ["ownerId", "requestId"])
+    .index("by_inquiry_kind_status", ["inquiryId", "kind", "status"]),
+  rentalDocuments: defineTable(documentFields).index("by_inquiry", [
+    "inquiryId",
+  ]),
+  rentalDocumentVersions: defineTable(versionFields).index("by_document", [
+    "documentId",
+  ]),
+  rentalDocumentUploads: defineTable({
+    inquiryId: v.id("bookingInquiries"),
+    creatorId: v.id("users"),
+    documentId: v.optional(v.id("rentalDocuments")),
+    title: v.string(),
+    kind: documentKind,
+    filename: v.string(),
+    expectedVersionId: v.optional(v.id("rentalDocumentVersions")),
+    requestId: v.string(),
+    createdAt: v.number(),
+    state: v.union(v.literal("reserved"), v.literal("completed")),
+    versionId: v.optional(v.id("rentalDocumentVersions")),
+  })
+    .index("by_request", ["creatorId", "requestId"])
+    .index("by_creator_time", ["creatorId", "createdAt"]),
+  rentalDocumentAudit: defineTable({
+    inquiryId: v.id("bookingInquiries"),
+    documentId: v.id("rentalDocuments"),
+    versionId: v.optional(v.id("rentalDocumentVersions")),
+    actorId: v.id("users"),
+    action: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_inquiry", ["inquiryId"])
+    .index("by_document", ["documentId"]),
+  rentalSignatureConsents: defineTable({
+    documentId: v.id("rentalDocuments"),
+    versionId: v.id("rentalDocumentVersions"),
+    userId: v.id("users"),
+    legalName: v.string(),
+    email: v.string(),
+    verifiedAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_version_user", ["versionId", "userId"]),
+  rentalSignatures: defineTable(signatureFields)
+    .index("by_document", ["documentId"])
+    .index("by_state_poll", ["state", "lastPollAt"]),
   // Referral program
   referrals: defineTable({
     referrerId: v.id("users"),

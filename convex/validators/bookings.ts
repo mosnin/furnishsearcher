@@ -16,6 +16,12 @@ export const changeStatus = v.union(
 );
 export const eventAction = v.union(
   v.literal("inquiry_created"),
+  v.literal("rental_tool_requested"),
+  v.literal("rental_tool_received"),
+  v.literal("rental_tool_owner_update"),
+  v.literal("document_shared"),
+  v.literal("document_received"),
+  v.literal("document_unshared"),
   v.literal("confirmed"),
   v.literal("declined"),
   v.literal("withdrawn"),

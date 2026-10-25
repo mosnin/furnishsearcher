@@ -1,0 +1,20 @@
+{
+  "retrievedAt": "2026-10-25T01:22:41.532263+00:00",
+  "documentation": "https://docs.rocketlawyer.net/",
+  "developerReference": "https://developer.rocketlawyer.com/docs/binders-product-document-manager-sandbox/1/types/StatusOut",
+  "publicCollectionBytes": 175723,
+  "publicCollectionSha256": "f4a0dbfe8ba4f4c5e421dc0e21d10ba75dbb1f70275a34bc9cc06b54bd1c7de7",
+  "contractsInspected": [
+    "POST /partners/v1/auth/accesstoken",
+    "POST /partners/v1/auth/servicetoken",
+    "POST /document-manager/v1/binders",
+    "GET /document-manager/v1/binders/{binderId}",
+    "PUT /document-manager/v1/binders/{binderId}/documents/{documentId}",
+    "GET /document-manager/v1/binders/{binderId}/documents/{documentId}?unsigned",
+    "POST /document-manager/v1/binders/{binderId}/requests/finalisations",
+    "POST /document-manager/v1/binders/{binderId}/requests/invitations"
+  ],
+  "providerCallsVerified": "mocked only; approved account unavailable",
+  "thirdPartyUiOrSourceCopied": false,
+  "snapshotEncoding": "Normalized JSON representation of the public collection, not raw HTTP wire bytes"
+}

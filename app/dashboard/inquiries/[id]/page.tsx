@@ -9,6 +9,7 @@ import {
   useMutation,
   usePaginatedQuery,
 } from "convex/react";
+import { RentalSteps } from "@/components/rental-steps";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
@@ -262,6 +263,11 @@ export default function BookingPage({
           </p>
         </CardContent>
       </Card>
+      <RentalSteps
+        inquiryId={inquiryId}
+        owner={owner}
+        canRequest={["pending", "accepted"].includes(i.status)}
+      />
       {active && (owner || i.moveOut > Date.now()) && (
         <Card>
           <CardContent className="p-5">

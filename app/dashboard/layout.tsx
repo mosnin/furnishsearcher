@@ -52,6 +52,7 @@ const tenantNav: NavItem[] = [
   },
   { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
+  { label: "Rental Tools", href: "/dashboard/rental-tools", icon: FileText },
   { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   {
@@ -92,6 +93,7 @@ const landlordNav: NavItem[] = [
   },
   { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },
   { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
+  { label: "Rental Tools", href: "/dashboard/rental-tools", icon: FileText },
   { label: "Support Cases", href: "/dashboard/support", icon: FileText },
   { label: "My Profile", href: "/dashboard/profile", icon: User },
   {
