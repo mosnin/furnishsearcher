@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-25T19:35:41.378233+00:00",
+  "sourceSha": "74ebbf7b78b19130e65aafc53e5f105f58d1a73b",
+  "deploymentId": "dpl_DFJd73qtiA239qJrXGSsWMeTcmts",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app/dashboard/profile",
+  "syntheticSignedInBrowser": true,
+  "observed": [
+    "Owner phone preference renders with disclosure of all-listing scope, expiration and copied-number limits",
+    "Enable remains disabled because synthetic owner has no confirmed phone",
+    "Empty saved phone no longer incorrectly says an edited number must be saved",
+    "390px phone settings readable with document/main width 390; no horizontal overflow",
+    "Mobile navigation has five unique destinations after actual landlord role loads",
+    "Saved click opens actual saved-listings page for signed-in landlord",
+    "Saved is sole aria-current page; Dashboard does not remain active on nested favorites",
+    "Default viewport restored after responsive checks"
+  ],
+  "successfulHostedPhoneReveal": false,
+  "actualClerkSms": false,
+  "phoneOrSecuritySettingChanged": false,
+  "phoneAnalyticsImplemented": false,
+  "productionChanged": false,
+  "tests": 290,
+  "testFiles": 30,
+  "wholeProductAccepted": false
+}
