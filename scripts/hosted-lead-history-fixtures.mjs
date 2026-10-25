@@ -276,6 +276,10 @@ if (mode === "setup") {
       );
       await clerk.users.deleteUser(fixture.clerkUserId);
     }
+    const after = await call(owner, "query", "housingRequests:inbox", {
+      paginationOpts: { cursor: null, numItems: 25 },
+    });
+    assert(!after.page.some((row) => row.request._id === fixture.requestId));
     fixture.cleaned = true;
     save();
     console.log(
