@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -24,6 +24,7 @@ import { cn, formatPrice, formatDate } from "@/lib/utils";
 import { Doc } from "@/convex/_generated/dataModel";
 import { PublicReviews } from "@/components/public-reviews";
 import { STATES } from "@/lib/cities";
+import { ProfileImageEditor } from "@/components/profile-image-editor";
 import PhoneVerifyDialog from "@/components/phone-verify-dialog";
 
 const TABS = [
@@ -98,7 +99,7 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto">
       {/* Header card */}
       <div className="bg-[#eef2f8] rounded-xl p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-        <AvatarSection convexUser={convexUser} />
+        <ProfileImageEditor kind="profile" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -122,11 +123,15 @@ export default function ProfilePage() {
         </div>
 
         <Link
-          href={`/landlords/${convexUser._id}`}
+          href={
+            convexUser.role === "landlord"
+              ? `/landlords/${convexUser._id}`
+              : `/travelers/${convexUser._id}`
+          }
           className="flex items-center gap-2 text-sm border border-gray-400 text-gray-700 px-4 py-2 rounded-lg hover:bg-white transition-colors shrink-0"
         >
           <ExternalLink className="w-4 h-4" />
-          My Public Profile
+          View My Profile
         </Link>
       </div>
 
@@ -159,66 +164,6 @@ export default function ProfilePage() {
         <HousingRequestsTab convexUser={convexUser} />
       )}
     </div>
-  );
-}
-
-/* ─── Avatar section ─── */
-function AvatarSection({
-  convexUser,
-}: {
-  convexUser: NonNullable<
-    ReturnType<typeof useQuery<typeof api.users.getByClerkId>>
-  >;
-}) {
-  const updateProfile = useMutation(api.users.updateProfile);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(
-    convexUser.profilePhoto ?? null,
-  );
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    toast.success("Photo updated! (Upload coming soon)");
-  };
-
-  const initials =
-    convexUser.name
-      ?.split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() ?? "?";
-
-  return (
-    <button
-      onClick={() => fileRef.current?.click()}
-      className="relative w-24 h-24 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center overflow-hidden bg-white hover:bg-gray-50 transition-colors shrink-0 group"
-    >
-      {preview ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={preview}
-          alt="Avatar"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <span className="text-2xl font-bold text-gray-400">{initials}</span>
-      )}
-      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-        <Camera className="w-5 h-5 text-white" />
-        <span className="text-[10px] text-white mt-1">Upload Photo</span>
-      </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFile}
-      />
-    </button>
   );
 }
 
@@ -279,6 +224,11 @@ function PersonalInfoTab({
 
   return (
     <div className="space-y-10">
+      <p className="text-sm text-gray-600">
+        Profile and pet photos appear with your profile. Photo links can be
+        opened by anyone who has the link. Use images you want to share, without
+        private documents or contact details.
+      </p>
       {/* General Information */}
       <section>
         <h2 className="text-base font-semibold text-gray-900 mb-4">
@@ -504,13 +454,7 @@ function PersonalInfoTab({
               className={cn(inputCls, "resize-none")}
             />
           </Field>
-          <div className="border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center p-8 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-            <Upload className="w-8 h-8 text-gray-400 mb-2" />
-            <p className="text-sm font-medium text-gray-600">
-              Upload photo of your pet
-            </p>
-            <p className="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</p>
-          </div>
+          <ProfileImageEditor kind="pet" />
         </div>
       </section>
 

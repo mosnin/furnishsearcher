@@ -1,3 +1,4 @@
+import { profileImage } from "./lib/profileImages";
 import {
   createPropertyGroup,
   validateUnitName,
@@ -477,7 +478,7 @@ export const getById = query({
         ? {
             _id: landlord._id,
             name: landlord.name,
-            avatar: landlord.avatar,
+            avatar: (await profileImage(ctx, landlord, "profile")) ?? undefined,
             createdAt: landlord.createdAt,
           }
         : null,

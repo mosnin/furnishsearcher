@@ -2,6 +2,7 @@ import type { Id, Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireUser } from "./auth";
 import { listingPhotos } from "./photos";
+import { profileImage } from "./profileImages";
 type Ctx = QueryCtx | MutationCtx;
 export function conversationKey(a: string, b: string, listing: string) {
   return [a, b].sort().join("_") + "_" + listing;
@@ -90,7 +91,11 @@ export async function enrichConversation(
         }
       : null,
     otherUser: other
-      ? { _id: other._id, name: other.name, avatar: other.avatar }
+      ? {
+          _id: other._id,
+          name: other.name,
+          avatar: (await profileImage(ctx, other, "profile")) ?? undefined,
+        }
       : null,
   };
 }

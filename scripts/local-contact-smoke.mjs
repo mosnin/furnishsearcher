@@ -66,12 +66,15 @@ try {
   assert.equal(saved.phoneVerified, true);
   assert.equal(saved.phoneVerificationSource, "clerk");
   assert.equal(saved.phoneVerificationMode, "test");
-  const publicProfile = await call(
-    anonymous,
-    "query",
-    "users:getPublicProfile",
-    { userId: me._id },
+  assert.equal(
+    await call(anonymous, "query", "users:getPublicProfile", {
+      userId: me._id,
+    }),
+    null,
   );
+  const publicProfile = await call(client, "query", "users:getPublicProfile", {
+    userId: me._id,
+  });
   assert(!Object.hasOwn(publicProfile, "phone"));
   assert(!Object.hasOwn(publicProfile, "phoneVerifiedAt"));
   await call(client, "mutation", "users:revokePhone", {});
@@ -106,6 +109,7 @@ writeFileSync(
       wrongNumberRejected: true,
       privateProfilePersisted: true,
       publicProfileOmitsPhoneAndProof: true,
+      anonymousTravelerProfileDenied: true,
       revocationAndReplayDenied: true,
       finalSyntheticPhoneRemoved: true,
     },

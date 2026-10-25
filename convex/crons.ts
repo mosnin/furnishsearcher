@@ -31,4 +31,11 @@ crons.interval(
   internal.rocketSign.pollDue,
   {},
 );
+crons.interval(
+  "clean retired profile photo receipts",
+  { hours: 24 },
+  internal.profileImages.cleanupReceipts,
+  {},
+);
+
 export default crons;

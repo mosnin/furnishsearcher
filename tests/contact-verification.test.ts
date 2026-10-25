@@ -212,7 +212,10 @@ it("hides phone on legacy, closed and platform-only requests and blocks profile 
       linkedinVerified: true,
     }),
   ).rejects.toThrow("provider connection");
-  const publicProfile = await t.query(api.users.getPublicProfile, {
+  expect(
+    await t.query(api.users.getPublicProfile, { userId: ids.user }),
+  ).toBeNull();
+  const publicProfile = await tenant.query(api.users.getPublicProfile, {
     userId: ids.user,
   });
   expect(publicProfile).not.toHaveProperty("phone");

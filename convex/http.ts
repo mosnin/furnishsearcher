@@ -7,6 +7,10 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { uploadPhoto, uploadOptions } from "./files";
+import {
+  upload as uploadProfileImage,
+  options as profileImageOptions,
+} from "./profileImageFiles";
 async function verified(body: string, signature: string, secret: string) {
   const supplied = signature.startsWith("sha256=")
     ? signature.slice(7)
@@ -128,4 +132,14 @@ http.route({
   handler: documentOptions,
 });
 http.route({ path: "/webhooks/creem", method: "POST", handler: webhook });
+http.route({
+  path: "/profile-images/upload",
+  method: "POST",
+  handler: uploadProfileImage,
+});
+http.route({
+  path: "/profile-images/upload",
+  method: "OPTIONS",
+  handler: profileImageOptions,
+});
 export default http;

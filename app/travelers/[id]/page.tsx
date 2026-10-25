@@ -37,7 +37,41 @@ export default function TravelerProfile({
         </p>
       ) : (
         <>
+          {profile.profilePhoto && (
+            <img
+              src={profile.profilePhoto}
+              alt={profile.name}
+              className="h-24 w-24 rounded-full object-cover"
+            />
+          )}
           <h2 className="text-xl font-semibold">{profile.name}</h2>
+          {(profile.city || profile.state) && (
+            <p>{[profile.city, profile.state].filter(Boolean).join(", ")}</p>
+          )}
+          {(profile.occupation || profile.company) && (
+            <p>
+              {[profile.occupation, profile.company]
+                .filter(Boolean)
+                .join(" · ")}{" "}
+              <span className="text-xs text-slate-500">(self-reported)</span>
+            </p>
+          )}
+          {profile.bio && <p className="whitespace-pre-wrap">{profile.bio}</p>}
+          {(profile.petInfo || profile.petPhoto) && (
+            <section className="space-y-2">
+              <h3 className="font-semibold">Pets</h3>
+              {profile.petInfo && (
+                <p className="whitespace-pre-wrap">{profile.petInfo}</p>
+              )}
+              {profile.petPhoto && (
+                <img
+                  src={profile.petPhoto}
+                  alt="Traveler's pet"
+                  className="max-h-64 rounded-xl object-contain"
+                />
+              )}
+            </section>
+          )}
           <p className="text-sm text-slate-600">
             {profile.count
               ? `${profile.average}/5 from ${profile.count} moderated reviews`

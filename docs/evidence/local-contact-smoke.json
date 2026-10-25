@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-25T02:29:23.533Z",
+  "checkedAt": "2026-10-25T02:44:46.590Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "signedClaimPathViaPrivilegedLocalIdentity": true,
@@ -10,6 +10,7 @@
   "wrongNumberRejected": true,
   "privateProfilePersisted": true,
   "publicProfileOmitsPhoneAndProof": true,
+  "anonymousTravelerProfileDenied": true,
   "revocationAndReplayDenied": true,
   "finalSyntheticPhoneRemoved": true
 }

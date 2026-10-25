@@ -19,7 +19,8 @@
     "test:local-units": "node scripts/local-units-smoke.mjs",
     "test:local-booking": "node scripts/local-booking-smoke.mjs",
     "test:local-documents": "node scripts/local-document-smoke.mjs",
-    "test:local-contacts": "node scripts/local-contact-smoke.mjs"
+    "test:local-contacts": "node scripts/local-contact-smoke.mjs",
+    "test:local-profile-images": "node scripts/local-profile-image-smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.8",

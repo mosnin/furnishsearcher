@@ -9,6 +9,8 @@ import {
 } from "../lib/contact-verification";
 import { currentPhoneProof, contactMode } from "./lib/contacts";
 import { requireUser } from "./lib/auth";
+import { profileView } from "./lib/profileImages";
+import { canReadTraveler } from "./lib/reviews";
 
 export const getOrCreate = mutation({
   args: {
@@ -57,7 +59,12 @@ export const getByClerkId = query({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
-    return user ? { ...user, phoneVerified: currentPhoneProof(user) } : null;
+    return user
+      ? {
+          ...(await profileView(ctx, user)),
+          phoneVerified: currentPhoneProof(user),
+        }
+      : null;
   },
 });
 
@@ -105,7 +112,8 @@ export const getById = query({
       .unique();
     if (!caller || (caller._id !== args.id && caller.role !== "admin"))
       return null;
-    return ctx.db.get(args.id);
+    const found = await ctx.db.get(args.id);
+    return found ? profileView(ctx, found) : null;
   },
 });
 
@@ -151,6 +159,14 @@ export const updateProfile = mutation({
     const user = await ctx.db.get(userId);
     if (!user) throw new Error(`User ${userId} not found`);
 
+    if (
+      (args.profilePhoto !== undefined &&
+        args.profilePhoto !== user.profilePhoto) ||
+      (args.petPhoto !== undefined && args.petPhoto !== user.petPhoto)
+    )
+      throw new Error(
+        "Use the profile photo editor to upload, replace or remove photos.",
+      );
     const patch: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
@@ -276,13 +292,18 @@ export const getPublicProfile = query({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
+    if (user.role !== "landlord" && !(await canReadTraveler(ctx, user._id)))
+      return null;
+    const visible = await profileView(ctx, user);
     const identityVerified = await identityPassed(ctx, user);
     return {
       _id: user._id,
       name: user.name,
       displayName: user.displayName,
-      avatar: user.avatar,
-      profilePhoto: user.profilePhoto,
+      avatar: visible.avatar,
+      profilePhoto: visible.profilePhoto,
+      petInfo: user.petInfo,
+      petPhoto: visible.petPhoto,
       city: user.city,
       state: user.state,
       occupation: user.occupation,

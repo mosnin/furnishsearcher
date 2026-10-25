@@ -159,6 +159,23 @@ export default function LandlordProfilePage({ params }: PageProps) {
                   </p>
                 </>
               )}
+              {(landlord.petInfo || landlord.petPhoto) && (
+                <section className="mt-4 space-y-2">
+                  <h2 className="font-semibold">Pets</h2>
+                  {landlord.petInfo && (
+                    <p className="whitespace-pre-wrap text-sm">
+                      {landlord.petInfo}
+                    </p>
+                  )}
+                  {landlord.petPhoto && (
+                    <img
+                      src={landlord.petPhoto}
+                      alt="Landlord's pet"
+                      className="max-h-64 rounded-xl object-contain"
+                    />
+                  )}
+                </section>
+              )}
             </div>
           </CardContent>
         </Card>

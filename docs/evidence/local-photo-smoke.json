@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-25T02:29:13.128Z",
+  "checkedAt": "2026-10-25T02:43:20.920Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "authentication": "Privileged local development identities via the SDK's admin auth format, not a real Clerk browser/JWT session",

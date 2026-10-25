@@ -15,7 +15,11 @@ export function PhotoAdjustDialog({
   url,
   onClose,
   onSave,
+  description,
+  saveLabel = "Apply changes",
 }: {
+  description?: string;
+  saveLabel?: string;
   url: string;
   onClose: () => void;
   onSave: (file: File) => Promise<void>;
@@ -105,7 +109,7 @@ export function PhotoAdjustDialog({
         ),
       );
       await onSave(
-        new File([blob], "edited-property-photo.jpg", { type: "image/jpeg" }),
+        new File([blob], "edited-photo.jpg", { type: "image/jpeg" }),
       );
       onClose();
     } catch (error) {
@@ -135,9 +139,8 @@ export function PhotoAdjustDialog({
         <DialogHeader>
           <DialogTitle>Crop & rotate photo</DialogTitle>
           <DialogDescription>
-            Preview your changes below. Applying creates a new photo; the
-            original stays in your listing until you save the listing. Edited
-            photos are saved as JPEG, up to 4096 pixels on the longest side.
+            {description ??
+              "Preview your changes below. Applying creates a new photo; the original stays in your listing until you save the listing. Edited photos are saved as JPEG, up to 4096 pixels on the longest side."}
           </DialogDescription>
         </DialogHeader>
         {failed ? (
@@ -231,7 +234,7 @@ export function PhotoAdjustDialog({
             disabled={!image || failed || busy}
             onClick={save}
           >
-            {busy ? "Saving photo…" : "Apply changes"}
+            {busy ? "Saving photo…" : saveLabel}
           </Button>
         </div>
       </DialogContent>

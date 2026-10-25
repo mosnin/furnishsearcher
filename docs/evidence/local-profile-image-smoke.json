@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-25T02:43:31.161Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "actualLocalHttpUploads": true,
+  "parallelRetrySingleRevision": true,
+  "competingEditsOneWinner": true,
+  "persistedAcrossFreshQuery": true,
+  "publicImageBytesMatch": true,
+  "replacedAndRemovedImageUrlsRejectFreshFetch": true,
+  "oldRetryCannotRestoreReplacedImage": true,
+  "profileAndPetIndependent": true,
+  "arbitraryUrlRejected": true,
+  "profileImagesCannotUseListingUrlGateway": true,
+  "publicProjectionOmitsStorageFields": true,
+  "travelerDetailsRequireRelationship": true,
+  "syntheticImagesRemoved": true,
+  "privilegedSyntheticIdentities": true,
+  "actualClerkBrowserJwt": false,
+  "renderedBrowserCropAcceptance": false
+}

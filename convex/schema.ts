@@ -108,6 +108,23 @@ export default defineSchema({
   })
     .index("by_storage", ["storageId"])
     .index("by_owner_time", ["ownerId", "createdAt"]),
+  profileImageUploads: defineTable({
+    ownerId: v.id("users"),
+    kind: v.union(v.literal("profile"), v.literal("pet")),
+    requestId: v.string(),
+    expectedRevision: v.number(),
+    revision: v.number(),
+    storageId: v.optional(v.id("_storage")),
+    bytes: v.number(),
+    contentType: v.string(),
+    digest: v.string(),
+    createdAt: v.number(),
+    retiredAt: v.optional(v.number()),
+  })
+    .index("by_owner_request", ["ownerId", "requestId"])
+    .index("by_storage", ["storageId"])
+    .index("by_owner_time", ["ownerId", "createdAt"])
+    .index("by_retired", ["retiredAt"]),
   counters: defineTable({ name: v.string(), value: v.number() }).index(
     "by_name",
     ["name"],
@@ -168,6 +185,9 @@ export default defineSchema({
     phoneRevision: v.optional(v.number()),
     phoneProofAfter: v.optional(v.number()),
     profilePhoto: v.optional(v.string()),
+    profilePhotoStorageId: v.optional(v.id("_storage")),
+    profilePhotoRevision: v.optional(v.number()),
+    profilePhotoRemoved: v.optional(v.boolean()),
     city: v.optional(v.string()),
     state: v.optional(v.string()),
     zip: v.optional(v.string()),
@@ -177,6 +197,9 @@ export default defineSchema({
     bio: v.optional(v.string()),
     petInfo: v.optional(v.string()),
     petPhoto: v.optional(v.string()),
+    petPhotoStorageId: v.optional(v.id("_storage")),
+    petPhotoRevision: v.optional(v.number()),
+    petPhotoRemoved: v.optional(v.boolean()),
     linkedinVerified: v.optional(v.boolean()),
     // Referral system
     referralCode: v.optional(v.string()),

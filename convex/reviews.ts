@@ -1,3 +1,4 @@
+import { profileView } from "./lib/profileImages";
 import { reviewableBooking, reviewEnd } from "./lib/bookings";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
@@ -772,13 +773,34 @@ export const travelerProfile = query({
   args: { id: v.id("users") },
   returns: v.union(
     v.null(),
-    v.object({ name: v.string(), count: v.number(), average: v.number() }),
+    v.object({
+      name: v.string(),
+      count: v.number(),
+      average: v.number(),
+      profilePhoto: v.optional(v.string()),
+      petPhoto: v.optional(v.string()),
+      bio: v.optional(v.string()),
+      occupation: v.optional(v.string()),
+      company: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      petInfo: v.optional(v.string()),
+    }),
   ),
   handler: async (ctx, args) => {
     if (!(await canReadTraveler(ctx, args.id))) return null;
     const user = await ctx.db.get(args.id);
     if (!user) return null;
+    const visible = await profileView(ctx, user);
     return {
+      profilePhoto: visible.profilePhoto,
+      petPhoto: visible.petPhoto,
+      bio: user.bio,
+      occupation: user.occupation,
+      company: user.company,
+      city: user.city,
+      state: user.state,
+      petInfo: user.petInfo,
       name:
         user.displayName?.trim().split(/\s+/)[0] ||
         user.name?.trim().split(/\s+/)[0] ||
