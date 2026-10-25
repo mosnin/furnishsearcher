@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-25T05:19:58.302228+00:00",
+  "deploymentId": "dpl_26f6V6YGWGTPZ2vwRAfuWL1mjt3G",
+  "sourceSha": "71cfbf3f01a0f7d8d520de9bb9084fbbb5215884",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app",
+  "backend": "cheerful-ferret-182",
+  "observed": [
+    "home rendered with fresh cloud inventory empty state",
+    "Clerk development sign-in modal rendered",
+    "ordinary search settled at zero matches",
+    "filters expanded and closed",
+    "city search updated URL to city=Austin&state=TX and settled at zero matches",
+    "Leaflet map rendered without fixture properties"
+  ],
+  "limits": [
+    "fresh database has no approved public properties",
+    "no human sign-in or SMS/email delivery",
+    "no authenticated UI acceptance",
+    "production unchanged"
+  ],
+  "fixRegression": {
+    "unfixedFails": true,
+    "fixedPasses": true,
+    "cases": 3
+  },
+  "tests": 257,
+  "testFiles": 27
+}
