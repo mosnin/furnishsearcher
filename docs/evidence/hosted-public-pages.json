@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-25T19:21:21.592228+00:00",
+  "sourceSha": "15469f9078b2a740451fbea98818ef1564277353",
+  "deploymentId": "dpl_jwTE8wynvn7nWGWmdVT41dpAB8tR",
+  "backend": "Convex development",
+  "observed": [
+    "Deployed partnership form awaits native case mutation before showing saved reference",
+    "Existing synthetic Clerk account can find and reopen exact submitted case contents from private support dashboard",
+    "Anonymous native case query denied with authentication error",
+    "Deployed pricing shows paid publication and identity/current-revision approval requirements, Pro five-space cap and Premium beyond that cap",
+    "No synthetic customer counts, testimonials or fixed unverified plan prices retained in edited public pages"
+  ],
+  "emailGuard": "Live development RESEND_API_KEY checked empty before synthetic submission; no email sent",
+  "tests": 284,
+  "testFiles": 29,
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "productionChanged": false,
+  "wholeSiteContentOrLegalApproval": false,
+  "wholeProductParityAccepted": false
+}
