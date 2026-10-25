@@ -92,6 +92,7 @@ export const apply = internalMutation({
       event.updatedAt === prior.updatedAt &&
       event.eventAt === prior.eventAt &&
       !event.deleted;
+    if (tied && prior.uncertain) return null;
     if (tied && prior.emailHash === emailHash && prior.phoneHash === phoneHash)
       return null;
     // Contradictory snapshots with indistinguishable ordering cannot grant contact authority.

@@ -184,12 +184,10 @@ it("revokes only changed email and refuses freshly issued stale claims, then req
   );
   vi.setSystemTime(now + 2000);
   await expect(
-    f
-      .claims()
-      .mutation(api.emailContacts.setMessageEmails, {
-        clerkId: "user_fixture",
-        enabled: true,
-      }),
+    f.claims().mutation(api.emailContacts.setMessageEmails, {
+      clerkId: "user_fixture",
+      enabled: true,
+    }),
   ).rejects.toThrow("contact changed");
   await f
     .claims({ email: "new@example.test" })
@@ -296,12 +294,10 @@ it.each(["missing", "unverified", "null-verification"])(
       f.claims().mutation(api.users.confirmPhone, { phone }),
     ).rejects.toThrow("contact changed");
     await expect(
-      f
-        .claims()
-        .mutation(api.emailContacts.setMessageEmails, {
-          clerkId: "user_fixture",
-          enabled: true,
-        }),
+      f.claims().mutation(api.emailContacts.setMessageEmails, {
+        clerkId: "user_fixture",
+        enabled: true,
+      }),
     ).rejects.toThrow("contact changed");
   },
 );
@@ -330,8 +326,10 @@ it("fails closed on contradictory same-time snapshots and resolves only with a s
   await f.post(event({}, { primary_phone_number_id: null, phone_numbers: [] }));
   expect((await f.snapshot())?.uncertain).toBe(true);
   expect((await f.read())?.notificationEmail).toBeUndefined();
+  const revoked = await f.read();
   await f.post(event());
   expect((await f.snapshot())?.uncertain).toBe(true);
+  expect(await f.read()).toEqual(revoked);
   vi.setSystemTime(now + 2000);
   await f.post(event());
   expect((await f.snapshot())?.uncertain).toBe(false);
@@ -368,12 +366,10 @@ it("treats deletion as a permanent contact tombstone without deleting rental/pro
     f.claims().mutation(api.users.confirmPhone, { phone }),
   ).rejects.toThrow("contact changed");
   await expect(
-    f
-      .claims()
-      .mutation(api.emailContacts.setMessageEmails, {
-        clerkId: "user_fixture",
-        enabled: true,
-      }),
+    f.claims().mutation(api.emailContacts.setMessageEmails, {
+      clerkId: "user_fixture",
+      enabled: true,
+    }),
   ).rejects.toThrow("contact changed");
 });
 it("stores contact authority before native onboarding but never trusts provider metadata for app roles or automatically creates a profile", async () => {
