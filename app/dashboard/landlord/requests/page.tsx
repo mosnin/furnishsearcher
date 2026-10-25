@@ -116,7 +116,8 @@ function RequestCard({ item }: { item: InboxItem }) {
         )}
         {item.phone && (
           <p className="text-sm">
-            Traveler shared their phone:{" "}
+            Traveler shared their phone
+            {item.phoneTestMode ? " (test account confirmation)" : ""}:{" "}
             <a className="underline" href={`tel:${item.phone}`}>
               {item.phone}
             </a>

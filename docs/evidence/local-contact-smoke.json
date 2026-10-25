@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-25T02:29:23.533Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "signedClaimPathViaPrivilegedLocalIdentity": true,
+  "actualClerkJwt": false,
+  "actualSmsDelivered": false,
+  "anonymousRejected": true,
+  "missingClaimRejected": true,
+  "wrongNumberRejected": true,
+  "privateProfilePersisted": true,
+  "publicProfileOmitsPhoneAndProof": true,
+  "revocationAndReplayDenied": true,
+  "finalSyntheticPhoneRemoved": true
+}

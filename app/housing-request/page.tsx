@@ -699,7 +699,10 @@ export default function HousingRequestPage() {
                         disabled={!user?.phoneVerified}
                         onChange={() => setContact("phone")}
                       />
-                      Share my verified phone number
+                      Share my confirmed phone number
+                      {user?.phoneVerificationMode === "test"
+                        ? " (test account)"
+                        : ""}
                     </label>
                     {!user?.phoneVerified && (
                       <p className="text-xs text-slate-500">

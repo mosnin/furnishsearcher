@@ -1,4 +1,7 @@
-import { seedPublishedFixtures,approveFixtureEdit } from "./helpers/publication";
+import {
+  seedPublishedFixtures,
+  approveFixtureEdit,
+} from "./helpers/publication";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import schema from "../convex/schema";
@@ -22,6 +25,10 @@ async function fixture() {
         createdAt: 0,
         phone: "+15555550123",
         phoneVerified: true,
+        phoneVerificationSource: "clerk",
+        phoneVerificationMode: "test",
+        phoneVerifiedAt: Date.now(),
+        phoneVerificationExpiresAt: Date.now() + 30 * DAY,
       });
     const tenant = await makeUser("tenant", "tenant"),
       owner = await makeUser("owner", "landlord"),
@@ -333,7 +340,7 @@ describe("housing request delivery", () => {
       matchingStatus: "complete",
     });
     await owner.mutation(api.listings.update, { id: ids.listing, price: 1800 });
-    await approveFixtureEdit(t,ids.listing);
+    await approveFixtureEdit(t, ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (
@@ -443,7 +450,7 @@ describe("housing request delivery", () => {
       id: ids.listing,
       maxOccupancy: 1,
     });
-    await approveFixtureEdit(t,ids.listing);
+    await approveFixtureEdit(t, ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (
@@ -467,7 +474,7 @@ describe("housing request delivery", () => {
       id: ids.listing,
       maxOccupancy: null,
     });
-    await approveFixtureEdit(t,ids.listing);
+    await approveFixtureEdit(t, ids.listing);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(
       (
@@ -487,14 +494,12 @@ describe("housing request delivery", () => {
     vi.stubEnv("RESEND_API_KEY", "re_fixture");
     vi.stubEnv("EMAIL_FROM", "requests@example.test");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.example.test");
-    const send = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ id: "fixture-email" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      );
+    const send = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "fixture-email" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
     vi.stubGlobal("fetch", send);
     try {
       await tenant.mutation(api.housingRequests.create, {

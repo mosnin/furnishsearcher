@@ -19,6 +19,7 @@ import {
 import { blockState, requireMessagingAllowed } from "./lib/messageAccess";
 import { sendListingMessage } from "./lib/messaging";
 import { DAY } from "../lib/stays";
+import { currentPhoneProof } from "./lib/contacts";
 
 const pageFields = { continueCursor: v.string(), isDone: v.boolean() };
 const propertySummary = v.object({
@@ -39,10 +40,7 @@ async function insertRequest(
   const prepared = prepareCriteria(criteria);
   const user = await ctx.db.get(userId);
   if (!user) throw new Error("Complete your profile first.");
-  if (
-    prepared.contactPreference === "phone" &&
-    (!user.phoneVerified || !user.phone)
-  ) {
+  if (prepared.contactPreference === "phone" && !currentPhoneProof(user)) {
     throw new Error(
       "Verify your phone number before sharing it, or choose platform messages.",
     );
@@ -50,6 +48,10 @@ async function insertRequest(
   const requestId = await ctx.db.insert("housingRequests", {
     ...prepared,
     userId,
+    contactPhoneRevision:
+      prepared.contactPreference === "phone"
+        ? (user.phoneRevision ?? 0)
+        : undefined,
     status: "open",
     createdAt: Date.now(),
     matchingStatus: "matching",
@@ -314,6 +316,7 @@ const inboxItem = v.object({
   read: v.boolean(),
   name: v.string(),
   phone: v.union(v.string(), v.null()),
+  phoneTestMode: v.boolean(),
 });
 export const inbox = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -344,9 +347,15 @@ export const inbox = query({
           tenant?.name ??
           "Traveler",
         phone:
-          request.contactPreference === "phone" && tenant?.phoneVerified
+          request.status === "open" &&
+          request.contactPreference === "phone" &&
+          tenant &&
+          currentPhoneProof(tenant) &&
+          request.contactPhoneRevision !== undefined &&
+          request.contactPhoneRevision === (tenant.phoneRevision ?? 0)
             ? (tenant.phone ?? null)
             : null,
+        phoneTestMode: tenant?.phoneVerificationMode !== "prod",
       });
     }
     return {

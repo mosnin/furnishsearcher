@@ -1,7 +1,14 @@
 import { billingMode } from "../lib/billing";
 import { identityPassed } from "./lib/publication";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  canonicalPhone,
+  PHONE_PROOF_LIFETIME,
+} from "../lib/contact-verification";
+import { currentPhoneProof, contactMode } from "./lib/contacts";
+import { requireUser } from "./lib/auth";
 
 export const getOrCreate = mutation({
   args: {
@@ -46,10 +53,11 @@ export const getByClerkId = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.clerkId) return null;
-    return await ctx.db
+    const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
+    return user ? { ...user, phoneVerified: currentPhoneProof(user) } : null;
   },
 });
 
@@ -147,8 +155,101 @@ export const updateProfile = mutation({
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) patch[key] = value;
     }
+    if (args.phone !== undefined) {
+      const phone = args.phone.trim() ? canonicalPhone(args.phone) : "";
+      patch.phone = phone;
+      if (phone !== user.phone) {
+        patch.phoneVerified = false;
+        patch.phoneVerificationSource = undefined;
+        patch.phoneVerificationMode = undefined;
+        patch.phoneVerifiedAt = undefined;
+        patch.phoneVerificationExpiresAt = undefined;
+        patch.phoneRevision = (user.phoneRevision ?? 0) + 1;
+        patch.phoneProofAfter = Math.floor(Date.now() / 1000) + 1;
+      }
+    }
     await ctx.db.patch(userId, patch);
     return await ctx.db.get(userId);
+  },
+});
+
+export const confirmPhone = mutation({
+  args: { phone: v.string() },
+  returns: v.object({ phone: v.string(), expiresAt: v.number() }),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx),
+      identity = (await ctx.auth.getUserIdentity())!;
+    const phone = canonicalPhone(args.phone),
+      issued = identity.iat,
+      now = Date.now();
+    if (
+      identity.phoneNumberVerified !== true ||
+      identity.phoneNumber !== phone ||
+      typeof issued !== "number" ||
+      !Number.isFinite(issued) ||
+      issued * 1000 > now ||
+      issued * 1000 < now - 120000 ||
+      issued < (user.phoneProofAfter ?? 0)
+    )
+      throw new Error(
+        "Your sign-in account has not confirmed this number. Verify it and refresh your account confirmation. Contact support if confirmation is unavailable.",
+      );
+    const mode = contactMode();
+    if (
+      mode === "prod" &&
+      new URL(identity.issuer).hostname.endsWith(".clerk.accounts.dev")
+    )
+      throw new Error(
+        "Development sign-in accounts cannot establish production phone confirmation.",
+      );
+    const expiresAt = now + PHONE_PROOF_LIFETIME;
+    await ctx.db.patch(user._id, {
+      phone,
+      phoneVerified: true,
+      phoneVerificationSource: "clerk",
+      phoneVerificationMode: mode,
+      phoneVerifiedAt: now,
+      phoneVerificationExpiresAt: expiresAt,
+      phoneRevision: (user.phoneRevision ?? 0) + (user.phone === phone ? 0 : 1),
+    });
+    await ctx.scheduler.runAt(expiresAt, internal.users.expirePhone, {
+      userId: user._id,
+      expiresAt,
+    });
+    return { phone, expiresAt };
+  },
+});
+
+export const expirePhone = internalMutation({
+  args: { userId: v.id("users"), expiresAt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (
+      user &&
+      user.phoneVerificationExpiresAt === args.expiresAt &&
+      Date.now() >= args.expiresAt
+    )
+      await ctx.db.patch(user._id, { phoneVerified: false });
+    return null;
+  },
+});
+
+export const revokePhone = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    await ctx.db.patch(user._id, {
+      phoneVerified: false,
+      phoneVerificationSource: undefined,
+      phoneVerificationMode: undefined,
+      phoneVerifiedAt: undefined,
+      phoneVerificationExpiresAt: undefined,
+      phoneRevision: (user.phoneRevision ?? 0) + 1,
+      phoneProofAfter: Math.floor(Date.now() / 1000) + 1,
+    });
+    return null;
   },
 });
 

@@ -24,6 +24,7 @@ export const housingCriteria = {
 export const housingRequestFields = {
   ...housingCriteria,
   userId: v.id("users"),
+  contactPhoneRevision: v.optional(v.number()),
   status: v.union(
     v.literal("open"),
     v.literal("fulfilled"),
