@@ -455,6 +455,7 @@ export default defineSchema({
     appliedAt: v.number(),
   })
     .index("by_clerk_mode", ["clerkId", "mode"])
+    .index("by_email_mode", ["mode", "emailHash"])
     .index("by_deleted", ["deleted"]),
 
   users: defineTable({
@@ -766,6 +767,39 @@ export default defineSchema({
     .index("by_pair", ["userId", "otherId"])
     .index("by_user_pending", ["userId", "pending"]),
 
+  reviewInvitationLimits: defineTable({
+    userId: v.id("users"),
+    day: v.number(),
+    attempts: v.number(),
+  }).index("by_user_day", ["userId", "day"]),
+  reviewInvitations: defineTable({
+    senderId: v.id("users"),
+    recipientId: v.id("users"),
+    listingId: v.id("listings"),
+    landlordId: v.id("users"),
+    kind: reviewKind,
+    subjectId: v.id("users"),
+    recipientEmail: v.string(),
+    recipientEmailHash: v.string(),
+    mode: v.union(v.literal("test"), v.literal("prod")),
+    requestId: v.string(),
+    propertyReference: v.string(),
+    state: v.union(
+      v.literal("active"),
+      v.literal("revoked"),
+      v.literal("declined"),
+      v.literal("expired"),
+    ),
+    emailStatus: deliveryStatus,
+    lastAttemptAt: v.optional(v.number()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    reviewId: v.optional(v.id("reviews")),
+  })
+    .index("by_sender", ["senderId"])
+    .index("by_recipient", ["recipientId"])
+    .index("by_sender_request", ["senderId", "requestId"])
+    .index("by_pair_listing", ["senderId", "recipientId", "listingId"]),
   reviewNotices: defineTable({
     reviewId: v.optional(v.id("reviews")),
     inquiryId: v.optional(v.id("bookingInquiries")),
@@ -808,6 +842,7 @@ export default defineSchema({
     stayEnd: v.optional(v.number()),
     bookingId: v.optional(v.id("bookingInquiries")),
     stayEvidence: v.optional(v.string()),
+    invitationId: v.optional(v.id("reviewInvitations")),
     experienceConfirmed: v.optional(v.boolean()),
     status: v.optional(reviewStatus),
     revision: v.optional(v.number()),

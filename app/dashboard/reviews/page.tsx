@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { ReviewEmailRequests } from "@/components/review-email-requests";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewCard } from "@/components/review-card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ function ReviewHistory() {
     received = usePaginatedQuery(api.reviews.received, me ? {} : "skip", {
       initialNumItems: 10,
     });
+  const params = useSearchParams();
   const [edit, setEdit] = useState<(typeof mine.results)[number] | null>(null);
   return (
     <main className="mx-auto max-w-4xl p-6 space-y-8">
@@ -45,6 +47,11 @@ function ReviewHistory() {
       </div>
       <ReviewInvitation me={me ?? null} />
       <ReviewInbox enabled={!!me} />
+      <ReviewEmailRequests
+        enabled={!!me}
+        reviewerId={me?._id}
+        initialId={params.get("reviewRequest")}
+      />
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Written by me</h2>
         {mine.status === "LoadingFirstPage" ? (

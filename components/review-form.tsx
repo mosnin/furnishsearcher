@@ -26,6 +26,7 @@ type Props = {
   onClose: () => void;
   kind?: "property" | "traveler";
   subjectId?: Id<"users">;
+  invitationId?: Id<"reviewInvitations">;
   bookingId?: Id<"bookingInquiries">;
   stayStart?: number;
   stayEnd?: number;
@@ -35,7 +36,12 @@ export function ReviewForm(p: Props) {
   const context = useQuery(
     api.reviews.context,
     p.isOpen && isAuthenticated
-      ? { listingId: p.listingId, kind: p.kind, subjectId: p.subjectId }
+      ? {
+          listingId: p.listingId,
+          kind: p.kind,
+          subjectId: p.subjectId,
+          invitationId: p.invitationId,
+        }
       : "skip",
   );
   const create = useMutation(api.reviews.create);
@@ -71,6 +77,7 @@ export function ReviewForm(p: Props) {
       await create({
         listingId: p.listingId,
         expectedRevision: existing?.revision,
+        invitationId: existing?.invitationId ?? p.invitationId,
         landlordId: context?.landlordId ?? p.landlordId,
         reviewerId: p.reviewerId,
         kind: p.kind,

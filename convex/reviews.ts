@@ -1,3 +1,4 @@
+import { requireReviewInvitation } from "./lib/reviewInvitations";
 import { canResubmitReview } from "../lib/review-policy";
 import { findActiveUser } from "./lib/auth";
 import { profileView } from "./lib/profileImages";
@@ -41,6 +42,7 @@ const privateReview = v.object({
   phone: v.string(),
   stayStart: v.optional(v.number()),
   stayEnd: v.optional(v.number()),
+  invitationId: v.optional(v.id("reviewInvitations")),
   bookingId: v.optional(v.id("bookingInquiries")),
   stayEvidence: v.string(),
   moderationNote: v.string(),
@@ -80,6 +82,7 @@ async function privateProjection(
     phone: r.phone ?? "",
     stayStart: r.stayStart,
     stayEnd: r.stayEnd,
+    invitationId: r.invitationId,
     bookingId: r.bookingId,
     stayEvidence: r.stayEvidence ?? "",
     moderationNote:
@@ -132,6 +135,7 @@ export const create = mutation({
     stayStart: v.optional(v.number()),
     stayEnd: v.optional(v.number()),
     experienceConfirmed: v.optional(v.boolean()),
+    invitationId: v.optional(v.id("reviewInvitations")),
     bookingId: v.optional(v.id("bookingInquiries")),
     stayEvidence: v.optional(v.string()),
   },
@@ -146,10 +150,28 @@ export const create = mutation({
       subjectId = kind === "property" ? listing.landlordId : args.subjectId;
     if (!subjectId || subjectId === user._id)
       throw new Error("You cannot review yourself.");
+    const existing = await existingReview(
+      ctx,
+      user._id,
+      args.listingId,
+      kind,
+      subjectId,
+    );
+    const invitation =
+      !existing && args.invitationId
+        ? await requireReviewInvitation(
+            ctx,
+            args.invitationId,
+            user._id,
+            args.listingId,
+            kind,
+            subjectId,
+          )
+        : null;
     if (
       kind === "traveler" &&
       (user._id !== listing.landlordId ||
-        !(await canReadTraveler(ctx, subjectId)))
+        (!existing && !invitation && !(await canReadTraveler(ctx, subjectId))))
     )
       throw new Error(
         "Only this property's owner can review a traveler with an established inquiry or conversation.",
@@ -161,13 +183,7 @@ export const create = mutation({
       );
     const details = validateReview(args);
     await checkStay(ctx, { ...args, ...details, kind, subjectId });
-    const existing = await existingReview(
-      ctx,
-      user._id,
-      args.listingId,
-      kind,
-      subjectId,
-    );
+
     if (existing && !canResubmitReview(existing.status))
       throw new Error(
         "You have already submitted this review. Contact support for removal.",
@@ -192,6 +208,7 @@ export const create = mutation({
       ...details,
       kind,
       subjectId,
+      invitationId: existing?.invitationId ?? invitation?._id,
       bookingId: args.bookingId,
       rating: args.rating,
       status: "pending" as const,
@@ -233,6 +250,7 @@ export const create = mutation({
       ...fields,
       createdAt: Date.now(),
     });
+    if (invitation) await ctx.db.patch(invitation._id, { reviewId: id });
     await audit(
       ctx,
       (await ctx.db.get(id))!,
@@ -248,6 +266,7 @@ export const context = query({
     listingId: v.id("listings"),
     kind: v.optional(reviewKind),
     subjectId: v.optional(v.id("users")),
+    invitationId: v.optional(v.id("reviewInvitations")),
   },
   returns: v.object({
     existing: v.union(privateReview, v.null()),
@@ -268,8 +287,20 @@ export const context = query({
       kind,
       subjectId,
     );
+    const invitation =
+      !existing && args.invitationId
+        ? await requireReviewInvitation(
+            ctx,
+            args.invitationId,
+            user._id,
+            listing._id,
+            kind,
+            subjectId,
+          )
+        : null;
     if (
       !existing &&
+      !invitation &&
       user._id !== listing.landlordId &&
       !(await publiclyVisible(ctx, listing))
     ) {
@@ -537,7 +568,11 @@ export const flag = mutation({
       reason = args.reason.trim();
     if (!r || (r.status !== "approved" && r.reviewerId !== user._id))
       throw new Error("Review not found.");
-    if (r.kind === "traveler" && !(await canReadTraveler(ctx, r.subjectId!)))
+    if (
+      r.kind === "traveler" &&
+      r.reviewerId !== user._id &&
+      !(await canReadTraveler(ctx, r.subjectId!))
+    )
       throw new Error("Not authorized.");
     if (reason.length < 10 || reason.length > 1000)
       throw new Error("Explain the concern in 10–1000 characters.");
