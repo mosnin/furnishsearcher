@@ -83,6 +83,7 @@ import type * as messageSearch from "../messageSearch.js";
 import type * as messageTemplates from "../messageTemplates.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
+import type * as ownerTasks from "../ownerTasks.js";
 import type * as payments from "../payments.js";
 import type * as phoneContacts from "../phoneContacts.js";
 import type * as photoRetention from "../photoRetention.js";
@@ -212,6 +213,7 @@ declare const fullApi: ApiFromModules<{
   messageTemplates: typeof messageTemplates;
   messages: typeof messages;
   migrations: typeof migrations;
+  ownerTasks: typeof ownerTasks;
   payments: typeof payments;
   phoneContacts: typeof phoneContacts;
   photoRetention: typeof photoRetention;

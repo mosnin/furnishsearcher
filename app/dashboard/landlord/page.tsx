@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatPrice, formatDate } from "@/lib/utils";
+import OwnerNextSteps from "@/components/owner-next-steps";
 
 type LandlordListing = {
   _id: string;
@@ -170,6 +171,8 @@ export default function LandlordDashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {convexUser?.role === "landlord" && <OwnerNextSteps />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

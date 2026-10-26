@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-26T02:29:16.872Z",
+  "environment": "http://127.0.0.1:3210",
+  "authClass": "privileged synthetic local identity, not actual Clerk authentication",
+  "accountTasks": 2,
+  "listingTasks": 22,
+  "pages": 3,
+  "allNativePagesTraversed": true,
+  "pageBound": 10,
+  "anonymousAccessDenied": true,
+  "fixtureWrites": 0,
+  "externalProviderRequests": 0
+}
