@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-26T05:34:33.460Z",
+  "environment": "http://127.0.0.1:3210",
+  "privilegedSyntheticLocalIdentities": true,
+  "actualClerkJwt": false,
+  "syntheticLocalPaidIdentityAndPublicationPrerequisites": true,
+  "cloudGrants": false,
+  "concurrentInquiryReferencesReturnSameId": true,
+  "onePendingInquiry": true,
+  "concurrentContactReferencesReturnSameMessageId": true,
+  "participantBookingReadAcceptsRetryReference": true,
+  "confirmedChangedHiddenRetryRecoversOriginalId": true,
+  "agreedDatesAndCalendarUnchangedByRetry": true,
+  "bookingEventIdsUnchangedByRetry": true,
+  "payloadMismatchAndAnonymousDenied": true,
+  "privatePreviewFlagsAndPublicDenial": true,
+  "cancelledInquiryReplayDoesNotReopen": true,
+  "fixtureListingRemoved": true,
+  "retainedSyntheticCancelledInquiryId": "j977z8mdk6q5as0zbyc39twa398h1j20",
+  "realRentalLeasePaymentOrExternalEmail": false
+}

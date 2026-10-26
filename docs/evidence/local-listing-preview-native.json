@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-26T05:36:25.740Z",
+  "environment": "http://127.0.0.1:3210",
+  "authClass": "privileged synthetic local owner; not actual Clerk authentication",
+  "readOnly": true,
+  "managedRentals": 26,
+  "privatePreviews": 22,
+  "publicRentals": 4,
+  "managerFlagRequiresNativeOwner": true,
+  "publicFlagMatchesCurrentReadiness": true,
+  "privatePreviewsDeniedToAnonymous": true,
+  "publicTravelerViewRedactsAddress": true,
+  "syntheticLocalPrerequisites": true,
+  "syntheticCloudGrants": false,
+  "providerRequests": 0
+}

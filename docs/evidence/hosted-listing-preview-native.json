@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-26T05:36:27.698Z",
+  "environment": "https://cheerful-ferret-182.convex.cloud",
+  "authClass": "actual reserved owner Clerk JWT",
+  "readOnly": true,
+  "managedRentals": 4,
+  "privatePreviews": 4,
+  "publicRentals": 0,
+  "managerFlagRequiresNativeOwner": true,
+  "publicFlagMatchesCurrentReadiness": true,
+  "privatePreviewsDeniedToAnonymous": true,
+  "publicTravelerViewRedactsAddress": null,
+  "syntheticLocalPrerequisites": false,
+  "syntheticCloudGrants": false,
+  "providerRequests": 0
+}

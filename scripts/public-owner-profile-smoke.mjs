@@ -142,7 +142,7 @@ writeFileSync(
       managerFlagRequiresNativeOwner: true,
       publicFlagMatchesCurrentReadiness: true,
       privatePreviewsDeniedToAnonymous: true,
-      publicTravelerViewRedactsAddress: true,
+      publicTravelerViewRedactsAddress: guest.rows.length ? true : null,
       syntheticLocalPrerequisites: mode === "local",
       syntheticCloudGrants: false,
       providerRequests: 0,
