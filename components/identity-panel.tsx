@@ -37,7 +37,10 @@ export function IdentityPanel({ enabled = true }: { enabled?: boolean }) {
     }
   }
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+    <section
+      id="owner-verification"
+      className="scroll-mt-20 rounded-xl border border-slate-200 bg-white p-4 space-y-3"
+    >
       <h2 className="font-semibold text-slate-900">
         Owner identity verification
       </h2>

@@ -99,6 +99,11 @@ it("offers first-listing and optional introduction tasks, which resolve from sav
       (t) => t.id,
     ),
   ).toEqual(["identity", "billing", "first-listing", "introduction"]);
+  expect(
+    (await owner.query(api.ownerTasks.account, { refresh: 0 })).tasks.find(
+      (t) => t.id === "identity",
+    )?.href,
+  ).toBe("/dashboard/landlord/listings#owner-verification");
   await owner.mutation(api.users.updateProfile, {
     userId: ids.owner,
     bio: "My synthetic introduction",

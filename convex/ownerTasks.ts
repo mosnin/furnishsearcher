@@ -59,8 +59,8 @@ export const account = query({
           ? "Review owner verification"
           : "Verify your identity",
         detail:
-          "Owner identity verification is required before a listing can become public. Check its provider status and availability in your profile.",
-        href: "/dashboard/profile",
+          "Owner identity verification is required before a listing can become public. Check its provider status and availability in listing management.",
+        href: "/dashboard/landlord/listings#owner-verification",
         priority: "attention",
         issues: [],
       });
