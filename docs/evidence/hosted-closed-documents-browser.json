@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-25",
+  "sourceSha": "f8c15ba84eaedc9787cb0205035ef6ae0d52f0e0",
+  "deployment": "dpl_9P7PkjZUNobjxhiPe2NEzx1UsrkT",
+  "context": "Existing reserved owner in retained withdrawn synthetic discussion; no new fixture, real-person communication or provider request.",
+  "ownerBrowserClosedNotice": true,
+  "newUploadShareControlsAbsent": true,
+  "nativeMobileFileInputs": 0,
+  "historyExpandedTwoVersions": true,
+  "existingVersionOneReceiptVisible": true,
+  "actualBrowserVersionOneDownloadMatchesOriginal": true,
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "screenshots": [
+    "../document-closed-history-desktop.jpg",
+    "../document-closed-mobile.jpg"
+  ],
+  "limits": "No active live provider session in this context. Provider race checks use synthetic local mocks; closed-discussion no-op sharing and existing signer-link flows are not browser acceptance."
+}
