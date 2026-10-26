@@ -264,3 +264,192 @@ it("distinguishes public traveler views from authorized private detail previews"
       canManage: true,
     });
 });
+
+const privateListingFields = [
+  "photoAssets",
+  "photoDrafts",
+  "revision",
+  "approvedRevision",
+  "approvalStatus",
+  "publicationRequested",
+  "moderationHold",
+  "featuredPaymentId",
+  "featuredUntil",
+  "featuredMode",
+  "searchCity",
+  "searchState",
+  "propertyLocationVersion",
+  "locationConfirmedAt",
+  "locationGeneration",
+  "firstPublishedAt",
+  "calendarSyncThrough",
+  "unitNameKey",
+  "independentSpaceConfirmedAt",
+  "_creationTime",
+];
+it("public detail preserves complete ordered gallery/captions, fees, rules and maps without editing or publication fields", async () => {
+  const { t, owner, traveler, ids } = await fixture();
+  const details = {
+    rooms: [{ name: "Bedroom", beds: "Queen" }],
+    bathroomDetails: [{ name: "Bath", description: "Shower" }],
+    fees: [
+      {
+        name: "Cleaning",
+        amount: 45.25,
+        refundable: false,
+        frequency: "once" as const,
+      },
+    ],
+    smoking: "prohibited" as const,
+    rules: "Quiet evenings",
+    facilities: [{ name: "Synthetic hospital", miles: 2 }],
+  };
+  await t.run(async (ctx) => {
+    const first = await ctx.storage.store(
+        new Blob(["synthetic image one"], { type: "image/png" }),
+      ),
+      second = await ctx.storage.store(
+        new Blob(["synthetic image two"], { type: "image/png" }),
+      );
+    await ctx.db.patch(ids.listings[0], {
+      photoAssets: [
+        { storageId: second, caption: "Cover second" },
+        { storageId: first, caption: "First interior" },
+        {
+          legacyUrl: "https://images.example.test/third",
+          caption: "Third caption",
+        },
+      ],
+      details,
+      mapLatitude: 30.25,
+      mapLongitude: -97.75,
+      locationConfirmedAt: now,
+      locationGeneration: 7,
+      firstPublishedAt: now,
+      calendarSyncThrough: now + 86400000,
+      searchCity: "PRIVATE SEARCH KEY",
+      searchState: "TX",
+      unitNameKey: "private normalized unit",
+    });
+  });
+  const manager = await owner.query(api.listings.getById, {
+    id: ids.listings[0],
+  });
+  expect(manager?.photoDrafts).toHaveLength(3);
+  expect(manager?.photoAssets).toHaveLength(3);
+  expect(manager?.address).toBe("PRIVATE ADDRESS");
+  expect(manager?.zip).toBe("PRIVATE ZIP");
+  expect(manager?.revision).toBeDefined();
+  for (const client of [t, traveler]) {
+    const publicView = await client.query(api.listings.getById, {
+      id: ids.listings[0],
+    });
+    expect(publicView?.photos).toEqual(manager?.photos);
+    expect(publicView?.photoCaptions).toEqual([
+      "Cover second",
+      "First interior",
+      "Third caption",
+    ]);
+    expect(publicView?.details).toEqual(details);
+    expect(publicView).toMatchObject({
+      isPublic: true,
+      canManage: false,
+      address: "",
+      zip: "",
+      mapLatitude: 30.25,
+      mapLongitude: -97.75,
+    });
+    for (const key of privateListingFields)
+      expect(Object.hasOwn(publicView!, key), key).toBe(false);
+  }
+});
+it("legacy search and featured cards do not expose owner metadata or precise address", async () => {
+  const { t, ids } = await fixture();
+  await t.run((ctx) =>
+    ctx.db.patch(ids.listings[0], {
+      searchCity: "PRIVATE SEARCH KEY",
+      locationGeneration: 42,
+    }),
+  );
+  const results = [
+    ...(await t.query(api.listings.search, {})),
+    ...(await t.query(api.listings.getFeatured, {})),
+  ];
+  expect(results).toHaveLength(2);
+  for (const row of results) {
+    expect(row.address).toBe("");
+    for (const key of privateListingFields)
+      expect(Object.hasOwn(row, key), key).toBe(false);
+  }
+  expect((await t.query(api.listings.getFeatured, {}))[0].photos).toHaveLength(
+    1,
+  );
+});
+it("the bounded showcase finds eligible recent cards behind held candidates and only verified paid boosts receive sponsorship", async () => {
+  const { t, ids } = await fixture(40);
+  await t.run(async (ctx) => {
+    for (const id of ids.listings.slice(6))
+      await ctx.db.patch(id, { moderationHold: true });
+    const paid = await ctx.db.insert("payments", {
+      userId: ids.owner,
+      creemCheckoutId: "synthetic-showcase",
+      productId: "synthetic-boost",
+      purpose: "feature_listing",
+      listingId: ids.listings[0],
+      amountCents: 1200,
+      currency: "USD",
+      status: "completed",
+      trustedCheckout: true,
+      mode: "test",
+      createdAt: now,
+    });
+    await ctx.db.patch(ids.listings[0], {
+      featured: true,
+      featuredMode: "test",
+      featuredUntil: now + 86400000,
+      featuredPaymentId: paid,
+    });
+    await ctx.db.patch(ids.listings[1], {
+      featured: true,
+      featuredMode: "test",
+      featuredUntil: now + 86400000,
+      featuredPaymentId: paid,
+    });
+  });
+  const cards = await t.query(api.listings.getFeatured, {});
+  expect(cards).toHaveLength(6);
+  expect(cards[0]).toMatchObject({ _id: ids.listings[0], featured: true });
+  expect(cards.filter((c) => c.featured)).toHaveLength(1);
+  expect(cards.find((c) => c._id === ids.listings[1])?.featured).toBe(false);
+  expect(new Set(cards.map((c) => c._id)).size).toBe(6);
+  await t.run((ctx) => ctx.db.patch(ids.owner, { identityHold: true }));
+  expect(await t.query(api.listings.getFeatured, {})).toEqual([]);
+  expect(
+    await t.query(api.listings.getById, { id: ids.listings[0] }),
+  ).toBeNull();
+});
+it("a bounded showcase is not a substitute for complete paged marketplace search", async () => {
+  const { t, ids } = await fixture(67);
+  await t.run(async (ctx) => {
+    for (const id of ids.listings.slice(6))
+      await ctx.db.patch(id, { moderationHold: true });
+  });
+  expect(await t.query(api.listings.getFeatured, {})).toEqual([]);
+  let cursor: string | null = null,
+    done = false;
+  const matches = [];
+  for (let n = 0; !done && n < 10; n++) {
+    const result: FunctionReturnType<typeof api.search.listings> =
+      await t.query(api.search.listings, {
+        paginationOpts: { cursor, numItems: 10 },
+        sort: "newest",
+      });
+    matches.push(...result.page);
+    cursor = result.continueCursor;
+    done = result.isDone;
+  }
+  expect(done).toBe(true);
+  expect(new Set(matches.map((row) => row._id))).toEqual(
+    new Set(ids.listings.slice(0, 6)),
+  );
+});

@@ -19,6 +19,7 @@ type ConvUser = {
 };
 
 type ConvListing = {
+  featured?: boolean;
   _id: string;
   landlordId: string;
   title: string;
@@ -143,6 +144,7 @@ function ListingCard({
     bathrooms: number;
     photos: string[];
     landlordId: string;
+    featured?: boolean;
   };
   userId: string;
 }) {
@@ -160,6 +162,14 @@ function ListingCard({
           <div className="w-full h-full flex items-center justify-center">
             <Home className="h-10 w-10 text-slate-400" />
           </div>
+        )}
+        {listing.featured && (
+          <Badge
+            variant="secondary"
+            className="absolute top-3 left-3 bg-white/90"
+          >
+            Sponsored
+          </Badge>
         )}
       </div>
       <CardContent className="flex-1 flex flex-col p-4">
@@ -613,7 +623,7 @@ export default function TenantDashboardPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">
-            Recommended for You
+            Rental Highlights
           </h2>
           <Button asChild variant="link" size="sm" className="text-[#0f2044]">
             <Link href="/search">
@@ -640,10 +650,10 @@ export default function TenantDashboardPage() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="h-12 w-12 text-slate-300 mb-4" />
               <h3 className="text-base font-medium text-slate-900 mb-1">
-                No listings available yet
+                No rental highlights to show
               </h3>
               <p className="text-sm text-slate-500">
-                Check back soon — new listings are added daily.
+                Browse search for the full current selection.
               </p>
             </CardContent>
           </Card>

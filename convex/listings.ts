@@ -1,4 +1,9 @@
-import { publicListingCard } from "./lib/publicListingCard";
+import { verifiedFeature } from "./lib/billing";
+import { publicListingDetail } from "./lib/publicListingDetail";
+import {
+  publicListingCard,
+  publicListingCardValidator,
+} from "./lib/publicListingCard";
 import { syncRecommendation } from "./lib/recommendations";
 import { listingAmenities } from "../lib/listing-features";
 import { findActiveUser } from "./lib/auth";
@@ -472,9 +477,13 @@ export const getById = query({
     if (!canManage && !isPublic) return null;
     const landlord = await ctx.db.get(listing.landlordId),
       view = await listingPhotos(ctx, listing);
+    const detail: ReturnType<typeof publicListingDetail> &
+      Partial<typeof view> = {
+      ...publicListingDetail(view),
+      ...(canManage ? view : {}),
+    };
     return {
-      ...view,
-      address: canManage ? view.address : "",
+      ...detail,
       isPublic,
       canManage,
       landlord: landlord
@@ -599,10 +608,9 @@ export const search = query({
     });
 
     return Promise.all(
-      listings.map(async (listing) => ({
-        ...(await listingPhotos(ctx, listing)),
-        address: "",
-      })),
+      listings.map(async (listing) =>
+        publicListingDetail(await listingPhotos(ctx, listing)),
+      ),
     );
   },
 });
@@ -666,6 +674,13 @@ export const getByLandlord = query({
 
 export const getFeatured = query({
   args: {},
+  returns: v.array(
+    v.object({
+      ...publicListingCardValidator.fields,
+      address: v.string(),
+      landlordId: v.id("users"),
+    }),
+  ),
   handler: async (ctx) => {
     let mode: "test" | "prod" | null;
     try {
@@ -673,55 +688,44 @@ export const getFeatured = query({
     } catch {
       mode = null;
     }
+    // This six-card showcase samples bounded indexed candidate pools. The full
+    // marketplace remains cursor-paged search; this is never an inventory count.
     const promoted = mode
       ? await ctx.db
           .query("listings")
-          .withIndex("by_featured_mode", (q) =>
+          .withIndex("by_featured_public", (q) =>
             q
               .eq("featuredMode", mode!)
               .eq("featured", true)
+              .eq("status", "active")
               .gt("featuredUntil", Date.now()),
           )
-          .filter((q) =>
-            q.and(
-              q.eq(q.field("status"), "active"),
-              q.neq(q.field("moderationHold"), true),
-            ),
-          )
           .order("desc")
-          .take(12)
+          .take(60)
       : [];
     const recent = await ctx.db
       .query("listings")
       .withIndex("by_search_newest", (q) => q.eq("status", "active"))
-      .filter((q) => q.neq(q.field("moderationHold"), true))
       .order("desc")
-      .take(12);
-    const candidates = [
-      ...new Map(
-        [...promoted, ...recent].map((listing) => [listing._id, listing]),
-      ).values(),
-    ];
-    const visible = await Promise.all(
-      candidates.map(async (listing) =>
-        (await publiclyVisible(ctx, listing)) ? listing : null,
-      ),
-    );
-    const hydrated = await Promise.all(
-      visible
-        .filter(
-          (listing): listing is NonNullable<typeof listing> => listing !== null,
-        )
-        .map(async (listing) => ({
-          ...(await listingPhotos(ctx, listing)),
-          address: "",
-        })),
-    );
-    const paid = hydrated.filter((listing) => listing.featured),
-      others = hydrated.filter((listing) => !listing.featured);
-    for (let i = paid.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [paid[i], paid[j]] = [paid[j], paid[i]];
+      .take(60);
+    const paid = [],
+      others = [],
+      seen = new Set<string>();
+    for (const listing of [...promoted, ...recent]) {
+      if (seen.has(listing._id)) continue;
+      seen.add(listing._id);
+      if (others.length === 6 && !(await verifiedFeature(ctx, listing)))
+        continue;
+      if (!(await publiclyVisible(ctx, listing))) continue;
+      const card = {
+        ...(await publicListingCard(ctx, listing)),
+        address: "",
+        landlordId: listing.landlordId,
+      };
+      if (card.featured) {
+        if (paid.length < 6) paid.push(card);
+      } else if (others.length < 6) others.push(card);
+      if (paid.length === 6) break;
     }
     return [...paid, ...others].slice(0, 6);
   },

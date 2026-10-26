@@ -63,6 +63,7 @@ import type * as lib_photos from "../lib/photos.js";
 import type * as lib_profileImages from "../lib/profileImages.js";
 import type * as lib_providerContacts from "../lib/providerContacts.js";
 import type * as lib_publicListingCard from "../lib/publicListingCard.js";
+import type * as lib_publicListingDetail from "../lib/publicListingDetail.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_recommendations from "../lib/recommendations.js";
 import type * as lib_rentalDocs from "../lib/rentalDocs.js";
@@ -200,6 +201,7 @@ declare const fullApi: ApiFromModules<{
   "lib/profileImages": typeof lib_profileImages;
   "lib/providerContacts": typeof lib_providerContacts;
   "lib/publicListingCard": typeof lib_publicListingCard;
+  "lib/publicListingDetail": typeof lib_publicListingDetail;
   "lib/publication": typeof lib_publication;
   "lib/recommendations": typeof lib_recommendations;
   "lib/rentalDocs": typeof lib_rentalDocs;

@@ -657,6 +657,12 @@ export default defineSchema({
     .index("by_status_city", ["status", "city"])
     .index("by_featured", ["featured", "featuredUntil"])
     .index("by_featured_mode", ["featuredMode", "featured", "featuredUntil"])
+    .index("by_featured_public", [
+      "featuredMode",
+      "featured",
+      "status",
+      "featuredUntil",
+    ])
     .index("by_publicId", ["publicId"])
     .index("by_search_newest", ["status", "createdAt"])
     .index("by_search_price", ["status", "price"])

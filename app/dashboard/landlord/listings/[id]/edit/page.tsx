@@ -155,7 +155,7 @@ export default function EditListingPage() {
 
   // Pre-fill form when listing data arrives
   useEffect(() => {
-    if (listing && !form) {
+    if (listing?.canManage && !form) {
       const availableDate = new Date(listing.availableFrom);
       const yyyy = availableDate.getUTCFullYear();
       const mm = String(availableDate.getUTCMonth() + 1).padStart(2, "0");
@@ -181,7 +181,7 @@ export default function EditListingPage() {
         petFriendly: listing.petFriendly,
         utilitiesIncluded: listing.utilitiesIncluded,
         parkingIncluded: listing.parkingIncluded,
-        photos: listing.photoDrafts,
+        photos: listing.photoDrafts ?? [],
       });
     }
   }, [listing, form]);
@@ -299,6 +299,22 @@ export default function EditListingPage() {
     }
   }
 
+  if (listing === null || (listing !== undefined && !listing.canManage)) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto text-center py-16">
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          Listing unavailable for editing
+        </h2>
+        <p className="text-slate-500 mb-4">
+          This listing is missing or you do not manage it.
+        </p>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/landlord/listings">Back to Listings</Link>
+        </Button>
+      </div>
+    );
+  }
+
   // Loading state
   if (listing === undefined || !form) {
     return (
@@ -321,22 +337,6 @@ export default function EditListingPage() {
             ))}
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (listing === null) {
-    return (
-      <div className="p-6 max-w-3xl mx-auto text-center py-16">
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">
-          Listing not found
-        </h2>
-        <p className="text-slate-500 mb-4">
-          This listing may have been deleted.
-        </p>
-        <Button asChild variant="outline">
-          <Link href="/dashboard/landlord/listings">Back to Listings</Link>
-        </Button>
       </div>
     );
   }

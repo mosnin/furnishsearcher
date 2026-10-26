@@ -35,13 +35,13 @@ export default function FeaturedListings() {
         <div className="flex items-end justify-between mb-10">
           <div>
             <span className="inline-block text-xs font-bold text-[#0f2044] uppercase tracking-widest mb-3 bg-blue-50 px-4 py-1.5 rounded-full">
-              Just Listed
+              Explore
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-              Featured Rentals
+              Rental Highlights
             </h2>
             <p className="text-gray-500 mt-2 text-base">
-              Hand-picked furnished homes available now
+              Browse public furnished rentals. Sponsored placements are labeled.
             </p>
           </div>
           <Link
@@ -63,11 +63,17 @@ export default function FeaturedListings() {
         ) : listings.length === 0 ? (
           <div className="text-center py-20 rounded-2xl bg-gray-50 border border-gray-100">
             <p className="text-gray-400 text-lg font-medium mb-2">
-              No featured listings yet
+              No rental highlights to show
             </p>
             <p className="text-gray-400 text-sm mb-6">
-              Be the first to list your furnished property.
+              Browse all public rentals or add your furnished property.
             </p>
+            <Link
+              href="/search"
+              className="block mb-4 text-[#0f2044] underline"
+            >
+              Browse rentals
+            </Link>
             <Link
               href="/list-your-property"
               className="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors"
@@ -82,6 +88,7 @@ export default function FeaturedListings() {
                 key={listing._id}
                 listing={{
                   _id: listing._id,
+                  featured: listing.featured,
                   title: listing.title,
                   city: listing.city,
                   state: listing.state,
