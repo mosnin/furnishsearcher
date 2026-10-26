@@ -265,6 +265,42 @@ it("distinguishes public traveler views from authorized private detail previews"
     });
 });
 
+const publicDetailKeys = new Set([
+  "_id",
+  "landlordId",
+  "publicId",
+  "title",
+  "description",
+  "city",
+  "state",
+  "address",
+  "zip",
+  "price",
+  "bedrooms",
+  "bathrooms",
+  "maxOccupancy",
+  "details",
+  "propertyType",
+  "amenities",
+  "photos",
+  "photoCaptions",
+  "petFriendly",
+  "parkingIncluded",
+  "utilitiesIncluded",
+  "availableFrom",
+  "minStay",
+  "status",
+  "propertyGroupId",
+  "unitName",
+  "mapLatitude",
+  "mapLongitude",
+  "featured",
+  "views",
+  "createdAt",
+  "isPublic",
+  "canManage",
+  "landlord",
+]);
 const privateListingFields = [
   "photoAssets",
   "photoDrafts",
@@ -361,6 +397,8 @@ it("public detail preserves complete ordered gallery/captions, fees, rules and m
     });
     for (const key of privateListingFields)
       expect(Object.hasOwn(publicView!, key), key).toBe(false);
+    for (const key of Object.keys(publicView!))
+      expect(publicDetailKeys.has(key), key).toBe(true);
   }
 });
 it("legacy search and featured cards do not expose owner metadata or precise address", async () => {

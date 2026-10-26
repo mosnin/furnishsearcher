@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-26T06:01:39.992569+00:00",
+  "environment": "cheerful-ferret-182",
+  "sourceSha": "a3d44aa5b4b4f973aa9cdcde2f04520d4cc5664a",
+  "readyDeployment": "dpl_GEmwuUwk1y7rsrBXKzzbBvvbU5K1",
+  "actualReservedOwnerBrowser": true,
+  "ownerEditorSavedTitleRetained": true,
+  "ownerPrivateAddressAndZipRetained": true,
+  "allFiveEditorStepsReachable": true,
+  "photoEditorShowsActualZeroPhotosForStandingFixture": true,
+  "editorCanceledWithoutSaving": true,
+  "deletedExactQaRentalShowsUnavailableInsteadOfSkeleton": true,
+  "homepageRentalHighlightsScopeCopy": true,
+  "homepageNoHumanCurationImmediateAvailabilityOrWholeInventoryEmptyClaim": true,
+  "highlightFullSearchFallbackOpensSearch": true,
+  "mobile": {
+    "width": 390,
+    "documentScrollWidth": 390,
+    "editorMainWidth": 390,
+    "editorMainScrollWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "fixtureWrites": 0,
+  "providerRequests": 0,
+  "syntheticCloudGrants": false,
+  "positiveHostedPublicGalleryOrSponsoredCardNotClaimed": true,
+  "limits": [
+    "Hosted development has no eligible public rentals, so full public gallery and Sponsored badge/Message handoff rendering are not browser-proven here.",
+    "Local native reads compare four public details/eight photo URLs and highlight handoff IDs; isolated tests additionally verify paid versus mismatched sponsorship and stored/legacy gallery ordering.",
+    "The hosted owner editor has zero photos; reaching its photo step does not prove a positive owner-photo rendering.",
+    "No local-browser denial was retried or bypassed.",
+    "Full public/provider/production acceptance and subsequent editable Wander/Figma remain open."
+  ]
+}
