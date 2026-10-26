@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-10-26T00:41:00Z",
+  "sourceCommit": "cca61777aaec94e99650d9af4f6a2bc465d922ec",
+  "environment": "hosted development preview, cheerful-ferret-182",
+  "account": "existing reserved synthetic Clerk landlord",
+  "setup": "New native private unpublished rental, no paid or identity exception; actual browser file chooser uploads",
+  "crop": {
+    "widthPercent": 50,
+    "heightPercent": 50,
+    "leftPercent": 25,
+    "topPercent": 25,
+    "mobileApply": true,
+    "saved": true,
+    "nativeByteReceipt": "hosted-photo-editor-native.json"
+  },
+  "replacement": {
+    "browserUpload": true,
+    "coverChangedBlueToAmber": true,
+    "captionRetained": true
+  },
+  "removal": {
+    "secondGalleryEntryRemoved": true,
+    "saved": true,
+    "reopenedEditorCount": 1,
+    "unusedFilesRetainNativeRecovery": true
+  },
+  "mobile": {
+    "viewportWidth": 390,
+    "documentWidth": 390,
+    "dialogWidth": 390,
+    "dialogClientHeight": 758,
+    "dialogScrollHeight": 802,
+    "applyControlReachable": true
+  },
+  "transientNotice": "Save toast overlapped the next button after rapid reopen; keyboard Return advanced and cleared the notice.",
+  "defaultViewportRestored": true,
+  "ownPrivateFixtureDeleted": true,
+  "screenshots": [
+    "photo-editor-crop-desktop.jpg",
+    "photo-editor-crop-mobile.jpg",
+    "photo-editor-reopened.jpg"
+  ],
+  "limitations": [
+    "Solid-color fixtures verify crop dimensions and selected UI offsets, not visual content of an off-center crop.",
+    "Private owner preview only; no public publication, paid provider or whole-product acceptance.",
+    "Natural seven-day image collection was not accelerated or verified."
+  ]
+}

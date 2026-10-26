@@ -1,0 +1,26 @@
+{
+  "development": "cheerful-ferret-182",
+  "actualClerkJwt": true,
+  "privateFixtureOnly": true,
+  "noPaidOrIdentityExceptions": true,
+  "crop": {
+    "checkedAt": "2026-10-26T00:38:10.954Z",
+    "count": 2,
+    "actualByteDimensions": [600, 400],
+    "format": "jpeg",
+    "expectedSyntheticColor": true,
+    "captionPreserved": true,
+    "anonymousDenied": true
+  },
+  "replacement": {
+    "checkedAt": "2026-10-26T00:39:04.982Z",
+    "count": 1,
+    "actualByteDimensions": [1200, 800],
+    "format": "png",
+    "expectedSyntheticColor": true,
+    "captionPreserved": true,
+    "anonymousDenied": true
+  },
+  "ownPrivateFixtureDeleted": true,
+  "unusedImagesRetainNormalRecoveryPeriod": true
+}
