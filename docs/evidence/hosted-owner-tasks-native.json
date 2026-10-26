@@ -11,5 +11,7 @@
   "fixtureRemainsPrivate": true,
   "syntheticCloudPaidOrIdGrants": false,
   "realProviderRequests": 0,
-  "cleaned": false
+  "cleaned": true,
+  "ownListingRemovedThroughGuardedNativeApi": true,
+  "photosUseNormalSevenDayRecovery": true
 }
