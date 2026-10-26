@@ -91,6 +91,7 @@ import type * as phoneContacts from "../phoneContacts.js";
 import type * as photoRetention from "../photoRetention.js";
 import type * as profileImageFiles from "../profileImageFiles.js";
 import type * as profileImages from "../profileImages.js";
+import type * as publicOwnerListings from "../publicOwnerListings.js";
 import type * as publication from "../publication.js";
 import type * as recommendations from "../recommendations.js";
 import type * as referrals from "../referrals.js";
@@ -226,6 +227,7 @@ declare const fullApi: ApiFromModules<{
   photoRetention: typeof photoRetention;
   profileImageFiles: typeof profileImageFiles;
   profileImages: typeof profileImages;
+  publicOwnerListings: typeof publicOwnerListings;
   publication: typeof publication;
   recommendations: typeof recommendations;
   referrals: typeof referrals;

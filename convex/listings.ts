@@ -624,8 +624,11 @@ export const getByLandlord = query({
             .withIndex("by_landlord_status", (q) =>
               q.eq("landlordId", args.landlordId).eq("status", "active"),
             )
-            .filter((q) => q.neq(q.field("moderationHold"), true))
-    ).collect();
+    ).take(101);
+    if (listings.length > 100)
+      throw new Error(
+        "Large portfolios must use the paged owner directory or public owner listings.",
+      );
     listings.sort((a, b) => b.createdAt - a.createdAt);
     const visible = canManage
       ? listings

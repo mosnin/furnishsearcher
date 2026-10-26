@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { ListingCard, type ListingCardData } from "@/components/listing-card";
+import { ListingCard } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
 import { PublicReviews } from "@/components/public-reviews";
 import { formatDate } from "@/lib/utils";
@@ -43,9 +44,14 @@ export default function LandlordProfilePage({ params }: PageProps) {
     userId: id as Id<"users">,
   });
 
-  const listings = useQuery(
-    api.listings.getByLandlord,
+  const {
+    results: listings,
+    status: listingStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.publicOwnerListings.list,
     landlord ? { landlordId: landlord._id } : "skip",
+    { initialNumItems: 10 },
   );
 
   const ratingStats = useQuery(
@@ -81,8 +87,10 @@ export default function LandlordProfilePage({ params }: PageProps) {
   const displayName = landlord.displayName ?? landlord.name;
   const avatarSrc = landlord.profilePhoto ?? landlord.avatar;
   const initials = getInitials(displayName);
-  const activeListings = (listings ?? []).filter((l) => l.status === "active");
-  const totalListings = (listings ?? []).length;
+  const listingLoading = listingStatus === "LoadingFirstPage";
+  const hasMoreListings =
+    listingStatus === "CanLoadMore" || listingStatus === "LoadingMore";
+  const totalListings = listings.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,8 +186,8 @@ export default function LandlordProfilePage({ params }: PageProps) {
         <div className="grid grid-cols-3 gap-4">
           <StatCard
             icon={<Building2 className="h-5 w-5 text-[#0f2044]" />}
-            label="Total Listings"
-            value={String(totalListings)}
+            label="Public listings loaded"
+            value={listingLoading ? "—" : String(totalListings)}
           />
           <StatCard
             icon={<Star className="h-5 w-5 text-amber-400 fill-amber-400" />}
@@ -213,7 +221,7 @@ export default function LandlordProfilePage({ params }: PageProps) {
               Listings
               {totalListings > 0 && (
                 <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({activeListings.length})
+                  ({listings.length} loaded)
                 </span>
               )}
             </TabsTrigger>
@@ -229,28 +237,46 @@ export default function LandlordProfilePage({ params }: PageProps) {
 
           {/* Listings tab */}
           <TabsContent value="listings">
-            {listings === undefined ? (
+            <p role="status" className="text-sm text-muted-foreground mb-4">
+              {listingLoading
+                ? "Loading public rentals…"
+                : `${listings.length} public rental${listings.length === 1 ? "" : "s"} loaded. ${hasMoreListings ? "More portfolio records remain to check." : "All public portfolio records checked."}`}
+            </p>
+            {listingLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-72 rounded-xl" />
                 ))}
               </div>
-            ) : activeListings.length === 0 ? (
+            ) : listings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
                 <Building2 className="h-10 w-10 text-muted-foreground/40" />
                 <p className="text-muted-foreground text-sm">
-                  No active listings at the moment.
+                  {hasMoreListings
+                    ? "No public listings in the records checked so far. Continue checking this portfolio."
+                    : "No public listings at the moment."}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {activeListings.map((listing) => (
-                  <ListingCard
-                    key={listing._id}
-                    listing={listing as ListingCardData}
-                  />
+                {listings.map((listing) => (
+                  <ListingCard key={listing._id} listing={listing} />
                 ))}
               </div>
+            )}
+            {hasMoreListings && (
+              <Button
+                className="mt-5"
+                variant="outline"
+                disabled={listingStatus === "LoadingMore"}
+                onClick={() => loadMore(10)}
+              >
+                {listingStatus === "LoadingMore"
+                  ? "Checking…"
+                  : listings.length
+                    ? "Load more public rentals"
+                    : "Check more portfolio records"}
+              </Button>
             )}
           </TabsContent>
 
