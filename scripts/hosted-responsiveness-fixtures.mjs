@@ -252,6 +252,20 @@ if (mode === "setup") {
     await call(owner, "mutation", "listings:deleteListing", {
       id: fixture.listingId,
     });
+    const retained = await call(owner, "query", "messages:listMessages", {
+      conversationId: fixture.conversationId,
+      paginationOpts: { cursor: null, numItems: 20 },
+    });
+    assert.equal(retained.page.length, 2);
+    const withdrawn = await call(owner, "query", "bookings:get", {
+      id: fixture.inquiryId,
+    });
+    assert.equal(withdrawn.inquiry.status, "withdrawn");
+    assert.equal(withdrawn.title, "Past property");
+    assert.equal(
+      await call(owner, "query", "listings:getById", { id: fixture.listingId }),
+      null,
+    );
     fixture.cleaned = true;
     save();
     receipt.ownRentalAndDisposableClerkAccountDeleted = true;
