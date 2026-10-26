@@ -1,3 +1,4 @@
+import { canResubmitReview } from "../lib/review-policy";
 import { findActiveUser } from "./lib/auth";
 import { profileView } from "./lib/profileImages";
 import { reviewableBooking, reviewEnd } from "./lib/bookings";
@@ -36,6 +37,7 @@ const privateReview = v.object({
   status: reviewStatus,
   revision: v.number(),
   needsDetails: v.boolean(),
+  canResubmit: v.boolean(),
   phone: v.string(),
   stayStart: v.optional(v.number()),
   stayEnd: v.optional(v.number()),
@@ -55,6 +57,11 @@ async function privateProjection(
   r: Doc<"reviews">,
   staff = false,
 ) {
+  const listing = await ctx.db.get(r.listingId);
+  const subject = await ctx.db.get(r.subjectId ?? r.landlordId);
+  const activeSubject = subject
+    ? await findActiveUser(ctx, subject.clerkId)
+    : null;
   return {
     ...(await publicProjection(ctx, r)),
     listingId: r.listingId,
@@ -65,6 +72,11 @@ async function privateProjection(
     status: r.status ?? "pending",
     revision: r.revision ?? 0,
     needsDetails: !r.status,
+    canResubmit:
+      canResubmitReview(r.status) &&
+      !!listing &&
+      listing.landlordId === r.landlordId &&
+      !!activeSubject,
     phone: r.phone ?? "",
     stayStart: r.stayStart,
     stayEnd: r.stayEnd,
@@ -78,8 +90,7 @@ async function privateProjection(
     responseStatus: r.responseStatus,
     responseRevision: r.responseRevision ?? 0,
     responseNote: r.responseNote ?? "",
-    listingTitle:
-      (await ctx.db.get(r.listingId))?.title ?? "Unavailable property",
+    listingTitle: listing?.title ?? "Unavailable property",
   };
 }
 async function existingReview(
@@ -113,6 +124,7 @@ export const create = mutation({
     reviewerId: v.id("users"),
     kind: v.optional(reviewKind),
     subjectId: v.optional(v.id("users")),
+    expectedRevision: v.optional(v.number()),
     rating: v.number(),
     comment: v.string(),
     title: v.optional(v.string()),
@@ -142,8 +154,11 @@ export const create = mutation({
       throw new Error(
         "Only this property's owner can review a traveler with an established inquiry or conversation.",
       );
-    if (!(await ctx.db.get(subjectId)))
-      throw new Error("Review subject not found.");
+    const subject = await ctx.db.get(subjectId);
+    if (!subject || !(await findActiveUser(ctx, subject.clerkId)))
+      throw new Error(
+        "Review subject is unavailable. Contact support about the prior stay.",
+      );
     const details = validateReview(args);
     await checkStay(ctx, { ...args, ...details, kind, subjectId });
     const existing = await existingReview(
@@ -153,10 +168,16 @@ export const create = mutation({
       kind,
       subjectId,
     );
-    if (existing?.status && existing.status !== "rejected")
+    if (existing && !canResubmitReview(existing.status))
       throw new Error(
         "You have already submitted this review. Contact support for removal.",
       );
+    if (existing && args.expectedRevision !== (existing.revision ?? 0))
+      throw new Error(
+        "The review changed. Reopen the current submission before resubmitting.",
+      );
+    if (!existing && args.expectedRevision !== undefined)
+      throw new Error("The prior review is unavailable. Refresh its status.");
     const recent = await ctx.db
       .query("reviews")
       .withIndex("by_reviewer", (q) => q.eq("reviewerId", user._id))
@@ -186,10 +207,23 @@ export const create = mutation({
         ctx,
         existing,
         user._id,
-        "resubmitted",
-        "Author resubmitted review",
+        existing.status === "removed" ? "replacement_submitted" : "resubmitted",
+        existing.status === "removed"
+          ? "Author submitted a replacement after staff removal"
+          : "Author resubmitted review",
       );
-      await ctx.db.patch(existing._id, fields);
+      await ctx.db.patch(existing._id, {
+        ...fields,
+        // A reply belongs to the prior text. Keep it in staff audit, never carry
+        // its approval or a stale response moderation request into this revision.
+        response: undefined,
+        responseStatus: undefined,
+        responseAt: undefined,
+        responseNote: undefined,
+        responseRevision: existing.responseRevision
+          ? existing.responseRevision + 1
+          : 0,
+      });
       return existing._id;
     }
     const id = await ctx.db.insert("reviews", {
@@ -250,14 +284,15 @@ export const context = query({
           "Property is unavailable. Contact support about a past stay.",
         );
     }
+    const projected = existing ? await privateProjection(ctx, existing) : null;
     return {
-      existing: existing ? await privateProjection(ctx, existing) : null,
+      existing: projected,
       listingTitle: listing.title,
       landlordId: listing.landlordId,
       canSubmit:
         !!subjectId &&
         subjectId !== user._id &&
-        (!existing || !existing.status || existing.status === "rejected"),
+        (!projected || projected.canResubmit),
     };
   },
 });
@@ -275,7 +310,9 @@ export const canReview = query({
       args.listingId,
       "property",
     );
-    return !existing || !existing.status || existing.status === "rejected";
+    return existing
+      ? (await privateProjection(ctx, existing)).canResubmit
+      : true;
   },
 });
 export const getByListing = query({
@@ -634,7 +671,7 @@ export const moderate = mutation({
       reviewId: r._id,
       recipientId,
       kind: "decision",
-      body: `Your ${args.part} was ${args.decision}. Staff note: ${note}${args.decision === "rejected" ? " You can revise and resubmit it from your account." : ""}`,
+      body: `Your ${args.part} was ${args.decision}. Staff note: ${note}${args.decision === "rejected" ? " You can revise and resubmit it from your account." : args.part === "review" && args.decision === "removed" ? " You can submit a replacement from My reviews. It will require fresh moderation." : ""}`,
       emailStatus: "pending",
       createdAt: Date.now(),
     });

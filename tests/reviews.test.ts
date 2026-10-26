@@ -109,6 +109,201 @@ async function setup() {
   return { t, ids, owner, tenant, other, staff, input, approve };
 }
 describe("moderated two-way reviews", () => {
+  it.each(["property", "traveler"] as const)(
+    "allows a removed %s review replacement with fresh moderation and independent response history",
+    async (kind) => {
+      const f = await setup(),
+        author = kind === "property" ? f.tenant : f.owner,
+        subject = kind === "property" ? f.owner : f.tenant,
+        input =
+          kind === "property"
+            ? f.input
+            : {
+                ...f.input,
+                reviewerId: f.ids.owner,
+                kind,
+                subjectId: f.ids.tenant,
+              };
+      const id = await author.mutation(api.reviews.create, input);
+      await f.approve(id);
+      await subject.mutation(api.reviews.respond, {
+        id,
+        body: "Reply to the original synthetic review.",
+      });
+      await f.staff.mutation(api.reviews.moderate, {
+        id,
+        part: "response",
+        decision: "approved",
+        expectedRevision: 1,
+        note: "Synthetic response checked",
+      });
+      await f.approve(id, "removed");
+      const queryArgs = {
+        listingId: f.ids.listing,
+        kind,
+        subjectId: kind === "traveler" ? f.ids.tenant : undefined,
+      };
+      const context = await author.query(api.reviews.context, queryArgs);
+      expect(context.canSubmit).toBe(true);
+      const next = {
+        ...input,
+        expectedRevision: 1,
+        title: "Replacement synthetic review",
+        rating: 2,
+        comment: "New text replacing the removed synthetic review.",
+      };
+      await expect(
+        author.mutation(api.reviews.create, {
+          ...next,
+          expectedRevision: undefined,
+        }),
+      ).rejects.toThrow("review changed");
+      await expect(
+        author.mutation(api.reviews.create, {
+          ...next,
+          experienceConfirmed: false,
+        }),
+      ).rejects.toThrow("first-hand");
+      await expect(f.other.mutation(api.reviews.create, next)).rejects.toThrow(
+        "authorized",
+      );
+      vi.setSystemTime(now + 86400000);
+      expect(await author.mutation(api.reviews.create, next)).toBe(id);
+      const row = await f.t.run((ctx) => ctx.db.get(id));
+      expect(row).toMatchObject({
+        status: "pending",
+        revision: 2,
+        counted: false,
+        rating: 2,
+        responseRevision: 2,
+        createdAt: now,
+        updatedAt: now + 86400000,
+      });
+      expect(row!.response).toBeUndefined();
+      expect(row!.responseStatus).toBeUndefined();
+      expect(
+        (await author.query(api.reviews.context, queryArgs)).canSubmit,
+      ).toBe(false);
+      expect(
+        (await author.query(api.reviews.mine, { paginationOpts })).page[0]
+          .response,
+      ).toBeUndefined();
+      await expect(f.approve(id, "approved", 1)).rejects.toThrow(
+        "revision changed",
+      );
+      await expect(
+        f.staff.mutation(api.reviews.moderate, {
+          id,
+          part: "response",
+          decision: "approved",
+          expectedRevision: 1,
+          note: "Stale original response",
+        }),
+      ).rejects.toThrow("revision changed");
+      const history = await f.staff.query(api.reviews.history, {
+        id,
+        paginationOpts: { cursor: null, numItems: 50 },
+      });
+      const replacement = history.page.find(
+        (e) => e.action === "replacement_submitted",
+      );
+      expect(JSON.parse(replacement!.snapshot!)).toMatchObject({
+        title: input.title,
+        comment: input.comment,
+        response: "Reply to the original synthetic review.",
+        status: "removed",
+        responseStatus: "approved",
+        reviewRevision: 1,
+        responseRevision: 1,
+      });
+      await expect(
+        author.query(api.reviews.history, { id, paginationOpts }),
+      ).rejects.toThrow("Staff");
+      if (kind === "property") {
+        expect(
+          await f.t.query(api.reviews.getAverageRating, {
+            landlordId: f.ids.owner,
+            listingId: f.ids.listing,
+          }),
+        ).toMatchObject({ count: 0, average: 0 });
+        expect(
+          await f.t.query(api.reviews.getByListing, {
+            listingId: f.ids.listing,
+          }),
+        ).toHaveLength(0);
+      }
+      await f.approve(id, "approved", 2);
+      if (kind === "property") {
+        expect(
+          await f.t.query(api.reviews.getAverageRating, {
+            landlordId: f.ids.owner,
+            listingId: f.ids.listing,
+          }),
+        ).toMatchObject({ count: 1, average: 2 });
+        const published = await f.t.query(api.reviews.getByListing, {
+          listingId: f.ids.listing,
+        });
+        expect(published[0]).toMatchObject({
+          title: next.title,
+          comment: next.comment,
+          createdAt: now + 86400000,
+        });
+        expect(published[0].response).toBeUndefined();
+      }
+      await subject.mutation(api.reviews.respond, {
+        id,
+        body: "A fresh reply to the replacement review.",
+      });
+      const replied = await f.t.run((ctx) => ctx.db.get(id));
+      expect(replied!.responseRevision).toBe(3);
+      await f.approve(id, "removed", 2);
+      const notice = (
+        await author.query(api.reviewNotices.mine, {
+          paginationOpts: { cursor: null, numItems: 50 },
+        })
+      ).page.find((n) => n.body.includes("replacement"));
+      expect(notice!.body).toContain("fresh moderation");
+      await expect(author.mutation(api.reviews.create, next)).rejects.toThrow(
+        "review changed",
+      );
+      const outcomes = await Promise.allSettled([
+        author.mutation(api.reviews.create, { ...next, expectedRevision: 2 }),
+        author.mutation(api.reviews.create, { ...next, expectedRevision: 2 }),
+      ]);
+      expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(1);
+      const mine = await author.query(api.reviews.mine, { paginationOpts });
+      expect(mine.page).toHaveLength(1);
+      expect(mine.page[0].revision).toBe(3);
+    },
+  );
+  it("withholds resubmission when its property or reviewed account becomes unavailable", async () => {
+    const f = await setup(),
+      id = await f.tenant.mutation(api.reviews.create, f.input);
+    await f.approve(id, "removed");
+    expect(
+      (await f.tenant.query(api.reviews.mine, { paginationOpts })).page[0]
+        .canResubmit,
+    ).toBe(true);
+    await f.t.run((ctx) => ctx.db.patch(f.ids.owner, { clerkDeletedAt: now }));
+    expect(
+      (await f.tenant.query(api.reviews.context, { listingId: f.ids.listing }))
+        .canSubmit,
+    ).toBe(false);
+    await expect(
+      f.tenant.mutation(api.reviews.create, {
+        ...f.input,
+        expectedRevision: 1,
+      }),
+    ).rejects.toThrow("subject is unavailable");
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch(f.ids.owner, { clerkDeletedAt: undefined });
+      await ctx.db.delete(f.ids.listing);
+    });
+    expect(
+      (await f.tenant.query(api.reviews.mine, { paginationOpts })).page[0]
+        .canResubmit,
+    ).toBe(false);
+  });
   it("keeps submissions and contact details private until staff approves and uses first names publicly", async () => {
     const f = await setup(),
       id = await f.tenant.mutation(api.reviews.create, f.input);
@@ -222,7 +417,7 @@ describe("moderated two-way reviews", () => {
       )[0],
     ).not.toHaveProperty("verifiedStay");
   });
-  it("deduplicates simultaneous submissions and only allows a declined revision to be resubmitted", async () => {
+  it("deduplicates simultaneous submissions and allows declined revisions to be resubmitted with the current revision", async () => {
     const f = await setup();
     const outcomes = await Promise.allSettled([
       f.tenant.mutation(api.reviews.create, f.input),
@@ -242,6 +437,7 @@ describe("moderated two-way reviews", () => {
       await f.tenant.mutation(api.reviews.create, {
         ...f.input,
         comment: "A revised first-hand synthetic review.",
+        expectedRevision: 1,
       }),
     ).toBe(id);
     await expect(f.approve(id)).rejects.toThrow("revision changed");
@@ -496,7 +692,12 @@ describe("moderated two-way reviews", () => {
       ).page,
     ).toHaveLength(1);
     await expect(f.approve(id, "approved", 0)).rejects.toThrow();
-    expect(await f.tenant.mutation(api.reviews.create, f.input)).toBe(id);
+    expect(
+      await f.tenant.mutation(api.reviews.create, {
+        ...f.input,
+        expectedRevision: 0,
+      }),
+    ).toBe(id);
     await f.approve(id);
     expect(
       (

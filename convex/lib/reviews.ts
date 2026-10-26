@@ -157,7 +157,7 @@ export async function publicProjection(ctx: Ctx, review: Doc<"reviews">) {
       author?.name?.trim().split(/\s+/)[0] ||
       "Member",
     reviewerAvatar: null,
-    createdAt: review.createdAt,
+    createdAt: review.updatedAt ?? review.createdAt,
     ...(review.responseStatus === "approved" && review.response
       ? {
           response: {
@@ -218,6 +218,10 @@ export async function audit(
       comment: review.comment,
       rating: review.rating,
       response: review.response,
+      status: review.status,
+      responseStatus: review.responseStatus,
+      createdAt: review.createdAt,
+      submittedAt: review.updatedAt ?? review.createdAt,
       reviewRevision: review.revision ?? 0,
       responseRevision: review.responseRevision ?? 0,
     }),

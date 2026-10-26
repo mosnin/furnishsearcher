@@ -78,9 +78,11 @@ function ReviewHistory() {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  {(r.status === "rejected" || r.needsDetails) && (
+                  {r.canResubmit && (
                     <Button variant="outline" onClick={() => setEdit(r)}>
-                      Edit and resubmit
+                      {r.status === "removed"
+                        ? "Submit replacement"
+                        : "Edit and resubmit"}
                     </Button>
                   )}
                   <Link

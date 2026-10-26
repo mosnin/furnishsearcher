@@ -70,6 +70,7 @@ export function ReviewForm(p: Props) {
     try {
       await create({
         listingId: p.listingId,
+        expectedRevision: existing?.revision,
         landlordId: context?.landlordId ?? p.landlordId,
         reviewerId: p.reviewerId,
         kind: p.kind,
@@ -121,6 +122,13 @@ export function ReviewForm(p: Props) {
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
+            {existing?.status === "removed" && (
+              <p className="rounded border p-3 text-sm">
+                Your previous review was removed. Submit a replacement for fresh
+                staff moderation. It stays private until approved; the prior
+                text and replies remain in staff history.
+              </p>
+            )}
             {existing?.moderationNote && (
               <p className="rounded border p-3 text-sm">
                 Staff feedback: {existing.moderationNote}
@@ -245,7 +253,11 @@ export function ReviewForm(p: Props) {
                 Cancel
               </Button>
               <Button type="submit" disabled={busy || rating < 1 || !confirmed}>
-                {busy ? "Submitting…" : "Submit for review"}
+                {busy
+                  ? "Submitting…"
+                  : existing?.status === "removed"
+                    ? "Submit replacement for review"
+                    : "Submit for review"}
               </Button>
             </div>
           </form>

@@ -130,6 +130,7 @@ await call(staff, "mutation", "reviews:moderate", {
 assert.equal(
   await call(author, "mutation", "reviews:create", {
     ...input,
+    expectedRevision: 1,
     comment:
       "[QA] Revised synthetic workflow test; this is not an actual stay review.",
   }),
@@ -221,6 +222,63 @@ assert.deepEqual(
   }),
   baseline,
 );
+const replacementContext = await call(author, "query", "reviews:context", {
+  listingId: listing._id,
+});
+assert.equal(replacementContext.canSubmit, true);
+await assert.rejects(
+  call(author, "mutation", "reviews:create", { ...input, expectedRevision: 1 }),
+  /review changed/,
+);
+const replacementId = await call(author, "mutation", "reviews:create", {
+  ...input,
+  expectedRevision: 2,
+  rating: 2,
+  title: "[QA] Synthetic replacement review",
+  comment: "[QA] Replacement synthetic workflow only; no actual stay occurred.",
+});
+assert.equal(replacementId, id);
+const replacement = (
+  await call(author, "query", "reviews:mine", {
+    paginationOpts: { cursor: null, numItems: 10 },
+  })
+).page.find((r) => r._id === id);
+assert.equal(replacement.status, "pending");
+assert.equal(replacement.revision, 3);
+assert.equal(replacement.responseDraft, "");
+assert.equal(replacement.responseStatus, undefined);
+assert.equal(replacement.responseRevision, 2);
+assert(
+  !(
+    await call(publicClient, "query", "reviews:getByListing", {
+      listingId: listing._id,
+    })
+  ).some((r) => r._id === id),
+);
+const events = await call(staff, "query", "reviews:history", {
+  id,
+  paginationOpts: { cursor: null, numItems: 50 },
+});
+assert(
+  events.page.some(
+    (e) =>
+      e.action === "replacement_submitted" &&
+      JSON.parse(e.snapshot).response.includes("Synthetic owner"),
+  ),
+);
+await call(staff, "mutation", "reviews:moderate", {
+  id,
+  part: "review",
+  decision: "removed",
+  expectedRevision: 3,
+  note: "[QA] Retire synthetic replacement; no actual stay occurred",
+});
+assert.deepEqual(
+  await call(publicClient, "query", "reviews:getAverageRating", {
+    landlordId: landlord._id,
+  }),
+  baseline,
+);
 const notices = await call(author, "query", "reviewNotices:mine", {
   paginationOpts: { cursor: null, numItems: 10 },
 });
@@ -253,6 +311,9 @@ const receipt = {
   removalHidesAndRestoresRatingTotals: true,
   decisionsPersistWithoutEmailConfiguration: true,
   fixtureLeftRemoved: true,
+  removedReviewReplacementPending: true,
+  priorReplyRetainedOnlyInAudit: true,
+  staleAuthorRevisionDenied: true,
   realCustomerDataChanged: false,
   actualEmailDelivery: false,
 };
