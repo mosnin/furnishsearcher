@@ -132,6 +132,128 @@ async function fixture() {
   return { t, ids, owner, tenant, other, staff, reserve, upload };
 }
 describe("private rental document lifecycle", () => {
+  it.each(["withdrawn", "declined"] as const)(
+    "fences unfinished uploads and new sharing after %s while retaining exact-version history",
+    async (decision) => {
+      const f = await fixture(),
+        shared = await f.upload();
+      await f.owner.mutation(api.rentalDocs.share, {
+        documentId: shared.documentId,
+        versionId: shared.versionId,
+      });
+      const draft = await f.upload(pdf("PRIVATE NEWER VERSION"), {
+        documentId: shared.documentId,
+        expectedVersionId: shared.versionId,
+      });
+      const reserved = await f.reserve();
+      const stored = await f.t.run(async (ctx) =>
+        ctx.storage.store(
+          new Blob([(await encryptDocument(pdf())).payload], {
+            type: "application/octet-stream",
+          }),
+        ),
+      );
+      await (decision === "withdrawn" ? f.tenant : f.owner).mutation(
+        api.inquiries.respond,
+        { id: f.ids.inquiry, decision },
+      );
+      await expect(f.reserve()).rejects.toThrow("discussion is closed");
+      const denied = await f.owner.fetch(
+        `/documents/upload?upload=${reserved}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/pdf" },
+          body: pdf(),
+        },
+      );
+      expect(denied.status).toBe(403);
+      await expect(
+        f.owner.mutation(internal.rentalDocs.completeUpload, {
+          id: reserved,
+          storageId: stored,
+          keyId: "v1",
+          bytes: pdf().length,
+          sha256: await documentHash(pdf()),
+        }),
+      ).rejects.toThrow("discussion is closed");
+      await expect(
+        f.owner.mutation(api.rentalDocs.share, {
+          documentId: draft.documentId,
+          versionId: draft.versionId,
+        }),
+      ).rejects.toThrow("discussion is closed");
+      // Completed retries return the original version, without creating stored copies.
+      const retry = await f.owner.fetch(
+        `/documents/upload?upload=${shared.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/pdf" },
+          body: pdf(),
+        },
+      );
+      expect(retry.status).toBe(200);
+      expect((await retry.json()).versionId).toBe(shared.versionId);
+      const rows = await f.tenant.query(api.rentalDocs.list, {
+        inquiryId: f.ids.inquiry,
+        paginationOpts: page,
+      });
+      expect(rows.page[0].shared?._id).toBe(shared.versionId);
+      expect(rows.page[0].latest).toBeNull();
+      const downloaded = await f.tenant.fetch(
+        `/documents/download?version=${shared.versionId}`,
+      );
+      expect(downloaded.status).toBe(200);
+      expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(pdf());
+      await f.tenant.mutation(api.rentalDocs.acknowledge, {
+        versionId: shared.versionId,
+      });
+      const history = await f.owner.query(api.rentalDocs.versions, {
+        documentId: shared.documentId,
+        paginationOpts: page,
+      });
+      expect(history.page).toHaveLength(2);
+      expect(
+        history.page.find((v) => v._id === shared.versionId)?.acknowledgedAt,
+      ).toBeGreaterThanOrEqual(clock);
+      await f.owner.mutation(api.rentalDocs.unshare, {
+        documentId: shared.documentId,
+      });
+      expect(
+        (
+          await f.tenant.query(api.rentalDocs.list, {
+            inquiryId: f.ids.inquiry,
+            paginationOpts: page,
+          })
+        ).page,
+      ).toHaveLength(0);
+      await expect(
+        f.owner.mutation(api.rentalDocs.removeDraft, {
+          documentId: shared.documentId,
+        }),
+      ).rejects.toThrow();
+      await f.t.run((ctx) => ctx.storage.delete(stored));
+    },
+  );
+  it.each(["accepted", "cancelled"] as const)(
+    "allows document coordination for previously confirmed %s stays",
+    async (status) => {
+      const f = await fixture();
+      await f.t.run((ctx) => ctx.db.patch(f.ids.inquiry, { status }));
+      const d = await f.upload();
+      await f.owner.mutation(api.rentalDocs.share, {
+        documentId: d.documentId,
+        versionId: d.versionId,
+      });
+      expect(
+        (
+          await f.tenant.query(api.rentalDocs.list, {
+            inquiryId: f.ids.inquiry,
+            paginationOpts: page,
+          })
+        ).page,
+      ).toHaveLength(1);
+    },
+  );
   it("pages complete uploader history while restricting the recipient to the exact shared version", async () => {
     const f = await fixture();
     let current = await f.upload(pdf("VERSION 1"));
@@ -583,6 +705,94 @@ async function signFixture() {
   return { ...f, d, p, consent };
 }
 describe("Rocket Lawyer document authority", () => {
+  it("rejects new permission and provider setup after closure without erasing prior permission", async () => {
+    const f = await signFixture();
+    await f.consent();
+    const id = await f.owner.mutation(internal.rocketSignData.begin, {
+      documentId: f.d.documentId,
+      versionId: f.d.versionId,
+      confirmed: true,
+    });
+    const session = await f.t.run((ctx) => ctx.db.get(id));
+    await f.t.query(internal.rocketSignData.beforeTransfer, {
+      id,
+      generation: session!.generation,
+    });
+    await f.tenant.mutation(api.inquiries.respond, {
+      id: f.ids.inquiry,
+      decision: "withdrawn",
+    });
+    await expect(
+      f.tenant.mutation(api.rocketSignData.consent, {
+        documentId: f.d.documentId,
+        versionId: f.d.versionId,
+        legalName: "Synthetic Tenant",
+        agreed: true,
+      }),
+    ).rejects.toThrow("discussion is closed");
+    await expect(
+      f.owner.mutation(internal.rocketSignData.begin, {
+        documentId: f.d.documentId,
+        versionId: f.d.versionId,
+        confirmed: true,
+      }),
+    ).rejects.toThrow("discussion is closed");
+    await expect(
+      f.t.query(internal.rocketSignData.beforeTransfer, {
+        id,
+        generation: session!.generation,
+      }),
+    ).rejects.toThrow("discussion is closed");
+    expect(await f.t.mutation(internal.rocketSignData.claimSetup, { id })).toBe(
+      false,
+    );
+    expect(f.p.calls).toHaveLength(0);
+    await f.tenant.mutation(api.rocketSignData.stopPreparation, {
+      documentId: f.d.documentId,
+    });
+    expect(
+      (
+        await f.owner.query(api.rocketSignData.status, {
+          documentId: f.d.documentId,
+        })
+      ).state,
+    ).toBeNull();
+  });
+  it("rechecks closure between provider creation and transferring PDF bytes", async () => {
+    const f = await signFixture();
+    await f.consent();
+    const original = f.p.fetch.getMockImplementation()!;
+    f.p.fetch.mockImplementation(async (url: string, init: any = {}) => {
+      const response = await original(url, init);
+      if (url.endsWith("/binders") && init.method === "POST")
+        await f.tenant.mutation(api.inquiries.respond, {
+          id: f.ids.inquiry,
+          decision: "withdrawn",
+        });
+      return response;
+    });
+    await expect(
+      f.owner.action(api.rocketSign.start, {
+        documentId: f.d.documentId,
+        versionId: f.d.versionId,
+        confirmed: true,
+      }),
+    ).rejects.toThrow("discussion is closed");
+    expect(
+      f.p.calls.some((c) => c.method === "POST" && c.url.endsWith("/binders")),
+    ).toBe(true);
+    expect(
+      f.p.calls.some(
+        (c) =>
+          c.method === "PUT" ||
+          /requests\/(finalisations|invitations)$/.test(c.url),
+      ),
+    ).toBe(false);
+    const status = await f.owner.query(api.rocketSignData.status, {
+      documentId: f.d.documentId,
+    });
+    expect(status.state).toBe("failed");
+  });
   it("requires a current paid landlord period for new provider creation", async () => {
     const f = await signFixture();
     await f.consent();

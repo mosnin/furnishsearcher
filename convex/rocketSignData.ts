@@ -12,6 +12,10 @@ import { requireMessagingAllowed, blockState } from "./lib/messageAccess";
 import { rocketConfig } from "./lib/rocket";
 import { activePaidSubscription } from "./lib/billing";
 import {
+  documentWorkAllowed,
+  requireDocumentWork,
+} from "../lib/rental-document-policy";
+import {
   signatureState,
   signatureDoc,
   rentalDocumentDoc,
@@ -43,6 +47,7 @@ export const consent = mutation({
   handler: async (ctx, args) => {
     const { doc, user, inquiry } = await requireDocument(ctx, args.documentId),
       identity = await ctx.auth.getUserIdentity();
+    requireDocumentWork(inquiry.status);
     if (
       !args.agreed ||
       doc.state !== "shared" ||
@@ -158,6 +163,7 @@ export const begin = internalMutation({
   handler: async (ctx, args) => {
     const cfg = rocketConfig(),
       { doc, user, inquiry } = await requireDocument(ctx, args.documentId);
+    requireDocumentWork(inquiry.status);
     if (
       user._id !== inquiry.landlordId ||
       doc.creatorId !== user._id ||
@@ -471,6 +477,7 @@ export const claimSetup = internalMutation({
     const inquiry = document ? await ctx.db.get(document.inquiryId) : null;
     if (
       !inquiry ||
+      !documentWorkAllowed(inquiry.status) ||
       (await blockState(ctx, inquiry.tenantId, inquiry.landlordId))
         .cannotMessage
     )
@@ -483,6 +490,30 @@ export const claimSetup = internalMutation({
     if ((s.setupLeaseUntil ?? 0) > Date.now()) return false;
     await ctx.db.patch(s._id, { setupLeaseUntil: Date.now() + 240000 });
     return true;
+  },
+});
+export const beforeTransfer = internalQuery({
+  args: { id: v.id("rentalSignatures"), generation: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { id, generation }) => {
+    const s = await ctx.db.get(id),
+      doc = s ? await ctx.db.get(s.documentId) : null;
+    if (
+      !s ||
+      s.generation !== generation ||
+      !doc ||
+      doc.signingSessionId !== id ||
+      doc.latestVersionId !== s.versionId ||
+      ["completed", "cancelled"].includes(s.state)
+    )
+      throw new Error(
+        "The document or signing preparation changed. Refresh its status.",
+      );
+    const inquiry = await ctx.db.get(doc.inquiryId);
+    if (!inquiry) throw new Error("This stay is unavailable.");
+    requireDocumentWork(inquiry.status);
+    await requireMessagingAllowed(ctx, inquiry.tenantId, inquiry.landlordId);
+    return null;
   },
 });
 export const forDocument = internalQuery({

@@ -55,6 +55,11 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
   if (!(await ctx.runMutation(internal.rocketSignData.claimSetup, { id })))
     return;
   let attemptedCreation = false;
+  const beforeTransfer = () =>
+    ctx.runQuery(internal.rocketSignData.beforeTransfer, {
+      id,
+      generation: s.generation,
+    });
   const checkpoint = async (fields: any) => {
     await ctx.runMutation(internal.rocketSignData.checkpoint, {
       id,
@@ -168,6 +173,7 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
       const bytes = await decryptDocument(blob, details.version.keyId);
       if ((await documentHash(bytes)) !== details.version.sha256)
         throw new Error("Source PDF integrity check failed.");
+      await beforeTransfer();
       await rocketRequest(
         `/document-manager/v1/binders/${s.binderId}/documents/${s.providerDocumentId}`,
         token,
@@ -176,6 +182,7 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
       );
       await sourceCheck(token, s, details.version);
       await checkpoint({ state: "uploaded", providerStatus: "IN_PREPARATION" });
+      await beforeTransfer();
       await rocketRequest(
         `/document-manager/v1/binders/${s.binderId}/requests/finalisations`,
         token,
@@ -198,6 +205,7 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
     }
     if (bound.status === "REVIEW_AND_SHARE") {
       await sourceCheck(token, s, details.version);
+      await beforeTransfer();
       await rocketRequest(
         `/document-manager/v1/binders/${s.binderId}/requests/invitations`,
         token,

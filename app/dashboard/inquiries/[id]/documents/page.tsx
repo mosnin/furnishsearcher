@@ -18,6 +18,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { convexSiteUrl } from "@/lib/photos";
+import {
+  documentWorkAllowed,
+  CLOSED_DOCUMENT_WORK,
+} from "@/lib/rental-document-policy";
 type Row = FunctionReturnType<typeof api.rentalDocs.list>["page"][number];
 type Kind = "lease" | "addendum" | "signed_copy" | "inventory" | "notice";
 function site() {
@@ -30,12 +34,14 @@ function DocumentCard({
   doc,
   me,
   owner,
+  canWork,
   upload,
   download,
 }: {
   doc: Row;
   me: Id<"users">;
   owner: boolean;
+  canWork: boolean;
   upload: (file: File, doc: Row) => void;
   download: (version: NonNullable<Row["latest"]>) => void;
 }) {
@@ -148,7 +154,7 @@ function DocumentCard({
           )}
           {own && !doc.signingSessionId && (
             <>
-              {doc.latest && doc.latest._id !== shared?._id && (
+              {canWork && doc.latest && doc.latest._id !== shared?._id && (
                 <Button
                   disabled={busy}
                   onClick={() =>
@@ -179,20 +185,22 @@ function DocumentCard({
                   Revoke future access
                 </Button>
               )}
-              <label className="inline-flex items-center text-sm underline cursor-pointer">
-                Upload new version
-                <input
-                  className="sr-only"
-                  type="file"
-                  accept="application/pdf"
-                  disabled={busy}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) upload(file, doc);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              {canWork && (
+                <label className="inline-flex items-center text-sm underline cursor-pointer">
+                  Upload new version
+                  <input
+                    className="sr-only"
+                    type="file"
+                    accept="application/pdf"
+                    disabled={busy}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) upload(file, doc);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
               {!shared && doc.canRemoveDraft && (
                 <Button
                   variant="outline"
@@ -291,8 +299,7 @@ function DocumentCard({
               </h3>
               {!capabilities?.configured && (
                 <p className="text-sm">
-                  Electronic signing is not connected for this workspace. You
-                  can share a PDF here or use Rocket Lawyer separately.
+                  Electronic signing is not connected for this workspace.
                 </p>
               )}
               {capabilities?.mode === "sandbox" && (
@@ -339,25 +346,28 @@ function DocumentCard({
                     >
                       Refresh signing status
                     </Button>
-                    {owner && doc.latest && status.state !== "completed" && (
-                      <Button
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() =>
-                          run(
-                            () =>
-                              prepare({
-                                documentId: doc._id,
-                                versionId: doc.latest!._id,
-                                confirmed: true,
-                              }),
-                            "Signing preparation checked",
-                          )
-                        }
-                      >
-                        Retry preparation
-                      </Button>
-                    )}
+                    {canWork &&
+                      owner &&
+                      doc.latest &&
+                      status.state !== "completed" && (
+                        <Button
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() =>
+                            run(
+                              () =>
+                                prepare({
+                                  documentId: doc._id,
+                                  versionId: doc.latest!._id,
+                                  confirmed: true,
+                                }),
+                              "Signing preparation checked",
+                            )
+                          }
+                        >
+                          Retry preparation
+                        </Button>
+                      )}
                     {["invited", "completed", "finalised"].includes(
                       status.state,
                     ) && (
@@ -398,6 +408,7 @@ function DocumentCard({
                     <label className="block space-y-1">
                       My legal name
                       <Input
+                        disabled={!canWork}
                         maxLength={160}
                         value={legalName}
                         onChange={(e) => setLegalName(e.target.value)}
@@ -406,6 +417,7 @@ function DocumentCard({
                     <label className="flex items-start gap-2">
                       <input
                         type="checkbox"
+                        disabled={!canWork}
                         checked={agree}
                         onChange={(e) => setAgree(e.target.checked)}
                       />
@@ -414,7 +426,12 @@ function DocumentCard({
                       electronic signing.
                     </label>
                     <Button
-                      disabled={busy || !agree || legalName.trim().length < 2}
+                      disabled={
+                        !canWork ||
+                        busy ||
+                        !agree ||
+                        legalName.trim().length < 2
+                      }
                       onClick={() =>
                         run(
                           () =>
@@ -455,24 +472,27 @@ function DocumentCard({
                       {status?.myConsent ? "confirmed" : "needed"} · Stay
                       partner: {status?.otherConsent ? "confirmed" : "needed"}
                     </p>
-                    {owner && status?.myConsent && status.otherConsent && (
-                      <Button
-                        disabled={busy}
-                        onClick={() =>
-                          run(
-                            () =>
-                              prepare({
-                                documentId: doc._id,
-                                versionId: shared._id,
-                                confirmed: true,
-                              }),
-                            "Document sent for signing",
-                          )
-                        }
-                      >
-                        Send approved version to Rocket Lawyer
-                      </Button>
-                    )}
+                    {canWork &&
+                      owner &&
+                      status?.myConsent &&
+                      status.otherConsent && (
+                        <Button
+                          disabled={busy}
+                          onClick={() =>
+                            run(
+                              () =>
+                                prepare({
+                                  documentId: doc._id,
+                                  versionId: shared._id,
+                                  confirmed: true,
+                                }),
+                              "Document sent for signing",
+                            )
+                          }
+                        >
+                          Send approved version to Rocket Lawyer
+                        </Button>
+                      )}
                   </>
                 )
               )}
@@ -522,6 +542,10 @@ export default function DocumentsPage({
   async function perform() {
     const attempt = pending.current;
     if (!attempt || inFlight.current) return;
+    if (!booking || !documentWorkAllowed(booking.inquiry.status)) {
+      toast.error(CLOSED_DOCUMENT_WORK);
+      return;
+    }
     inFlight.current = true;
     setBusy(true);
     try {
@@ -565,6 +589,10 @@ export default function DocumentsPage({
     }
   }
   function upload(file: File, doc?: Row) {
+    if (!booking || !documentWorkAllowed(booking.inquiry.status)) {
+      toast.error(CLOSED_DOCUMENT_WORK);
+      return;
+    }
     if (inFlight.current) {
       toast.error("Wait for the current upload to finish.");
       return;
@@ -611,6 +639,7 @@ export default function DocumentsPage({
         Loading private documents…
       </p>
     );
+  const canWork = documentWorkAllowed(booking.inquiry.status);
   return (
     <main className="mx-auto max-w-4xl p-6 space-y-5">
       <Link className="underline" href={`/dashboard/inquiries/${id}`}>
@@ -627,64 +656,75 @@ export default function DocumentsPage({
         identity documents, bank details and payment-card information in their
         provider accounts.
       </p>
-      <Card>
-        <CardContent className="p-5 space-y-3">
-          <h2 className="font-semibold">Upload a new document</h2>
-          {!capabilities?.privateFiles && (
-            <p role="status">
-              Private file storage is unavailable. Contact support before
-              uploading rental documents.
-            </p>
-          )}
-          <Label htmlFor="document-title">Document title</Label>
-          <Input
-            id="document-title"
-            maxLength={120}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <label className="block">
-            Document type
-            <select
-              className="block border rounded-md p-2 mt-1"
-              value={kind}
-              onChange={(e) => setKind(e.target.value as Kind)}
-            >
-              <option value="lease">Lease</option>
-              <option value="addendum">Addendum</option>
-              <option value="signed_copy">Previously signed copy</option>
-              <option value="inventory">Inventory / condition report</option>
-              <option value="notice">Notice</option>
-            </select>
-          </label>
-          <label className="block">
-            PDF (up to 10 MB)
+      {!canWork && (
+        <p role="status" className="rounded-md border p-4 text-sm">
+          This discussion is {booking.inquiry.status}. New uploads, sharing and
+          signing preparation are unavailable. Available documents, receipts and
+          version history remain accessible. An existing provider signing
+          request is not automatically cancelled.
+        </p>
+      )}
+      {canWork && (
+        <Card>
+          <CardContent className="p-5 space-y-3">
+            <h2 className="font-semibold">Upload a new document</h2>
+            {!capabilities?.privateFiles && (
+              <p role="status">
+                Private file storage is unavailable. Contact support before
+                uploading rental documents.
+              </p>
+            )}
+            <Label htmlFor="document-title">Document title</Label>
             <Input
-              type="file"
-              accept="application/pdf"
-              disabled={
-                busy || !capabilities?.privateFiles || title.trim().length < 3
-              }
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) upload(file);
-                e.target.value = "";
-              }}
+              id="document-title"
+              maxLength={120}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
-          </label>
-          {retry && (
-            <Button disabled={busy} onClick={perform}>
-              Retry the same upload
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+            <label className="block">
+              Document type
+              <select
+                className="block border rounded-md p-2 mt-1"
+                value={kind}
+                onChange={(e) => setKind(e.target.value as Kind)}
+              >
+                <option value="lease">Lease</option>
+                <option value="addendum">Addendum</option>
+                <option value="signed_copy">Previously signed copy</option>
+                <option value="inventory">Inventory / condition report</option>
+                <option value="notice">Notice</option>
+              </select>
+            </label>
+            <label className="block">
+              PDF (up to 10 MB)
+              <Input
+                type="file"
+                accept="application/pdf"
+                disabled={
+                  busy || !capabilities?.privateFiles || title.trim().length < 3
+                }
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) upload(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {retry && (
+              <Button disabled={busy} onClick={perform}>
+                Retry the same upload
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {docs.results.map((doc) => (
         <DocumentCard
           key={doc._id}
           doc={doc}
           me={me._id}
           owner={booking.inquiry.landlordId === me._id}
+          canWork={canWork}
           upload={upload}
           download={download}
         />

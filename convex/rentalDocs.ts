@@ -17,6 +17,7 @@ import {
 import { requireBooking, recordBookingEvent } from "./lib/bookings";
 import { requireUser } from "./lib/auth";
 import { requireMessagingAllowed } from "./lib/messageAccess";
+import { requireDocumentWork } from "../lib/rental-document-policy";
 import {
   requireDocument,
   requireVersion,
@@ -137,10 +138,7 @@ export const reserveUpload = mutation({
   handler: async (ctx, args) => {
     documentKeys();
     const { user, inquiry } = await requireBooking(ctx, args.inquiryId);
-    if (["declined", "withdrawn"].includes(inquiry.status))
-      throw new Error(
-        "Use a current or previously confirmed stay for rental documents.",
-      );
+    requireDocumentWork(inquiry.status);
     const title = args.title.trim(),
       filename = documentFilename(args.filename);
     if (
@@ -233,7 +231,8 @@ export const uploadInfo = internalQuery({
       (r.state !== "completed" && r.createdAt < Date.now() - 15 * 60000)
     )
       throw new Error("Upload reservation expired or unavailable.");
-    await requireBooking(ctx, r.inquiryId);
+    const { inquiry } = await requireBooking(ctx, r.inquiryId);
+    if (r.state !== "completed") requireDocumentWork(inquiry.status);
     const version = r.versionId ? await ctx.db.get(r.versionId) : null;
     return { versionId: r.versionId, sha256: version?.sha256 };
   },
@@ -259,13 +258,14 @@ export const completeUpload = internalMutation({
       (r.state !== "completed" && r.createdAt < Date.now() - 15 * 60000)
     )
       throw new Error("Upload reservation expired or unavailable.");
-    await requireBooking(ctx, r.inquiryId);
+    const { inquiry } = await requireBooking(ctx, r.inquiryId);
     if (r.state === "completed") {
       const prior = r.versionId ? await ctx.db.get(r.versionId) : null;
       if (!prior || prior.sha256 !== args.sha256)
         throw new Error("Upload reference already used for different content.");
       return { versionId: prior._id, reused: true };
     }
+    requireDocumentWork(inquiry.status);
     if (
       args.bytes < 12 ||
       args.bytes > MAX_DOCUMENT_BYTES ||
@@ -356,6 +356,8 @@ export const share = mutation({
       throw new Error(
         "Only the uploader can share the current document version; active signing copies are locked.",
       );
+    if (!(doc.state === "shared" && doc.sharedVersionId === args.versionId))
+      requireDocumentWork(inquiry.status);
     await requireMessagingAllowed(ctx, inquiry.tenantId, inquiry.landlordId);
     if (doc.state === "shared" && doc.sharedVersionId === args.versionId)
       return null;
