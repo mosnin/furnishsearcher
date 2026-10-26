@@ -6,7 +6,11 @@ import { readiness, ownerReadiness, reconcileListing } from "./lib/publication";
 export const readinessValidator = v.object({
   eligible: v.boolean(),
   requested: v.boolean(),
-  approval: v.string(),
+  approval: v.union(
+    v.literal("pending"),
+    v.literal("approved"),
+    v.literal("rejected"),
+  ),
   revision: v.number(),
   issues: v.array(v.string()),
   live: v.boolean(),

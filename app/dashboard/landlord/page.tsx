@@ -8,18 +8,6 @@ import { Id } from "@/convex/_generated/dataModel";
 import { formatPrice, formatDate } from "@/lib/utils";
 import OwnerNextSteps from "@/components/owner-next-steps";
 
-type LandlordListing = {
-  _id: string;
-  title: string;
-  status: "active" | "inactive" | "pending";
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  views: number;
-  photos: string[];
-  createdAt: number;
-};
-
 type LandlordConversation = {
   _id: string;
   tenantId: string;
@@ -90,12 +78,14 @@ function StatCard({
 function StatusBadge({
   status,
 }: {
-  status: "active" | "inactive" | "pending";
+  status: "active" | "inactive" | "pending" | "incomplete" | "rejected";
 }) {
   const variants = {
     active: "success",
     inactive: "secondary",
     pending: "outline",
+    incomplete: "outline",
+    rejected: "destructive",
   } as const;
   return (
     <Badge variant={variants[status]} className="capitalize">
@@ -112,10 +102,13 @@ export default function LandlordDashboardPage() {
     userId ? { clerkId: userId } : "skip",
   );
 
-  const listings = useQuery(
-    api.listings.getByLandlord,
-    convexUser?._id ? { landlordId: convexUser._id } : "skip",
-  ) as LandlordListing[] | undefined;
+  const directory = useQuery(
+    api.ownerDirectory.list,
+    convexUser?.role === "landlord"
+      ? { paginationOpts: { cursor: null, numItems: 5 } }
+      : "skip",
+  );
+  const listings = directory?.page;
 
   const inboxSummary = useQuery(
     api.inbox.summary,
@@ -144,8 +137,12 @@ export default function LandlordDashboardPage() {
         await unpublishMutation({ id: listingId });
         toast.success("Listing set to inactive");
       } else {
-        await publishMutation({ id: listingId });
-        toast.success("Listing is now active");
+        const result = await publishMutation({ id: listingId });
+        toast.success(
+          result.live
+            ? "Listing is now live"
+            : "Publication requested. Complete the remaining requirements.",
+        );
       }
     } catch (err) {
       toast.error("Failed to update listing status");
@@ -177,13 +174,13 @@ export default function LandlordDashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Active Listings"
+          title="Live in recent listings"
           value={activeListings.length}
           icon={Building2}
           loading={isLoading}
         />
         <StatCard
-          title="Total Views"
+          title="Legacy views · recent listings"
           value={totalViews.toLocaleString()}
           icon={Eye}
           loading={isLoading}
@@ -203,6 +200,19 @@ export default function LandlordDashboardPage() {
           loading={isLoading}
         />
       </div>
+
+      <p className="text-xs text-slate-500">
+        Listing cards and their metrics cover the {listings?.length ?? 0} most
+        recently created rentals
+        {directory && !directory.isDone
+          ? "; more rentals are available in My Listings"
+          : ""}
+        . Legacy view counts are unverified historical counters.{" "}
+        <Link className="underline" href="/dashboard/landlord/analytics">
+          View measured activity reports
+        </Link>
+        .
+      </p>
 
       {/* Empty state — no listings */}
       {!isLoading && listings?.length === 0 && (
@@ -246,7 +256,7 @@ export default function LandlordDashboardPage() {
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
-                  <CardContent className="p-4 flex items-center gap-4">
+                  <CardContent className="p-4 flex flex-wrap items-center gap-4">
                     <Skeleton className="h-16 w-24 rounded-md shrink-0" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-48" />
@@ -259,11 +269,11 @@ export default function LandlordDashboardPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {listings!.slice(0, 5).map((listing) => {
+              {listings!.map((listing) => {
                 const photo = listing.photos[0];
                 return (
                   <Card key={listing._id}>
-                    <CardContent className="p-4 flex items-center gap-4">
+                    <CardContent className="p-4 flex flex-wrap items-center gap-4">
                       <div className="h-16 w-24 rounded-md bg-slate-200 overflow-hidden shrink-0">
                         {photo ? (
                           <img
@@ -296,7 +306,7 @@ export default function LandlordDashboardPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Eye className="h-3.5 w-3.5" />
-                            {listing.views} views
+                            {listing.views} legacy views
                           </span>
                         </div>
                       </div>

@@ -649,6 +649,7 @@ export default defineSchema({
     .index("by_property_price", ["propertyGroupId", "status", "price"])
     .index("by_property_views", ["propertyGroupId", "status", "views"])
     .index("by_landlord", ["landlordId"])
+    .index("by_owner_created", ["landlordId", "createdAt"])
     .index("by_landlord_status", ["landlordId", "status"])
     .index("by_status", ["status"])
     .index("by_city_state", ["city", "state"])

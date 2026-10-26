@@ -8,31 +8,17 @@ import {
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import type { FunctionReturnType } from "convex/server";
+import { Input } from "@/components/ui/input";
+import { US_STATES } from "@/lib/locations";
 import { formatPrice, formatDate } from "@/lib/utils";
 
-type ManagedListing = {
-  locationConfirmedAt?: number;
-  _id: string;
-  title: string;
-  status: "active" | "inactive" | "pending" | "rejected";
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  views: number;
-  photos: string[];
-  city: string;
-  state: string;
-  zip: string;
-  propertyType: string;
-  createdAt: number;
-  publication?: PublicationState;
-  moderationHold?: boolean;
-  featured?: boolean;
-  featuredUntil?: number;
-};
+type ManagedListing = FunctionReturnType<
+  typeof api.ownerDirectory.list
+>["page"][number];
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,17 +47,21 @@ import {
   CalendarDays,
 } from "lucide-react";
 
-type StatusFilter = "all" | "active" | "inactive" | "pending" | "rejected";
+type StatusFilter = "all" | ManagedListing["status"];
+const emptyFilters = {
+  keyword: "",
+  city: "",
+  state: "",
+  status: "all" as StatusFilter,
+  includeHiddenUnits: true,
+};
 
-function StatusBadge({
-  status,
-}: {
-  status: "active" | "inactive" | "pending" | "rejected";
-}) {
+function StatusBadge({ status }: { status: ManagedListing["status"] }) {
   const variants = {
     active: "success",
     inactive: "secondary",
     pending: "outline",
+    incomplete: "outline",
     rejected: "destructive",
   } as const;
   return (
@@ -83,7 +73,8 @@ function StatusBadge({
 
 export default function LandlordListingsPage() {
   const { userId } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [draft, setDraft] = useState(emptyFilters);
+  const [filters, setFilters] = useState(emptyFilters);
   const [deleteTarget, setDeleteTarget] = useState<Id<"listings"> | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -92,29 +83,18 @@ export default function LandlordListingsPage() {
     userId ? { clerkId: userId } : "skip",
   );
 
-  const rawListings = useQuery(
-    api.listings.getByLandlord,
-    convexUser?._id ? { landlordId: convexUser._id } : "skip",
-  ) as ManagedListing[] | undefined;
-
-  const listings = rawListings?.map((listing) => ({
-    ...listing,
-    status: (listing.publication?.live
-      ? "active"
-      : listing.publication?.approval === "rejected"
-        ? "rejected"
-        : listing.publication?.approval === "approved"
-          ? "inactive"
-          : "pending") as ManagedListing["status"],
-  }));
+  const {
+    results: filtered,
+    status: pageStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.ownerDirectory.list,
+    convexUser?.role === "landlord" ? filters : "skip",
+    { initialNumItems: 10 },
+  );
   const publishMutation = useMutation(api.listings.publish);
   const unpublishMutation = useMutation(api.listings.unpublish);
   const deleteMutation = useMutation(api.listings.deleteListing);
-
-  const filtered =
-    listings?.filter((l) =>
-      statusFilter === "all" ? true : l.status === statusFilter,
-    ) ?? [];
 
   const handleToggle = async (id: Id<"listings">, status: string) => {
     try {
@@ -150,31 +130,9 @@ export default function LandlordListingsPage() {
     }
   };
 
-  const isLoading = convexUser === undefined || listings === undefined;
-
-  const statusTabs: { label: string; value: StatusFilter; count?: number }[] = [
-    { label: "All", value: "all", count: listings?.length },
-    {
-      label: "Active",
-      value: "active",
-      count: listings?.filter((l) => l.status === "active").length,
-    },
-    {
-      label: "Inactive",
-      value: "inactive",
-      count: listings?.filter((l) => l.status === "inactive").length,
-    },
-    {
-      label: "Pending",
-      value: "pending",
-      count: listings?.filter((l) => l.status === "pending").length,
-    },
-    {
-      label: "Rejected",
-      value: "rejected",
-      count: listings?.filter((l) => l.status === "rejected").length,
-    },
-  ];
+  const isLoading =
+    convexUser === undefined || pageStatus === "LoadingFirstPage";
+  const hasMore = pageStatus === "CanLoadMore" || pageStatus === "LoadingMore";
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -194,27 +152,103 @@ export default function LandlordListingsPage() {
         </Button>
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
-        {statusTabs.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setStatusFilter(tab.value)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              statusFilter === tab.value
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+      <form
+        className="rounded-lg border bg-white p-4 space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setFilters({ ...draft });
+        }}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm font-medium space-y-1">
+            Search properties and units
+            <Input
+              value={draft.keyword}
+              maxLength={200}
+              placeholder="Address, headline, property number or unit"
+              onChange={(e) => setDraft({ ...draft, keyword: e.target.value })}
+            />
+          </label>
+          <label className="text-sm font-medium space-y-1">
+            City
+            <Input
+              value={draft.city}
+              maxLength={80}
+              placeholder="Exact city"
+              onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+            />
+          </label>
+          <label className="text-sm font-medium space-y-1">
+            State
+            <select
+              className="block h-10 w-full rounded-xl border px-3 bg-white"
+              value={draft.state}
+              onChange={(e) => setDraft({ ...draft, state: e.target.value })}
+            >
+              <option value="">All states</option>
+              {Object.entries(US_STATES).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium space-y-1">
+            Listing status
+            <select
+              className="block h-10 w-full rounded-xl border px-3 bg-white"
+              value={draft.status}
+              onChange={(e) =>
+                setDraft({ ...draft, status: e.target.value as StatusFilter })
+              }
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active · currently live</option>
+              <option value="inactive">Inactive · approved, not live</option>
+              <option value="incomplete">Incomplete details</option>
+              <option value="pending">Pending staff review</option>
+              <option value="rejected">Rejected by staff</option>
+            </select>
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-3 items-center">
+          <label className="flex gap-2 items-center text-sm">
+            <input
+              type="checkbox"
+              checked={draft.includeHiddenUnits}
+              onChange={(e) =>
+                setDraft({ ...draft, includeHiddenUnits: e.target.checked })
+              }
+            />
+            Include units you have hidden
+          </label>
+          <Button type="submit">Apply filters</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setDraft(emptyFilters);
+              setFilters(emptyFilters);
+            }}
           >
-            {tab.label}
-            {tab.count !== undefined && (
-              <span className="ml-1.5 text-xs text-slate-400">
-                ({tab.count})
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+            Clear filters
+          </Button>
+        </div>
+        <p className="text-xs text-slate-500">
+          Newest first. Status reflects current publication requirements. Hidden
+          units are child units you explicitly unpublished; pending units remain
+          searchable. Review paid access and expiry in{" "}
+          <Link className="underline" href="/dashboard/landlord/billing">
+            Billing
+          </Link>
+          .
+        </p>
+      </form>
+      <p role="status" className="text-sm text-slate-500">
+        {isLoading
+          ? "Searching your portfolio…"
+          : `${filtered.length} matching rental${filtered.length === 1 ? "" : "s"} loaded. ${hasMore ? "More portfolio records remain to search." : "All portfolio records searched."}`}
+      </p>
 
       {/* Listings */}
       {isLoading ? (
@@ -241,31 +275,16 @@ export default function LandlordListingsPage() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Building2 className="h-12 w-12 text-slate-300 mb-4" />
-            {statusFilter === "all" ? (
-              <>
-                <h3 className="text-base font-medium text-slate-900 mb-1">
-                  No listings yet
-                </h3>
-                <p className="text-sm text-slate-500 mb-4">
-                  Add your first listing to start attracting tenants.
-                </p>
-                <Button asChild>
-                  <Link href="/dashboard/landlord/listings/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Listing
-                  </Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <h3 className="text-base font-medium text-slate-900 mb-1">
-                  No {statusFilter} listings
-                </h3>
-                <p className="text-sm text-slate-500">
-                  You don't have any {statusFilter} listings right now.
-                </p>
-              </>
-            )}
+            <h3 className="text-base font-medium text-slate-900 mb-1">
+              {hasMore
+                ? "No matches in the records searched so far"
+                : "No matching listings"}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {hasMore
+                ? "Continue searching the next page of your portfolio."
+                : "Clear or adjust the filters, or add a new listing."}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -335,9 +354,17 @@ export default function LandlordListingsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Eye className="h-3.5 w-3.5" />
-                            {listing.views} views
+                            {listing.views} legacy views
                           </span>
                         </div>
+                        <p className="text-sm text-slate-600 mt-1 break-words">
+                          {listing.address}
+                        </p>
+                        <p className="text-xs text-slate-500 break-words">
+                          {listing.publicId ?? listing._id}
+                          {listing.unitName ? ` · ${listing.unitName}` : ""}
+                          {listing.hiddenUnit ? " · Hidden unit" : ""}
+                        </p>
                         <p className="text-xs text-slate-400 mt-1">
                           Created {formatDate(listing.createdAt)}
                         </p>
@@ -358,7 +385,7 @@ export default function LandlordListingsPage() {
                         Property units
                       </Link>
                       {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:max-w-64">
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/listings/${listing._id}`}>
                             <Eye className="h-3.5 w-3.5 mr-1" />
@@ -437,6 +464,20 @@ export default function LandlordListingsPage() {
             );
           })}
         </div>
+      )}
+
+      {hasMore && (
+        <Button
+          variant="outline"
+          disabled={pageStatus === "LoadingMore"}
+          onClick={() => loadMore(10)}
+        >
+          {pageStatus === "LoadingMore"
+            ? "Searching…"
+            : filtered.length
+              ? "Search more portfolio records"
+              : "Continue searching"}
+        </Button>
       )}
 
       <IdentityPanel enabled={!!convexUser?._id} />
