@@ -52,7 +52,7 @@ function AccountPerformance() {
   );
   const [selected, setSelected] = useState<Id<"listings"> | null>(null),
     [days, setDays] = useState(90),
-    [refreshKey, setRefreshKey] = useState(() => Date.now()),
+    [refreshKey, setRefreshKey] = useState(() => crypto.randomUUID()),
     [metric, setMetric] = useState<PerformanceMetric>("views");
   const listingId = selected;
   const report = useQuery(
@@ -62,8 +62,7 @@ function AccountPerformance() {
       : "skip",
   );
   useEffect(() => {
-    const refresh = () =>
-      setRefreshKey((previous) => Math.max(previous + 1, Date.now()));
+    const refresh = () => setRefreshKey(crypto.randomUUID());
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
     };

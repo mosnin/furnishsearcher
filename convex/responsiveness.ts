@@ -6,7 +6,10 @@ import { publiclyVisible } from "./lib/publication";
 import { responseStats, trackConversation } from "./lib/responsiveness";
 import { responseReport } from "./validators/responsiveness";
 export const report = query({
-  args: { listingId: v.id("listings"), refreshKey: v.optional(v.number()) },
+  args: {
+    listingId: v.id("listings"),
+    refreshKey: v.optional(v.union(v.string(), v.number())),
+  },
   returns: responseReport,
   handler: async (ctx, { listingId }) => {
     const me = await requireUser(ctx),

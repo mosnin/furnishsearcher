@@ -19,7 +19,7 @@ export function ResponseRatePanel({
   refreshKey,
 }: {
   listingId: Id<"listings"> | null;
-  refreshKey?: number;
+  refreshKey?: string;
 }) {
   const report = useQuery(
     api.responsiveness.report,

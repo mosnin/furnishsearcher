@@ -22,7 +22,7 @@ export const report = query({
   args: {
     listingId: v.optional(v.id("listings")),
     days: v.number(),
-    refreshKey: v.optional(v.number()),
+    refreshKey: v.optional(v.union(v.string(), v.number())),
   },
   returns: v.object({
     start: v.number(),

@@ -12,7 +12,7 @@ export function MapEligibilityPanel({
 }: {
   listingId: Id<"listings"> | null;
   days: number;
-  refreshKey?: number;
+  refreshKey?: string;
 }) {
   const report = useQuery(api.mapEligibility.report, {
     ...(listingId ? { listingId } : {}),
