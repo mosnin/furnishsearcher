@@ -43,9 +43,8 @@ assert.equal(
   0,
   "Could not verify isolated development configuration",
 );
-assert.equal(
-  config.stdout.trim(),
-  "",
+assert(
+  !config.stdout.trim(),
   "Synthetic fixture refuses enabled email delivery",
 );
 const clerk = createClerkClient({ secretKey: keys.secretKey }),

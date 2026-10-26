@@ -104,7 +104,13 @@ export const list = query({
           .filter(Boolean)
           .join(" "),
       );
-      if (!tokens.every((token) => text.includes(token))) continue;
+      const words = new Set(text.split(" "));
+      if (
+        !tokens.every((token) =>
+          /^\d+$/.test(token) ? words.has(token) : text.includes(token),
+        )
+      )
+        continue;
       const publication = await ownerReadiness(ctx, listing);
       const currentApproval = listing.approvedRevision === publication.revision;
       const directoryStatus = publication.live

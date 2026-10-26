@@ -280,3 +280,15 @@ it("orders by the listing creation timestamp and immediately reflects native edi
       .page,
   ).toEqual([]);
 });
+
+it("does not match short numeric headline tokens inside every property number", async () => {
+  const { owner, ids } = await fixture(8);
+  expect(
+    (
+      await owner.query(api.ownerDirectory.list, {
+        ...first,
+        keyword: "Synthetic property 0",
+      })
+    ).page.map((row) => row._id),
+  ).toEqual([ids.listings[0]]);
+});
