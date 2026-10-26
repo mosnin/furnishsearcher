@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-26T02:20:26.523Z",
+  "sourceCommit": "b9e6a3ee5f5ee4d28b1ca0594a129d2871439ec0",
+  "readyDeployment": "dpl_CjK283zkn5ErNwP2EJo26Pd8rpfH",
+  "environment": "hosted development preview and cheerful-ferret-182",
+  "actualReservedOwnerClerkBrowserSession": true,
+  "propertyProtectionVisible": true,
+  "steadilyUnavailableStateVisible": true,
+  "rentalGuardianUnconnectedPurchaseAndClaimsVisible": true,
+  "publicProviderLinksVerified": [
+    "https://www.steadily.com/",
+    "https://www.rentalguardian.com/"
+  ],
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "screenshots": [
+    "protection-tools-desktop.jpg",
+    "protection-tools-mobile.jpg"
+  ],
+  "fixtureWrites": 0,
+  "liveInsuranceRequests": 0,
+  "limitations": [
+    "Enabled estimate consent/selection/provider continuation covered with synthetic tests only",
+    "No approved-provider quote/policy acceptance",
+    "RentalGuardian purchase/plan management/claims not integrated"
+  ]
+}
