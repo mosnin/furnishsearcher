@@ -129,6 +129,7 @@ import type * as validators_profileImages from "../validators/profileImages.js";
 import type * as validators_rentalDocs from "../validators/rentalDocs.js";
 import type * as validators_rentalTools from "../validators/rentalTools.js";
 import type * as validators_responsiveness from "../validators/responsiveness.js";
+import type * as validators_reviewInvitations from "../validators/reviewInvitations.js";
 import type * as validators_reviews from "../validators/reviews.js";
 import type * as validators_search from "../validators/search.js";
 import type * as validators_support from "../validators/support.js";
@@ -262,6 +263,7 @@ declare const fullApi: ApiFromModules<{
   "validators/rentalDocs": typeof validators_rentalDocs;
   "validators/rentalTools": typeof validators_rentalTools;
   "validators/responsiveness": typeof validators_responsiveness;
+  "validators/reviewInvitations": typeof validators_reviewInvitations;
   "validators/reviews": typeof validators_reviews;
   "validators/search": typeof validators_search;
   "validators/support": typeof validators_support;
