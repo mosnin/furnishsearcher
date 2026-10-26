@@ -618,6 +618,7 @@ function NewListingForm() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Pet Friendly"
                     checked={form.petFriendly}
                     onCheckedChange={(v) => update("petFriendly", v)}
                   />
@@ -632,6 +633,7 @@ function NewListingForm() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Utilities Included"
                     checked={form.utilitiesIncluded}
                     onCheckedChange={(v) => update("utilitiesIncluded", v)}
                   />
@@ -646,6 +648,7 @@ function NewListingForm() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Parking Included"
                     checked={form.parkingIncluded}
                     onCheckedChange={(v) => update("parkingIncluded", v)}
                   />

@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -145,8 +146,45 @@ if (mode === "setup") {
         "[QA] Blue rotated — synthetic test panel",
       );
       assert.equal(listing.maxOccupancy, 3);
+      assert(listing.description.endsWith("Edited in the browser."));
       assert.equal(listing.price, 1875);
       assert.equal(listing.publicationRequested, false);
+      assert.equal(listing.petFriendly, false);
+      assert(!listing.amenities.includes("Pet Friendly"));
+      assert.equal(listing.availableFrom, Date.UTC(2026, 11, 2));
+      assert.deepEqual(listing.details.rooms, [
+        { name: "[QA] Bedroom", beds: "One queen bed" },
+      ]);
+      assert.deepEqual(listing.details.bathroomDetails, [
+        { name: "Bathroom 1", description: "Private full bathroom" },
+      ]);
+      assert.deepEqual(listing.details.fees, [
+        {
+          name: "[QA] Security deposit",
+          amount: 250,
+          frequency: "once",
+          refundable: true,
+        },
+      ]);
+      assert.equal(listing.details.smoking, "prohibited");
+      assert.deepEqual(listing.details.facilities, [
+        { name: "[QA] Synthetic workplace", miles: 2 },
+      ]);
+      const metadata = await Promise.all(
+        listing.photos.map(async (url) =>
+          sharp(Buffer.from(await (await fetch(url)).arrayBuffer())).metadata(),
+        ),
+      );
+      assert(
+        metadata[0].width === 1200 &&
+          metadata[0].height === 800 &&
+          metadata[0].format === "png",
+      );
+      assert(
+        metadata[1].width === 800 &&
+          metadata[1].height === 1200 &&
+          metadata[1].format === "jpeg",
+      );
       assert.equal(
         await anonymous.query(makeFunctionReference("listings:getById"), {
           id: listing._id,
@@ -163,6 +201,10 @@ if (mode === "setup") {
             browserCreatedPrivateListing: true,
             canonicalGalleryOrderAndCaptionsPersisted: true,
             priceAndOccupancyPersisted: true,
+            nativeDatePickerAndStructuredRoomDepositRuleFacilityDataPersisted: true,
+            rotatedJpegActualDimensions: [800, 1200],
+            coverPngActualDimensions: [1200, 800],
+            contradictoryLegacyPetAmenityNoLongerDisplayed: true,
             anonymousPrivateListingDenied: true,
             publicPaidIdentityAcceptance: false,
             productionChanged: false,
