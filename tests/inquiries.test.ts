@@ -264,7 +264,7 @@ describe("inquiry retry acknowledgement", () => {
     });
   });
   it("binds a retry reference to the original listing, dates, party, pets and normalized message", async () => {
-    const { tenant, request } = await fixture(),
+    const { t, tenant, request } = await fixture(),
       args = { ...request, clientRequestId: crypto.randomUUID() };
     const id = await tenant.mutation(api.inquiries.create, args);
     expect(
@@ -273,7 +273,17 @@ describe("inquiry retry acknowledgement", () => {
         message: ` ${args.message} `,
       }),
     ).toBe(id);
+    const secondListing = await t.run(async (ctx) => {
+      const { _id, _creationTime, ...fields } = (await ctx.db.get(
+        request.listingId,
+      ))!;
+      return ctx.db.insert("listings", {
+        ...fields,
+        title: "Different synthetic rental",
+      });
+    });
     for (const change of [
+      { listingId: secondListing },
       { moveIn: request.moveIn + DAY },
       { moveOut: request.moveOut + DAY },
       { occupants: 2 },
