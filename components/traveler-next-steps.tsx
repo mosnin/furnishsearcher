@@ -18,7 +18,7 @@ export function useTravelerDashboard(enabled: boolean) {
     loadMore,
   } = usePaginatedQuery(
     api.travelerDashboard.stays,
-    enabled ? { refreshKey } : "skip",
+    enabled && account ? { refreshKey, windowDay: account.day } : "skip",
     { initialNumItems: 10 },
   );
   useEffect(() => {

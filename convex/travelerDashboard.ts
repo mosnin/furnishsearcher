@@ -117,16 +117,30 @@ const stay = v.object({
 export const stays = query({
   args: {
     refreshKey: v.optional(v.string()),
+    windowDay: v.optional(v.number()),
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(stay),
   handler: async (ctx, args) => {
     const user = await requireUser(ctx),
       day = Math.floor(Date.now() / DAY) * DAY;
+    // The account's native day freezes the cursor range. Older windows remain
+    // readable, but classification always uses today's native clock.
+    const windowDay = args.windowDay ?? day;
+    if (
+      !Number.isSafeInteger(windowDay) ||
+      windowDay < 0 ||
+      windowDay % DAY ||
+      windowDay > day
+    )
+      throw new Error("Refresh the dashboard to obtain a current stay window.");
     const result = await ctx.db
       .query("bookingInquiries")
       .withIndex("by_tenant_status_end", (q) =>
-        q.eq("tenantId", user._id).eq("status", "accepted").gt("moveOut", day),
+        q
+          .eq("tenantId", user._id)
+          .eq("status", "accepted")
+          .gt("moveOut", windowDay),
       )
       .order("asc")
       .paginate({
@@ -135,6 +149,7 @@ export const stays = query({
       });
     const page = [];
     for (const inquiry of result.page) {
+      if (inquiry.moveOut <= day) continue;
       const [listing, owner] = await Promise.all([
         ctx.db.get(inquiry.listingId),
         ctx.db.get(inquiry.landlordId),

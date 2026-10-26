@@ -75,12 +75,16 @@ const title = `[QA] Traveler dashboard ${randomUUID().slice(0, 8)}`,
 let listingId;
 const inquiryIds = [];
 const stays = async () => {
+  const windowDay = (
+    await call(tenant, "query", "travelerDashboard:account", {})
+  ).day;
   let cursor = null,
     done = false;
   const rows = [];
   for (let n = 0; !done; n++) {
     assert(n < 100);
     const p = await call(tenant, "query", "travelerDashboard:stays", {
+      windowDay,
       paginationOpts: { cursor, numItems: 10 },
     });
     rows.push(...p.page);

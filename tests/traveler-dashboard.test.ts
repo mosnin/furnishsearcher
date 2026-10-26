@@ -287,3 +287,34 @@ it("sends malformed legacy saved criteria to management instead of failing the w
   expect(task?.href).toBe("/dashboard/tenant/searches");
   expect(task?.title).toContain("Review your saved search");
 });
+it("freezes the candidate cursor cutoff across midnight while excluding newly ended stays and rejecting future clock selectors", async () => {
+  const { t, tenant, ids } = await fixture(3);
+  await t.run(async (ctx) => {
+    await ctx.db.patch(ids.stays[0].inquiry, { moveOut: day + DAY });
+    await ctx.db.patch(ids.stays[2].inquiry, { moveOut: day + 2 * DAY });
+  });
+  const windowDay = (await tenant.query(api.travelerDashboard.account, {})).day;
+  const page = await tenant.query(api.travelerDashboard.stays, {
+    windowDay,
+    paginationOpts: { cursor: null, numItems: 1 },
+  });
+  expect(page.page[0].id).toBe(ids.stays[0].inquiry);
+  vi.setSystemTime(day + DAY + 1000);
+  const remaining = await tenant.query(api.travelerDashboard.stays, {
+    windowDay,
+    paginationOpts: { cursor: page.continueCursor, numItems: 10 },
+  });
+  expect(remaining.page).toHaveLength(2);
+  expect(remaining.page.every((row) => row.asOfDay === day + DAY)).toBe(true);
+  expect(
+    (
+      await tenant.query(api.travelerDashboard.stays, { windowDay, ...first })
+    ).page.some((row) => row.id === ids.stays[0].inquiry),
+  ).toBe(false);
+  await expect(
+    tenant.query(api.travelerDashboard.stays, {
+      windowDay: day + 2 * DAY,
+      ...first,
+    }),
+  ).rejects.toThrow("current stay window");
+});
