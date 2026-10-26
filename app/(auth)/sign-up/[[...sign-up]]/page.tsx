@@ -4,15 +4,17 @@ import { CheckCircle2 } from "lucide-react";
 const features = [
   {
     title: "List your property",
-    description: "Create a beautiful listing in minutes with photos and details.",
+    description: "Add photos, pricing, availability and property details.",
   },
   {
     title: "Connect with tenants",
-    description: "Reach thousands of pre-vetted renters looking right now.",
+    description:
+      "Discuss stay dates and rental details directly with travelers.",
   },
   {
-    title: "No platform fees",
-    description: "Keep 100% of your rent. We never take a cut.",
+    title: "Arrange rent directly",
+    description:
+      "Arrange rent and deposits with your tenant through your chosen provider.",
   },
 ];
 
@@ -63,15 +65,20 @@ export default function SignUpPage() {
                   <CheckCircle2 className="w-5 h-5 text-blue-300" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-base">{f.title}</p>
-                  <p className="text-blue-200 text-sm mt-0.5">{f.description}</p>
+                  <p className="text-white font-semibold text-base">
+                    {f.title}
+                  </p>
+                  <p className="text-blue-200 text-sm mt-0.5">
+                    {f.description}
+                  </p>
                 </div>
               </li>
             ))}
           </ul>
 
           <p className="text-blue-300/70 text-xs">
-            Join 15,000+ property owners already using FurnishFinder.
+            Create an account to manage your rental search, listings and
+            conversations.
           </p>
         </div>
       </div>

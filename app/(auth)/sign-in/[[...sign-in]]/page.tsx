@@ -4,11 +4,13 @@ import { CheckCircle2 } from "lucide-react";
 const features = [
   {
     title: "No booking fees",
-    description: "Pay only your rent — we never charge hidden platform fees.",
+    description:
+      "No platform payment is required to search or send an inquiry.",
   },
   {
-    title: "300k+ listings",
-    description: "Furnished monthly rentals across every major US city.",
+    title: "Monthly rental search",
+    description:
+      "Search by location, stay dates, monthly budget and amenities.",
   },
   {
     title: "Direct landlord messaging",
@@ -63,15 +65,20 @@ export default function SignInPage() {
                   <CheckCircle2 className="w-5 h-5 text-blue-300" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-base">{f.title}</p>
-                  <p className="text-blue-200 text-sm mt-0.5">{f.description}</p>
+                  <p className="text-white font-semibold text-base">
+                    {f.title}
+                  </p>
+                  <p className="text-blue-200 text-sm mt-0.5">
+                    {f.description}
+                  </p>
                 </div>
               </li>
             ))}
           </ul>
 
           <p className="text-blue-300/70 text-xs">
-            Trusted by 50,000+ renters and landlords across the US.
+            Save searches, compare rental details, and keep conversations in
+            your account.
           </p>
         </div>
       </div>

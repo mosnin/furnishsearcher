@@ -6,7 +6,7 @@ import { TOP_CITIES, STATES } from "@/lib/cities";
 export const metadata: Metadata = {
   title: "Browse Furnished Rentals by City | FurnishFinder",
   description:
-    "Find furnished monthly rentals in 100+ cities across all 50 states. Browse by city or state and connect directly with landlords — no booking fees.",
+    "Browse city and state search links for furnished monthly rentals. Open search to check current public listings and contact owners.",
 };
 
 export default function CitiesPage() {
@@ -37,9 +37,11 @@ export default function CitiesPage() {
       <section className="bg-amber-400 py-6 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-extrabold text-[#1e3a8a]">100+</p>
+            <p className="text-2xl font-extrabold text-[#1e3a8a]">
+              {TOP_CITIES.length}
+            </p>
             <p className="text-xs font-semibold text-[#1e3a8a]/70 uppercase tracking-wide">
-              Cities
+              City search links
             </p>
           </div>
           <div>
@@ -47,13 +49,13 @@ export default function CitiesPage() {
               {STATES.length}
             </p>
             <p className="text-xs font-semibold text-[#1e3a8a]/70 uppercase tracking-wide">
-              States
+              State search links
             </p>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-[#1e3a8a]">300k+</p>
+            <p className="text-2xl font-extrabold text-[#1e3a8a]">Search</p>
             <p className="text-xs font-semibold text-[#1e3a8a]/70 uppercase tracking-wide">
-              Listings
+              Current listings
             </p>
           </div>
         </div>
@@ -63,10 +65,8 @@ export default function CitiesPage() {
       <section className="py-10 px-4">
         <div className="max-w-4xl mx-auto">
           <p className="text-center text-slate-600 text-lg font-medium">
-            Listings in{" "}
-            <span className="text-[#1e3a8a] font-bold">100+ cities</span>{" "}
-            across{" "}
-            <span className="text-[#1e3a8a] font-bold">all 50 states</span>
+            Browse city and state search links, then check current public rental
+            results.
           </p>
         </div>
       </section>
@@ -82,9 +82,9 @@ export default function CitiesPage() {
               <Link
                 key={`${city.name}-${city.stateCode}`}
                 href={`/search?location=${encodeURIComponent(
-                  `${city.name}, ${city.stateCode}`
+                  `${city.name}, ${city.stateCode}`,
                 )}&city=${encodeURIComponent(city.name)}&state=${encodeURIComponent(
-                  city.stateCode
+                  city.stateCode,
                 )}`}
                 className="inline-block bg-white border border-[#1e3a8a]/20 hover:border-[#1e3a8a] hover:bg-[#1e3a8a]/5 text-[#1e3a8a] font-medium text-sm px-4 py-2 rounded-full transition-colors"
               >
