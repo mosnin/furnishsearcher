@@ -258,27 +258,54 @@ export default function BookingPage({
           )}
           <p className="text-sm whitespace-pre-wrap">{i.message}</p>
           <p className="text-sm text-slate-600">
-            Confirmation reserves the calendar. Agree on the lease, rent,
-            deposits and cancellation policy directly with your stay partner.
+            {active && booking.calendarReserved === true
+              ? "These dates have a matching calendar reservation. "
+              : "Stay status and calendar availability are shown separately. "}
+            Agree on the lease, rent, deposits and cancellation policy directly
+            with your stay partner.
           </p>
         </CardContent>
       </Card>
+      {active && booking.calendarReserved === false && (
+        <section
+          role="alert"
+          className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2"
+        >
+          <h2 className="font-semibold">This stay needs calendar repair</h2>
+          <p className="text-sm">
+            The agreed dates are recorded, but a matching calendar reservation
+            could not be verified. Resolve this before requesting or accepting
+            changes.
+          </p>
+          {owner ? (
+            <a className="underline text-sm" href="#repair-booking-calendar">
+              Review and repair this calendar entry
+            </a>
+          ) : (
+            <p className="text-sm">
+              Ask the owner to review and repair the calendar entry.
+            </p>
+          )}
+        </section>
+      )}
       <RentalSteps
         inquiryId={inquiryId}
         owner={owner}
         canRequest={["pending", "accepted"].includes(i.status)}
       />
-      {active && (owner || i.moveOut > Date.now()) && (
-        <Card>
-          <CardContent className="p-5">
-            <ChangeForm
-              key={booking.revision}
-              booking={booking}
-              owner={owner}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {active &&
+        booking.calendarReserved === true &&
+        (owner || i.moveOut > Date.now()) && (
+          <Card>
+            <CardContent className="p-5">
+              <ChangeForm
+                key={booking.revision}
+                booking={booking}
+                owner={owner}
+              />
+            </CardContent>
+          </Card>
+        )}
       <section className="space-y-3">
         <h2 className="font-semibold">Change requests</h2>
         {changes.results.length === 0 && (
@@ -320,7 +347,11 @@ export default function BookingPage({
                     ) : (
                       <>
                         <Button
-                          disabled={busy || booking.cannotMessage}
+                          disabled={
+                            busy ||
+                            booking.cannotMessage ||
+                            booking.calendarReserved === false
+                          }
                           onClick={() =>
                             run(
                               () =>
@@ -409,7 +440,10 @@ export default function BookingPage({
         </CardContent>
       </Card>
       {owner && active && (
-        <details className="rounded-xl border p-4">
+        <details
+          id="repair-booking-calendar"
+          className="scroll-mt-20 rounded-xl border p-4"
+        >
           <summary className="font-semibold cursor-pointer">
             Repair an older booking calendar entry
           </summary>

@@ -48,6 +48,7 @@ export const get = query({
     canReview: v.boolean(),
     reviewEnd: v.number(),
     cannotMessage: v.boolean(),
+    calendarReserved: v.union(v.boolean(), v.null()),
   }),
   handler: async (ctx, { id }) => {
     const { user, inquiry: i } = await requireBooking(ctx, id),
@@ -55,6 +56,15 @@ export const get = query({
       other = await ctx.db.get(
         user._id === i.landlordId ? i.tenantId : i.landlordId,
       );
+    let calendarReserved: boolean | null = null;
+    if (i.status === "accepted") {
+      try {
+        await bookingBlock(ctx, i);
+        calendarReserved = true;
+      } catch {
+        calendarReserved = false;
+      }
+    }
     return {
       inquiry: i,
       title: l?.title ?? "Past property",
@@ -65,6 +75,7 @@ export const get = query({
       reviewEnd: reviewEnd(i),
       cannotMessage: (await blockState(ctx, i.tenantId, i.landlordId))
         .cannotMessage,
+      calendarReserved,
     };
   },
 });

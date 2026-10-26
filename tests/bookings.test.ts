@@ -96,6 +96,59 @@ async function fixture() {
   return { t, ids, owner, tenant, other, staff, id, request, current, propose };
 }
 describe("confirmed stay changes and cancellation", () => {
+  it("shows missing confirmed-calendar coverage to both participants and resolves after native repair", async () => {
+    const f = await fixture();
+    expect((await f.current()).calendarReserved).toBe(true);
+    const blockId = (await f.current()).inquiry.availabilityBlockId!;
+    await f.t.run((ctx) => ctx.db.delete(blockId));
+    expect((await f.current()).calendarReserved).toBe(false);
+    expect(
+      (await f.tenant.query(api.bookings.get, { id: f.id })).calendarReserved,
+    ).toBe(false);
+    await expect(f.propose()).rejects.toThrow("needs repair");
+    await f.owner.mutation(api.bookings.repairCalendar, {
+      id: f.id,
+      expectedRevision: 1,
+      note: "Restore missing synthetic calendar coverage",
+    });
+    expect((await f.current()).calendarReserved).toBe(true);
+    expect(
+      (await f.tenant.query(api.bookings.get, { id: f.id })).calendarReserved,
+    ).toBe(true);
+    expect((await f.current()).inquiry.moveOut).toBe(end);
+  });
+  it("does not claim coverage from a mismatched-date or non-booked calendar entry", async () => {
+    const f = await fixture(),
+      id = (await f.current()).inquiry.availabilityBlockId!;
+    await f.t.run((ctx) => ctx.db.patch(id, { endDate: end + DAY }));
+    expect((await f.current()).calendarReserved).toBe(false);
+    await f.t.run((ctx) =>
+      ctx.db.patch(id, { endDate: end, type: "unavailable" }),
+    );
+    expect((await f.current()).calendarReserved).toBe(false);
+  });
+  it("keeps non-confirmed and cancelled status separate from calendar reservation claims", async () => {
+    const f = await fixture();
+    const change = await f.propose("cancel");
+    await f.owner.mutation(api.bookings.decide, {
+      id: change,
+      decision: "accepted",
+    });
+    expect((await f.current()).calendarReserved).toBeNull();
+    const pending = await f.t.run((ctx) =>
+      ctx.db.insert("bookingInquiries", {
+        ...f.request,
+        landlordId: f.ids.owner,
+        tenantId: f.ids.tenant,
+        status: "pending",
+        createdAt: clock,
+        updatedAt: clock,
+      }),
+    );
+    expect(
+      (await f.owner.query(api.bookings.get, { id: pending })).calendarReserved,
+    ).toBeNull();
+  });
   it("keeps requested dates reserved until the other participant accepts and updates block and inquiry atomically", async () => {
     const f = await fixture();
     const change = await f.propose();
