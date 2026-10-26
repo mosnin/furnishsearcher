@@ -1,3 +1,4 @@
+import { publicListingCard } from "./lib/publicListingCard";
 import { syncRecommendation } from "./lib/recommendations";
 import { listingAmenities } from "../lib/listing-features";
 import { findActiveUser } from "./lib/auth";
@@ -642,13 +643,20 @@ export const getByLandlord = query({
           (listing): listing is NonNullable<typeof listing> => listing !== null,
         );
     return Promise.all(
-      visible.map(async (listing) => ({
-        ...(await listingPhotos(ctx, listing)),
-        address: canManage ? listing.address : "",
-        ...(canManage
-          ? { publication: await ownerReadiness(ctx, listing) }
-          : {}),
-      })),
+      visible.map(async (listing) =>
+        canManage
+          ? {
+              ...(await listingPhotos(ctx, listing)),
+              address: listing.address,
+              publication: await ownerReadiness(ctx, listing),
+            }
+          : {
+              ...(await publicListingCard(ctx, listing)),
+              amenities: listingAmenities(listing),
+              address: "",
+              status: "active" as const,
+            },
+      ),
     );
   },
 });

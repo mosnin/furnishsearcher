@@ -204,3 +204,38 @@ it("bounds the legacy array API and directs oversized portfolios to pagination i
       client.query(api.listings.getByLandlord, { landlordId: ids.owner }),
     ).rejects.toThrow("paged");
 });
+
+it("also strips management metadata from the bounded legacy public array while preserving owner management access", async () => {
+  const { t, owner, ids } = await fixture();
+  const publicRows = await t.query(api.listings.getByLandlord, {
+    landlordId: ids.owner,
+  });
+  expect(Object.keys(publicRows[0]).sort()).toEqual(
+    [
+      "_id",
+      "title",
+      "city",
+      "state",
+      "price",
+      "bedrooms",
+      "bathrooms",
+      "propertyType",
+      "photos",
+      "petFriendly",
+      "parkingIncluded",
+      "utilitiesIncluded",
+      "availableFrom",
+      "minStay",
+      "featured",
+      "amenities",
+      "address",
+      "status",
+    ].sort(),
+  );
+  expect(publicRows[0].address).toBe("");
+  const ownRows = await owner.query(api.listings.getByLandlord, {
+    landlordId: ids.owner,
+  });
+  expect(ownRows[0].address).toBe("PRIVATE ADDRESS");
+  expect(ownRows[0]).toHaveProperty("publication");
+});
