@@ -1,4 +1,5 @@
 import { convexTest } from "convex-test";
+import type { FunctionReturnType } from "convex/server";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import schema from "../convex/schema";
 import { api, internal } from "../convex/_generated/api";
@@ -131,6 +132,62 @@ async function fixture() {
   return { t, ids, owner, tenant, other, staff, reserve, upload };
 }
 describe("private rental document lifecycle", () => {
+  it("pages complete uploader history while restricting the recipient to the exact shared version", async () => {
+    const f = await fixture();
+    let current = await f.upload(pdf("VERSION 1"));
+    let sharedId = current.versionId;
+    for (let n = 2; n <= 12; n++) {
+      current = await f.upload(pdf(`VERSION ${n}`), {
+        documentId: current.documentId,
+        expectedVersionId: current.versionId,
+      });
+      if (n === 3) {
+        sharedId = current.versionId;
+        await f.owner.mutation(api.rentalDocs.share, {
+          documentId: current.documentId,
+          versionId: sharedId,
+        });
+      }
+    }
+    let cursor: string | null = null,
+      done = false;
+    const seen: number[] = [];
+    while (!done) {
+      const result: FunctionReturnType<typeof api.rentalDocs.versions> =
+        await f.owner.query(api.rentalDocs.versions, {
+          documentId: current.documentId,
+          paginationOpts: { cursor, numItems: 3 },
+        });
+      seen.push(...result.page.map((v) => v.version));
+      expect(JSON.stringify(result)).not.toContain("storageId");
+      expect(JSON.stringify(result)).not.toContain("keyId");
+      cursor = result.continueCursor;
+      done = result.isDone;
+    }
+    expect(seen).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    const recipient = await f.tenant.query(api.rentalDocs.versions, {
+      documentId: current.documentId,
+      paginationOpts: { cursor: null, numItems: 100 },
+    });
+    expect(recipient.page.map((v) => v._id)).toEqual([sharedId]);
+    expect(recipient.isDone).toBe(true);
+    for (const client of [f.other, f.staff, f.t])
+      await expect(
+        client.query(api.rentalDocs.versions, {
+          documentId: current.documentId,
+          paginationOpts: page,
+        }),
+      ).rejects.toThrow();
+    await f.owner.mutation(api.rentalDocs.unshare, {
+      documentId: current.documentId,
+    });
+    await expect(
+      f.tenant.query(api.rentalDocs.versions, {
+        documentId: current.documentId,
+        paginationOpts: page,
+      }),
+    ).rejects.toThrow("unavailable");
+  });
   it("stores encrypted bytes, returns no bearer URLs or storage IDs, and authenticates every download", async () => {
     const f = await fixture(),
       d = await f.upload(),
