@@ -75,7 +75,7 @@ export default function CitiesPage() {
       <section className="py-8 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-lg font-bold text-[#1e3a8a] mb-5">
-            Most Popular Cities
+            Selected City Searches
           </h2>
           <div className="flex flex-wrap gap-2">
             {popularCities.map((city) => (
