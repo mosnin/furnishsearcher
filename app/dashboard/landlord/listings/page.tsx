@@ -311,7 +311,7 @@ export default function LandlordListingsPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1 min-w-0 p-4 flex flex-col gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-slate-900 truncate">
@@ -370,91 +370,95 @@ export default function LandlordListingsPage() {
                         </p>
                       </div>
 
-                      <Link
-                        className="text-xs underline"
-                        href={`/dashboard/landlord/listings/${listing._id}/location`}
-                      >
-                        {listing.locationConfirmedAt
-                          ? "Location confirmed"
-                          : "Confirm map location"}
-                      </Link>
-                      <Link
-                        className="text-xs underline"
-                        href={`/dashboard/landlord/listings/${listing._id}/units`}
-                      >
-                        Property units
-                      </Link>
-                      {/* Actions */}
-                      <div className="flex flex-wrap items-center gap-2 sm:max-w-64">
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/listings/${listing._id}`}>
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            View
-                          </Link>
-                        </Button>
-                        <Button asChild variant="outline" size="sm">
-                          <Link
-                            href={`/dashboard/landlord/listings/${listing._id}/edit`}
-                          >
-                            <Pencil className="h-3.5 w-3.5 mr-1" />
-                            Edit
-                          </Link>
-                        </Button>
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          title="Manage availability"
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Link
+                          className="text-xs underline"
+                          href={`/dashboard/landlord/listings/${listing._id}/location`}
                         >
-                          <Link
-                            href={`/dashboard/landlord/listings/${listing._id}/availability`}
-                          >
-                            <CalendarDays className="h-3.5 w-3.5" />
-                          </Link>
-                        </Button>
-                        {!(
-                          listing.featured &&
-                          listing.featuredUntil &&
-                          listing.featuredUntil > Date.now()
-                        ) && (
-                          <FeatureListingButton
-                            listingId={listing._id as Id<"listings">}
-                            className="h-8 px-3 text-xs"
-                          />
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            handleToggle(
-                              listing._id as Id<"listings">,
-                              listing.publication?.live ? "active" : "inactive",
-                            )
-                          }
-                          title={
-                            listing.publication?.live
-                              ? "Hide listing"
-                              : "Request publication"
-                          }
-                          className="text-slate-500"
+                          {listing.locationConfirmedAt
+                            ? "Location confirmed"
+                            : "Confirm map location"}
+                        </Link>
+                        <Link
+                          className="text-xs underline"
+                          href={`/dashboard/landlord/listings/${listing._id}/units`}
                         >
-                          {listing.publication?.live ? (
-                            <ToggleRight className="h-5 w-5 text-emerald-600" />
-                          ) : (
-                            <ToggleLeft className="h-5 w-5" />
+                          Property units
+                        </Link>
+                        {/* Actions */}
+                        <div className="flex flex-wrap items-center gap-2 sm:max-w-64">
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/listings/${listing._id}`}>
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              View
+                            </Link>
+                          </Button>
+                          <Button asChild variant="outline" size="sm">
+                            <Link
+                              href={`/dashboard/landlord/listings/${listing._id}/edit`}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-1" />
+                              Edit
+                            </Link>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            title="Manage availability"
+                          >
+                            <Link
+                              href={`/dashboard/landlord/listings/${listing._id}/availability`}
+                            >
+                              <CalendarDays className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                          {!(
+                            listing.featured &&
+                            listing.featuredUntil &&
+                            listing.featuredUntil > Date.now()
+                          ) && (
+                            <FeatureListingButton
+                              listingId={listing._id as Id<"listings">}
+                              className="h-8 px-3 text-xs"
+                            />
                           )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setDeleteTarget(listing._id as Id<"listings">)
-                          }
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          title="Delete listing"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              handleToggle(
+                                listing._id as Id<"listings">,
+                                listing.publication?.live
+                                  ? "active"
+                                  : "inactive",
+                              )
+                            }
+                            title={
+                              listing.publication?.live
+                                ? "Hide listing"
+                                : "Request publication"
+                            }
+                            className="text-slate-500"
+                          >
+                            {listing.publication?.live ? (
+                              <ToggleRight className="h-5 w-5 text-emerald-600" />
+                            ) : (
+                              <ToggleLeft className="h-5 w-5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setDeleteTarget(listing._id as Id<"listings">)
+                            }
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            title="Delete listing"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
