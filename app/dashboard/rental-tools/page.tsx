@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RENTAL_TOOLS } from "@/lib/rental-tools";
+import OwnerProtectionTools from "@/components/owner-protection-tools";
 export default function RentalToolsPage() {
   return (
     <main className="mx-auto max-w-5xl p-6 space-y-6">
@@ -37,6 +38,7 @@ export default function RentalToolsPage() {
           </Card>
         ))}
       </div>
+      <OwnerProtectionTools />
       <Card>
         <CardContent className="p-5 space-y-3">
           <h2 className="font-semibold">Keep each step clear</h2>

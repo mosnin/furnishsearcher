@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T02:17:57.531Z",
+  "environment": "https://cheerful-ferret-182.convex.cloud",
+  "authClass": "actual provider-issued Clerk JWT for reserved development owner",
+  "providerAvailable": false,
+  "nativeOwnerPagedProperties": 4,
+  "pageBound": 20,
+  "anonymousPrivateAddressesDenied": true,
+  "unavailableActionDenied": true,
+  "providerRequestsSent": 0,
+  "fixtureWrites": 0,
+  "limitations": [
+    "No approved Steadily credentials or live provider acceptance",
+    "No RentalGuardian purchase, plan-change or claim integration",
+    "No policy or coverage created"
+  ]
+}

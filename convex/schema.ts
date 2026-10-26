@@ -41,6 +41,13 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  insuranceEstimateLimits: defineTable({
+    key: v.string(),
+    day: v.number(),
+    count: v.number(),
+    nextAllowedAt: v.number(),
+    requestId: v.string(),
+  }).index("by_key", ["key"]),
   listingRecommendations: defineTable({
     geoIndexed: v.optional(v.boolean()),
     listingId: v.id("listings"),
