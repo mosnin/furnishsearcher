@@ -1,9 +1,9 @@
 {
-  "verifiedAt": "2026-10-25T03:40:17.579Z",
+  "verifiedAt": "2026-10-26T03:57:33.643Z",
   "target": "http://127.0.0.1:3210",
   "hosted": false,
   "identity": "Privileged local development identities, not actual Clerk browser/JWT authentication",
-  "reviewId": "m179qmjq8qqxc4xc7jct4ejchn8gysb4",
+  "reviewId": "m17dfq7j5x04vthb4ex01aqcs18h004h",
   "syntheticStayOnly": true,
   "retiredPriorAttempts": 0,
   "pendingHidden": true,
@@ -16,6 +16,9 @@
   "removalHidesAndRestoresRatingTotals": true,
   "decisionsPersistWithoutEmailConfiguration": true,
   "fixtureLeftRemoved": true,
+  "removedReviewReplacementPending": true,
+  "priorReplyRetainedOnlyInAudit": true,
+  "staleAuthorRevisionDenied": true,
   "realCustomerDataChanged": false,
   "actualEmailDelivery": false
 }

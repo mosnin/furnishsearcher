@@ -84,10 +84,11 @@ const append = (table, row) => {
 };
 const page = { cursor: null, numItems: 20 },
   receiptPath = "docs/evidence/hosted-review-replacement-native.json";
-const writeReceipt = (fields) => {
-  const receipt = existsSync(receiptPath)
-    ? JSON.parse(readFileSync(receiptPath, "utf8"))
-    : {};
+const writeReceipt = (fields, reset = false) => {
+  const receipt =
+    !reset && existsSync(receiptPath)
+      ? JSON.parse(readFileSync(receiptPath, "utf8"))
+      : {};
   writeFileSync(
     receiptPath,
     JSON.stringify(
@@ -225,15 +226,18 @@ if (mode === "setup") {
     subjectId: fixture.tenant.id,
   });
   assert.equal(context.canSubmit, true);
-  writeReceipt({
-    deployment,
-    actualReservedClerkJwts: true,
-    privilegedPreconditions:
-      "Imported private pending contact and removed review with historical reply. No real stay, public publication, paid/identity grant or actual review approval.",
-    realPersonMessages: 0,
-    realEmailDelivery: false,
-    cleaned: false,
-  });
+  writeReceipt(
+    {
+      deployment,
+      actualReservedClerkJwts: true,
+      privilegedPreconditions:
+        "Imported private pending contact and removed review with historical reply. No real stay, public publication, paid/identity grant or actual review approval.",
+      realPersonMessages: 0,
+      realEmailDelivery: false,
+      cleaned: false,
+    },
+    true,
+  );
   console.log(
     "Private removed-review context prepared for reserved owner; no publication or provider request.",
   );
@@ -357,15 +361,23 @@ if (mode === "setup") {
         expectedRevision: review.revision,
         note: "[QA] Retire synthetic replacement. No real stay occurred; no authenticity or approval claimed.",
       });
-    await call(tenant, "mutation", "inquiries:respond", {
+    const booking = await call(owner, "query", "bookings:get", {
       id: fixture.inquiryId,
-      decision: "withdrawn",
     });
+    assert.equal(booking.inquiry.listingId, fixture.listingId);
+    if (booking.inquiry.status === "pending")
+      await call(tenant, "mutation", "inquiries:respond", {
+        id: fixture.inquiryId,
+        decision: "withdrawn",
+      });
+    else assert.equal(booking.inquiry.status, "withdrawn");
     const listing = await call(owner, "query", "listings:getById", {
       id: fixture.listingId,
     });
     assert(listing.title === fixture.title && listing.landlordId === me._id);
-    await call(owner, "mutation", "listings:remove", { id: fixture.listingId });
+    await call(owner, "mutation", "listings:deleteListing", {
+      id: fixture.listingId,
+    });
     const jwt = (
       await clerk.sessions.getToken(fixture.staff.sessionId, "convex")
     ).jwt;

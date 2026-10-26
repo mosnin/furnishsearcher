@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-26",
+  "sourceSha": "37aa95eb45d5e171bf7c3d8b2f933734c6161de7",
+  "deployment": "dpl_FzgVj2oNjHSdhoCXw9azqurzmYQ2",
+  "context": "Actual reserved owner browser. Imported private pending contact and removed synthetic review/reply are explicit preconditions; no real stay or public approval.",
+  "beforeDeployRemovedReviewHadNoReplacementAction": true,
+  "removedReviewReplacementButtonWorks": true,
+  "oldTextStayContextAndFeedbackPrefilled": true,
+  "ratingAndTitleDraftEditsWork": true,
+  "freshExperienceConfirmationUnchecked": true,
+  "submitDisabledUntilReconfirmed": true,
+  "browserDraftCancelledWithoutSubmission": true,
+  "nativeReplacementThenReactiveBrowserPending": true,
+  "pendingReplacementNoResubmitAction": true,
+  "noPublishedReceivedReview": true,
+  "mobile": {
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "dialogLeft": 0,
+    "dialogRight": 390
+  },
+  "defaultViewportRestored": true,
+  "cleanupReactiveRemovedHistoryAndUnavailableActionWithheld": true,
+  "emailUnconfiguredTruthfullyShown": true,
+  "screenshots": [
+    "../review-replacement-form-mobile.jpg",
+    "../review-replacement-pending-desktop.jpg",
+    "../review-replacement-retained-desktop.jpg"
+  ],
+  "limits": "Browser opened/edited/cancelled the form; it did not accept the experience attestation or submit. Persistence was tested with a separate actual owner native JWT. No staff browser decision or real email delivery."
+}
