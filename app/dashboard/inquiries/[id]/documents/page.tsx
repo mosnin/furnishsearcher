@@ -42,6 +42,12 @@ function DocumentCard({
   const shared = doc.shared,
     version = doc.latest ?? shared,
     own = doc.creatorId === me;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const history = usePaginatedQuery(
+    api.rentalDocs.versions,
+    own && historyOpen ? { documentId: doc._id } : "skip",
+    { initialNumItems: 10 },
+  );
   const share = useMutation(api.rentalDocs.share),
     unshare = useMutation(api.rentalDocs.unshare),
     ack = useMutation(api.rentalDocs.acknowledge),
@@ -82,10 +88,19 @@ function DocumentCard({
         <h2 className="font-semibold">
           {doc.title} · {doc.kind.replaceAll("_", " ")}
         </h2>
-        <p className="text-sm">
-          {doc.state} · {version?.filename} · version {version?.version} ·{" "}
+        <p className="text-sm break-words">
+          {own && version?._id !== shared?._id
+            ? "Private draft"
+            : "Shared version"}{" "}
+          · {version?.filename} · version {version?.version} ·{" "}
           {version ? Math.ceil(version.bytes / 1024) : 0} KB
         </p>
+        {own && shared && shared._id !== version?._id && (
+          <p className="text-sm break-words">
+            Currently shared with your stay partner: {shared.filename} · version{" "}
+            {shared.version}
+          </p>
+        )}
         {version?.source === "rocketlawyer_signed" ? (
           <p className="text-sm font-medium">
             {version.providerMode === "sandbox"
@@ -100,7 +115,7 @@ function DocumentCard({
         )}
         {shared?.acknowledgedAt && (
           <p className="text-sm">
-            Receipt acknowledged{" "}
+            Receipt acknowledged for shared version {shared.version}{" "}
             {new Date(shared.acknowledgedAt).toLocaleString()}.
           </p>
         )}
@@ -195,6 +210,72 @@ function DocumentCard({
             </>
           )}
         </div>
+        {own && (
+          <details
+            className="border-t pt-3"
+            onToggle={(e) => setHistoryOpen(e.currentTarget.open)}
+          >
+            <summary className="cursor-pointer font-medium">
+              Version history
+            </summary>
+            {historyOpen && (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-slate-500">
+                  Only the uploader can access all saved versions here. Your
+                  stay partner can access only the currently shared version.
+                  Previously downloaded copies remain with their recipients.
+                </p>
+                {history.status === "LoadingFirstPage" && (
+                  <p role="status" className="text-sm">
+                    Loading version history…
+                  </p>
+                )}
+                {history.results.map((saved) => (
+                  <article
+                    key={saved._id}
+                    className="rounded-md border p-3 space-y-2"
+                  >
+                    <p className="text-sm break-words">
+                      Version {saved.version} · {saved.filename}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {saved._id === shared?._id
+                        ? "Currently shared"
+                        : "Not currently shared"}{" "}
+                      · {new Date(saved.createdAt).toLocaleString()}
+                    </p>
+                    {saved.acknowledgedAt && (
+                      <p className="text-xs">
+                        Receipt acknowledged{" "}
+                        {new Date(saved.acknowledgedAt).toLocaleString()}; this
+                        is not a signature.
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => download(saved)}
+                    >
+                      Download version {saved.version}
+                    </Button>
+                  </article>
+                ))}
+                {(history.status === "CanLoadMore" ||
+                  history.status === "LoadingMore") && (
+                  <Button
+                    variant="outline"
+                    disabled={history.status === "LoadingMore"}
+                    onClick={() => history.loadMore(10)}
+                  >
+                    {history.status === "LoadingMore"
+                      ? "Loading older versions…"
+                      : "Load older versions"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </details>
+        )}
         {shared &&
           (owner ? own : !own) &&
           ["lease", "addendum"].includes(doc.kind) && (
