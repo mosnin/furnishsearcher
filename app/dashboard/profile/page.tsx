@@ -434,11 +434,12 @@ function PersonalInfoTab({
       </section>
 
       {/* About */}
-      <section>
+      <section id="traveler-introduction">
         <h2 className="text-base font-semibold text-gray-900 mb-2">
           Tell us about yourself
         </h2>
         <textarea
+          aria-label="Profile introduction"
           value={form.bio}
           onChange={set("bio")}
           rows={4}

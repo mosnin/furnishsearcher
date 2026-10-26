@@ -1,4 +1,8 @@
 "use client";
+import TravelerNextSteps, {
+  TravelerStays,
+  useTravelerDashboard,
+} from "@/components/traveler-next-steps";
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -233,6 +237,7 @@ export default function TenantDashboardPage() {
     convexUser?._id ? {} : "skip",
   );
   const conversations = inboxSummary?.ready ? inboxSummary.recent : undefined;
+  const travelerDashboard = useTravelerDashboard(!!convexUser);
 
   const featuredListings = useQuery(api.listings.getFeatured, {}) as
     | ConvListing[]
@@ -286,6 +291,19 @@ export default function TenantDashboardPage() {
     }
   };
 
+  if (convexUser === null)
+    return (
+      <div className="p-6">
+        <h1 className="text-xl font-semibold">Complete your profile</h1>
+        <p className="my-3">
+          Set up your app profile to view your private traveler dashboard.
+        </p>
+        <Button asChild>
+          <Link href="/onboarding">Continue profile setup</Link>
+        </Button>
+      </div>
+    );
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -313,6 +331,12 @@ export default function TenantDashboardPage() {
         </Button>
       </div>
 
+      <TravelerNextSteps
+        dashboard={travelerDashboard}
+        unread={unreadMessages}
+        inboxReady={!!inboxSummary?.ready}
+      />
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -336,18 +360,20 @@ export default function TenantDashboardPage() {
           loading={isLoading || conversations === undefined}
         />
         <StatCard
-          title="Active Stays"
-          value={0}
+          title="Active stays loaded"
+          value={travelerDashboard.active}
           icon={Home}
-          loading={isLoading}
+          loading={isLoading || travelerDashboard.loading}
         />
         <StatCard
-          title="Upcoming Move-ins"
-          value={0}
+          title="Upcoming move-ins loaded"
+          value={travelerDashboard.upcoming}
           icon={CalendarDays}
-          loading={isLoading}
+          loading={isLoading || travelerDashboard.loading}
         />
       </div>
+
+      <TravelerStays dashboard={travelerDashboard} />
 
       {/* Saved Listings */}
       <section>

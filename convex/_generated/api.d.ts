@@ -116,6 +116,7 @@ import type * as support from "../support.js";
 import type * as supportEmails from "../supportEmails.js";
 import type * as syncCalendars from "../syncCalendars.js";
 import type * as threadContext from "../threadContext.js";
+import type * as travelerDashboard from "../travelerDashboard.js";
 import type * as units from "../units.js";
 import type * as users from "../users.js";
 import type * as validators_billing from "../validators/billing.js";
@@ -254,6 +255,7 @@ declare const fullApi: ApiFromModules<{
   supportEmails: typeof supportEmails;
   syncCalendars: typeof syncCalendars;
   threadContext: typeof threadContext;
+  travelerDashboard: typeof travelerDashboard;
   units: typeof units;
   users: typeof users;
   "validators/billing": typeof validators_billing;

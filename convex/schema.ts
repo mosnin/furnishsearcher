@@ -1109,6 +1109,7 @@ export default defineSchema({
   })
     .index("by_tenantId", ["tenantId"])
     .index("by_tenant_request", ["tenantId", "clientRequestId"])
+    .index("by_tenant_status_end", ["tenantId", "status", "moveOut"])
     .index("by_availability_block", ["availabilityBlockId"])
     .index("by_listing_tenant_status_dates", [
       "listingId",
