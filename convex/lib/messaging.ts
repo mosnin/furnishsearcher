@@ -1,3 +1,4 @@
+import { trackConversation } from "./responsiveness";
 import { recordPerformance } from "./performance";
 import { syncInbox } from "./inbox";
 import { recordDemand } from "./market";
@@ -27,6 +28,10 @@ export async function sendListingMessage(
   if (sender._id !== args.senderId) throw new Error("Not authorized");
   if (args.senderId === args.receiverId)
     throw new Error("You cannot message yourself.");
+  if (args.origin === "housing_request" && !args.housingRequestId)
+    throw new Error(
+      "Housing-request messages require their native request binding.",
+    );
   const content = args.content.trim();
   if (!content || content.length > 2000)
     throw new Error("Enter a message of up to 2,000 characters.");
@@ -196,6 +201,11 @@ export async function sendListingMessage(
       : {}),
     emailStatus: "pending",
   });
+  await trackConversation(
+    ctx,
+    (await ctx.db.get(conversationId))!,
+    (await ctx.db.get(messageId))!,
+  );
   await ctx.scheduler.runAfter(0, internal.messageEmails.notify, { messageId });
   return { messageId, conversationId };
 }

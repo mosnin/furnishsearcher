@@ -110,12 +110,6 @@ export default function LandlordProfilePage({ params }: PageProps) {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-
-              {/* Response time badge */}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-full px-3 py-1.5 self-start sm:self-auto">
-                <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                <span>Typically responds within 24 hours</span>
-              </div>
             </div>
 
             {/* Name & badges */}

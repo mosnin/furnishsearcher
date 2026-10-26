@@ -2,6 +2,7 @@
 
 import { RemoveSavedDialog } from "@/components/remove-saved-dialog";
 import { ShareListingButton } from "@/components/share-listing-button";
+import { ListingResponseTime } from "@/components/response-rate-panel";
 import { ListingPhoneContact } from "@/components/listing-phone-contact";
 import { PropertyUnits } from "@/components/property-units";
 import { ListingDetails } from "@/components/listing-details";
@@ -496,6 +497,7 @@ export default function ListingDetailPage({ params }: PageProps) {
                       {landlordName}
                     </p>
                     <p className="text-[12px] text-slate-500">Property Owner</p>
+                    <ListingResponseTime listingId={listing._id} />
                     {ratingStats && ratingStats.count > 0 && landlord && (
                       <LandlordBadges
                         averageRating={ratingStats.average}

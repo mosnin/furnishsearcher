@@ -41,6 +41,55 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  responseTrackingState: defineTable({
+    key: v.literal("v1"),
+    cursor: v.union(v.string(), v.null()),
+    complete: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+  responseThreads: defineTable({
+    conversationId: v.id("conversations"),
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    qualification: v.union(
+      v.literal("qualified"),
+      v.literal("excluded"),
+      v.literal("unknown"),
+    ),
+    startedAt: v.optional(v.number()),
+    firstMessageId: v.optional(v.id("messages")),
+    replyAt: v.optional(v.number()),
+    replyMessageId: v.optional(v.id("messages")),
+    rateEpoch: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_listing_started", ["listingId", "ownerId", "startedAt"])
+    .index("by_listing_epoch_started", [
+      "listingId",
+      "ownerId",
+      "rateEpoch",
+      "startedAt",
+    ])
+    .index("by_listing_qualification", [
+      "listingId",
+      "ownerId",
+      "qualification",
+    ]),
+  responseDays: defineTable({
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    day: v.number(),
+    rateEpoch: v.number(),
+    received: v.number(),
+    onTime: v.number(),
+    replied: v.number(),
+    bands: v.array(v.number()),
+  }).index("by_listing_day_epoch", [
+    "listingId",
+    "ownerId",
+    "day",
+    "rateEpoch",
+  ]),
   listingLeadEmailPreferences: defineTable({
     listingId: v.id("listings"),
     ownerId: v.id("users"),
@@ -388,6 +437,7 @@ export default defineSchema({
     .index("by_deleted", ["deleted"]),
 
   users: defineTable({
+    responseRateResetAt: v.optional(v.number()),
     identityCheckId: v.optional(v.id("identityChecks")),
     identityHold: v.optional(v.boolean()),
     clerkId: v.string(),
@@ -620,6 +670,13 @@ export default defineSchema({
       filterFields: ["senderId", "receiverId"],
     })
     .index("by_conversation", ["conversationId"])
+    .index("by_conversation_time", ["conversationId", "createdAt"])
+    .index("by_conversation_sender_origin_time", [
+      "conversationId",
+      "senderId",
+      "origin",
+      "createdAt",
+    ])
     .index("by_receiver", ["receiverId"])
     .index("by_sender_request", ["senderId", "clientRequestId"])
     .index("by_conversation_receiver_read", [

@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-26T00:52:59.973Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedLocalQaIdentities": true,
+  "publicationPrerequisites": {
+    "syntheticOnly": true,
+    "identityAndPayment": "Privileged local fixture state; not actual Jumio verification or a Creem transaction",
+    "staffApproval": "Actual authorized local mutation with the expected content revision"
+  },
+  "nativeTravelerFirstAndRetry": true,
+  "nativeOwnerReply": true,
+  "privateRate100": true,
+  "publicLabelOnly": true,
+  "foreignAndAnonymousPrivateReadsDenied": true,
+  "ineligibleResetDenied": true,
+  "publicLabelHiddenAfterUnpublish": true,
+  "ownRentalDeletedAndConversationArchived": true,
+  "historyRetained": true,
+  "sharedOwnerResetNotUsed": true,
+  "actualEmailOrSmsSent": false,
+  "productionChanged": false
+}

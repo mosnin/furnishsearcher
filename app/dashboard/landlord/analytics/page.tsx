@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ResponseRatePanel } from "@/components/response-rate-panel";
 import { MapEligibilityPanel } from "@/components/map-eligibility-panel";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
@@ -138,6 +139,7 @@ function AccountPerformance() {
           </select>
         </label>
       </div>
+      <ResponseRatePanel key={listingId ?? "all"} listingId={listingId} />
       {status === "LoadingFirstPage" || status === "LoadingMore" ? (
         <p role="status">Loading rental spaces…</p>
       ) : results.length === 0 ? (

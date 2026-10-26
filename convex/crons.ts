@@ -147,4 +147,10 @@ crons.interval(
   internal.accountOffboarding.reconcile,
   { cursor: null },
 );
+crons.interval(
+  "Refresh response statistics window and resume adoption",
+  { hours: 1 },
+  internal.responsiveness.tick,
+  {},
+);
 export default crons;
