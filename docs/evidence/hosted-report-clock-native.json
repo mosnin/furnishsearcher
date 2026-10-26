@@ -1,0 +1,144 @@
+{
+  "checkedAt": "2026-10-26T04:42:40.472Z",
+  "deployment": "cheerful-ferret-182",
+  "actualReservedClerkOwner": true,
+  "readOnly": true,
+  "noFixturesOrAuthorityImported": true,
+  "propertyPages": 1,
+  "properties": 4,
+  "clockKeysDoNotChooseUtcWindows": true,
+  "serverWindowAndSampleValidated": true,
+  "anonymousReportsDenied": true,
+  "expectedCsvFiles": 12,
+  "reports": [
+    {
+      "scope": "all",
+      "days": 7,
+      "start": 1792454400000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 7,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 1,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    },
+    {
+      "scope": "all",
+      "days": 30,
+      "start": 1790467200000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 30,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 1,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    },
+    {
+      "scope": "all",
+      "days": 90,
+      "start": 1785283200000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 90,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 1,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    },
+    {
+      "scope": "space",
+      "days": 7,
+      "start": 1792454400000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 7,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 0,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    },
+    {
+      "scope": "space",
+      "days": 30,
+      "start": 1790467200000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 30,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 0,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    },
+    {
+      "scope": "space",
+      "days": 90,
+      "start": 1785283200000,
+      "end": 1793059200000,
+      "mode": "test",
+      "activityRows": 90,
+      "observedMapDays": 2,
+      "totals": {
+        "impressions": 0,
+        "views": 0,
+        "shares": 0,
+        "saves": 0,
+        "unsaves": 0,
+        "bookingRequests": 0,
+        "threads": 0,
+        "matchedLeads": 0,
+        "phoneReveals": 0,
+        "unmatchedLeads": 0
+      }
+    }
+  ],
+  "limits": "Positive values are existing accepted development events, not public marketplace traffic or verified visitors. This probe does not simulate the browser clock or actual UTC rollover.",
+  "sourceSha": "fecb94b6e103121ec33e3b0fbbe6b19e1971c5ab",
+  "deploymentId": "dpl_AQ9dFkUtcjAEdEX4uWDBxL3TaD9x"
+}
