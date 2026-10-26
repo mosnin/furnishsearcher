@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-26T01:51:54.283Z",
+  "development": "cheerful-ferret-182",
+  "actualReservedClerkOwnerJwt": true,
+  "versionedSpatialIndexReady": true,
+  "recommendationIndexReady": true,
+  "noFabricatedPublicRentals": true,
+  "privateNativeSavedCriteria": {
+    "sort": "recommended",
+    "city": "Austin",
+    "state": "TX",
+    "maxPrice": 2100,
+    "emailAlerts": false
+  },
+  "anonymousSavedSearchReadDenied": true,
+  "realMailOrSmsSent": false,
+  "productionChanged": false,
+  "ownSavedSearchDeleted": true
+}
