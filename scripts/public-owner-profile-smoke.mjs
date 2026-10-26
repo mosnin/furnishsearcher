@@ -109,6 +109,48 @@ for (const row of guest.rows) {
   assert(privateRow?.publication.live);
   assert(row.photos.length <= 1);
 }
+let privatePreviews = 0;
+for (const managedRow of managed.rows) {
+  const managerView = await query(owner, "listings:getById", {
+    id: managedRow._id,
+  });
+  assert(managerView?.canManage);
+  assert.equal(managerView.isPublic, managedRow.publication.live);
+  const guestView = await query(anonymous, "listings:getById", {
+    id: managedRow._id,
+  });
+  if (managedRow.publication.live) {
+    assert(guestView?.isPublic);
+    assert.equal(guestView.canManage, false);
+    assert.equal(guestView.address, "");
+  } else {
+    assert.equal(guestView, null);
+    privatePreviews++;
+  }
+}
+writeFileSync(
+  `docs/evidence/${mode}-listing-preview-native.json`,
+  JSON.stringify(
+    {
+      checkedAt: new Date().toISOString(),
+      environment: url,
+      authClass,
+      readOnly: true,
+      managedRentals: managed.rows.length,
+      privatePreviews,
+      publicRentals: guest.rows.length,
+      managerFlagRequiresNativeOwner: true,
+      publicFlagMatchesCurrentReadiness: true,
+      privatePreviewsDeniedToAnonymous: true,
+      publicTravelerViewRedactsAddress: true,
+      syntheticLocalPrerequisites: mode === "local",
+      syntheticCloudGrants: false,
+      providerRequests: 0,
+    },
+    null,
+    2,
+  ) + "\n",
+);
 const live = managed.rows.filter((r) => r.publication.live);
 assert.deepEqual(
   new Set(guest.rows.map((r) => r._id)),

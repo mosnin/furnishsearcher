@@ -40,6 +40,7 @@ const summary = v.object({
 export const create = mutation({
   args: {
     listingId: v.id("listings"),
+    clientRequestId: v.optional(v.string()),
     moveIn: v.number(),
     moveOut: v.number(),
     occupants: v.number(),
@@ -49,6 +50,40 @@ export const create = mutation({
   returns: v.id("bookingInquiries"),
   handler: async (ctx, args) => {
     const tenant = await requireUser(ctx);
+    if (args.clientRequestId !== undefined) {
+      if (
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
+          args.clientRequestId,
+        )
+      )
+        throw new Error("Invalid inquiry send reference.");
+      const previous = await ctx.db
+        .query("bookingInquiries")
+        .withIndex("by_tenant_request", (q) =>
+          q
+            .eq("tenantId", tenant._id)
+            .eq("clientRequestId", args.clientRequestId),
+        )
+        .unique();
+      if (previous) {
+        const original = previous.originalRequest;
+        if (
+          !original ||
+          previous.listingId !== args.listingId ||
+          original.moveIn !== args.moveIn ||
+          original.moveOut !== args.moveOut ||
+          original.occupants !== args.occupants ||
+          original.pets !== args.pets ||
+          original.message !== args.message.trim()
+        )
+          throw new Error(
+            "Inquiry send reference already used for another request.",
+          );
+        // Recover the original acknowledgement, without creating work or reapplying
+        // current availability gates to a request that has already been saved.
+        return previous._id;
+      }
+    }
     const listing = await ctx.db.get(args.listingId);
     if (!listing || !(await publiclyVisible(ctx, listing)))
       throw new Error("This listing is unavailable.");

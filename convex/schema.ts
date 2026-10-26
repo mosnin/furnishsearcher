@@ -1080,6 +1080,7 @@ export default defineSchema({
     .index("by_calendarFeedId", ["calendarFeedId"]),
 
   bookingInquiries: defineTable({
+    clientRequestId: v.optional(v.string()),
     conversationId: v.optional(v.id("conversations")),
     originalRequest: v.optional(originalRequest),
     listingId: v.id("listings"),
@@ -1101,6 +1102,7 @@ export default defineSchema({
     availabilityBlockId: v.optional(v.id("availabilityBlocks")),
   })
     .index("by_tenantId", ["tenantId"])
+    .index("by_tenant_request", ["tenantId", "clientRequestId"])
     .index("by_availability_block", ["availabilityBlockId"])
     .index("by_listing_tenant_status_dates", [
       "listingId",

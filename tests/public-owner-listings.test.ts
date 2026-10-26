@@ -239,3 +239,28 @@ it("also strips management metadata from the bounded legacy public array while p
   expect(ownRows[0].address).toBe("PRIVATE ADDRESS");
   expect(ownRows[0]).toHaveProperty("publication");
 });
+
+it("distinguishes public traveler views from authorized private detail previews", async () => {
+  const { t, owner, staff, traveler, ids } = await fixture();
+  const args = { id: ids.listings[0] };
+  expect(await t.query(api.listings.getById, args)).toMatchObject({
+    isPublic: true,
+    canManage: false,
+    address: "",
+  });
+  expect(await owner.query(api.listings.getById, args)).toMatchObject({
+    isPublic: true,
+    canManage: true,
+    address: "PRIVATE ADDRESS",
+  });
+  await t.run((ctx) =>
+    ctx.db.patch(ids.listings[0], { publicationRequested: false }),
+  );
+  expect(await t.query(api.listings.getById, args)).toBeNull();
+  expect(await traveler.query(api.listings.getById, args)).toBeNull();
+  for (const manager of [owner, staff])
+    expect(await manager.query(api.listings.getById, args)).toMatchObject({
+      isPublic: false,
+      canManage: true,
+    });
+});

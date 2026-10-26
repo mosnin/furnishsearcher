@@ -61,6 +61,7 @@ export const changeDoc = v.object({
   _creationTime: v.number(),
 });
 export const inquiryDoc = v.object({
+  clientRequestId: v.optional(v.string()),
   conversationId: v.optional(v.id("conversations")),
   originalRequest: v.optional(originalRequest),
   _id: v.id("bookingInquiries"),

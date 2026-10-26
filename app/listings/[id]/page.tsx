@@ -195,6 +195,11 @@ export default function ListingDetailPage({ params }: PageProps) {
       router.push(`/sign-in?redirect_url=/listings/${id}`);
       return;
     }
+    if (convexUser === null) {
+      router.push("/onboarding");
+      return;
+    }
+    if (!convexUser) return;
     setContactOpen(true);
   };
 
@@ -280,6 +285,35 @@ export default function ListingDetailPage({ params }: PageProps) {
             {title}
           </span>
         </nav>
+
+        {listing.canManage && (
+          <section
+            role="status"
+            className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm space-y-2"
+          >
+            <h2 className="font-semibold">
+              {listing.isPublic
+                ? "You manage this rental"
+                : "Private listing preview"}
+            </h2>
+            <p>
+              {listing.isPublic
+                ? "This rental is currently public. Inquiry, contact and save controls are shown to travelers."
+                : "This rental is not public. Only authorized managers can see this preview; travelers cannot view or contact it through this page."}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link
+                className="underline"
+                href={`/dashboard/landlord/listings/${listing._id}/edit`}
+              >
+                Edit listing
+              </Link>
+              <Link className="underline" href="/dashboard/landlord/listings">
+                Review publication requirements
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* Photo gallery */}
         <PhotoGallery
@@ -509,59 +543,76 @@ export default function ListingDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                <BookingInquiry
-                  listingId={listing._id}
-                  minStay={minStay}
-                  petFriendly={listing.petFriendly}
-                />
+                {listing.isPublic && !listing.canManage && (
+                  <>
+                    <BookingInquiry
+                      key={`${listing._id}:${convexUser?._id ?? "guest"}`}
+                      listingId={listing._id}
+                      minStay={minStay}
+                      petFriendly={listing.petFriendly}
+                      needsProfile={!!clerkUser && convexUser === null}
+                    />
 
-                {/* Contact button */}
-                <button
-                  onClick={handleContactClick}
-                  className="w-full h-11 bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-semibold rounded-xl transition-colors shadow-sm"
-                >
-                  Contact Landlord
-                </button>
+                    {/* Contact button */}
+                    <button
+                      onClick={handleContactClick}
+                      disabled={
+                        !clerkLoaded ||
+                        (!!clerkUser && convexUser === undefined)
+                      }
+                      className="w-full h-11 bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-semibold rounded-xl transition-colors shadow-sm"
+                    >
+                      Contact Landlord
+                    </button>
 
-                <ListingPhoneContact listingId={listing._id} />
+                    <ListingPhoneContact listingId={listing._id} />
+                  </>
+                )}
                 <p className="text-xs text-slate-500 break-all">
                   Property ID: {listing.publicId ?? listing._id}
                 </p>
-                {/* Save + Share */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveToggle}
-                    disabled={
-                      saveBusy ||
-                      (clerkLoaded &&
-                        !!clerkUser &&
-                        (convexUser === undefined ||
-                          (!!convexUser && savedStatus === undefined)))
-                    }
-                    aria-pressed={displaySaved}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-[14px] font-medium transition-colors",
-                      displaySaved
-                        ? "border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100"
-                        : "border-slate-200 text-slate-700 hover:bg-slate-50",
-                    )}
-                  >
-                    <Heart
-                      className={cn(
-                        "h-4 w-4",
-                        displaySaved && "fill-rose-500 text-rose-500",
+                {listing.isPublic && (
+                  <>
+                    {/* Save + Share */}
+                    <div className="flex gap-2">
+                      {!listing.canManage && (
+                        <button
+                          onClick={handleSaveToggle}
+                          disabled={
+                            saveBusy ||
+                            (clerkLoaded &&
+                              !!clerkUser &&
+                              (convexUser === undefined ||
+                                (!!convexUser && savedStatus === undefined)))
+                          }
+                          aria-pressed={displaySaved}
+                          className={cn(
+                            "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-[14px] font-medium transition-colors",
+                            displaySaved
+                              ? "border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100"
+                              : "border-slate-200 text-slate-700 hover:bg-slate-50",
+                          )}
+                        >
+                          <Heart
+                            className={cn(
+                              "h-4 w-4",
+                              displaySaved && "fill-rose-500 text-rose-500",
+                            )}
+                          />
+                          {displaySaved ? "Saved" : "Save"}
+                        </button>
                       )}
-                    />
-                    {displaySaved ? "Saved" : "Save"}
-                  </button>
-                  <ShareListingButton
-                    title={listing.title}
-                    onShared={() => recordShare([listing._id])}
-                  />
-                </div>
+                      <ShareListingButton
+                        title={listing.title}
+                        onShared={() => recordShare([listing._id])}
+                      />
+                    </div>
 
-                <ReportDialog listingId={listing._id} />
-
+                    {!listing.canManage && (
+                      <ReportDialog listingId={listing._id} />
+                    )}
+                  </>
+                )}
                 {/* Trust indicators */}
                 <div className="rounded-xl bg-slate-50 px-4 py-3 flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-[12px] text-slate-500">
@@ -655,7 +706,9 @@ export default function ListingDetailPage({ params }: PageProps) {
               )}
             </div>
             <div className="flex items-center gap-3">
-              {clerkUser &&
+              {listing.isPublic &&
+                !listing.canManage &&
+                clerkUser &&
                 convexUser &&
                 convexUser._id !== listing.landlordId && (
                   <button
@@ -680,8 +733,9 @@ export default function ListingDetailPage({ params }: PageProps) {
       </div>
 
       {/* Contact modal */}
-      {convexUser && listing && (
+      {convexUser && listing.isPublic && !listing.canManage && (
         <ContactModal
+          key={`${listing._id}:${convexUser._id}`}
           listingId={listing._id}
           landlordId={landlordId}
           landlordName={landlordName}

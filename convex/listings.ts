@@ -468,12 +468,15 @@ export const getById = query({
       : null;
     const canManage =
       caller?._id === listing.landlordId || caller?.role === "admin";
-    if (!canManage && !(await publiclyVisible(ctx, listing))) return null;
+    const isPublic = await publiclyVisible(ctx, listing);
+    if (!canManage && !isPublic) return null;
     const landlord = await ctx.db.get(listing.landlordId),
       view = await listingPhotos(ctx, listing);
     return {
       ...view,
       address: canManage ? view.address : "",
+      isPublic,
+      canManage,
       landlord: landlord
         ? {
             _id: landlord._id,
