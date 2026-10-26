@@ -87,6 +87,7 @@ let receipt = existsSync(receiptPath)
   ? JSON.parse(readFileSync(receiptPath, "utf8"))
   : {};
 const checkpoint = () => {
+  receipt.checkedAt = new Date().toISOString();
   save();
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + "\n");
 };
@@ -409,6 +410,13 @@ if (mode === "setup") {
       id: fixture.inquiryId,
     });
     assert.equal(retained.inquiry.status, "cancelled");
+    assert.equal(retained.calendarReserved, null);
+    const retainedEvents = await call(owner, "query", "bookings:events", {
+      id: fixture.inquiryId,
+      paginationOpts: { cursor: null, numItems: 20 },
+    });
+    for (const action of receipt.historyActions)
+      assert(retainedEvents.page.some((e) => e.action === action));
     fixture.cleaned = true;
     receipt.cleaned = true;
     receipt.onlyOwnListingAndDisposableClerkTravelerRemoved = true;

@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-10-26T02:55:22.932Z",
+  "sourceCommit": "bad8b51bc90193302bea20ee4960755764cc21cf",
+  "readyDeployment": "dpl_HkDi255cy6gfCzgXXW3J7srAo5HT",
+  "actualReservedOwnerClerkBrowser": true,
+  "privilegedExistingAcceptedHistoryPrecondition": true,
+  "missingCalendarWarningVisible": true,
+  "dateChangeFormWithheldUntilRepair": true,
+  "browserFollowedRepairAnchorAndSavedNote": true,
+  "warningClearedReactivelyAndFormAppeared": true,
+  "travelerRequestedExtensionThroughActualNativeClerkJwt": true,
+  "browserOwnerAcceptedExtension": true,
+  "bookingAndCalendarAgreeThroughNativeChecks": true,
+  "calendarPageShowsExtendedBlockedNights": "1/15/2027 – 3/14/2027",
+  "checkout": "2027-03-15",
+  "calendarManageStayLinkReturnsToExactInquiry": true,
+  "browserOwnerProposedCancellationWithAgreementCheckboxOff": true,
+  "pendingRequestKeepsDatesReserved": true,
+  "travelerAcceptedCancellationThroughNativeJwt": true,
+  "cancelledStatusAndPreservedDatesUpdatedReactivelyWithoutReload": true,
+  "ownerHistoryRemainsReadableAfterOwnFixtureCleanup": true,
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "dateFields": [
+      {
+        "left": 45,
+        "right": 189
+      },
+      {
+        "left": 201,
+        "right": 345
+      }
+    ]
+  },
+  "defaultViewportRestored": true,
+  "nativeReceipt": "hosted-stay-lifecycle-native.json",
+  "cleaned": true,
+  "screenshots": [
+    "stay-calendar-warning-desktop.jpg",
+    "stay-extension-pending-mobile.jpg",
+    "stay-calendar-linked-desktop.jpg",
+    "stay-cancelled-desktop.jpg",
+    "stay-cancelled-retained-desktop.jpg"
+  ],
+  "limitations": [
+    "Imported accepted-history precondition; public inquiry/confirmation not verified",
+    "Traveler actions through native SDK, not a second browser",
+    "No paid/identity entitlement, lease, payment, live email or calendar-provider acceptance"
+  ]
+}
