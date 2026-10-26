@@ -102,7 +102,9 @@ export default function CasePage({
       <section className="rounded-xl border bg-white p-5 space-y-3">
         <p className="font-medium">{ticket.name}</p>
         <p className="whitespace-pre-wrap break-words">{ticket.body}</p>
-        {ticket.isStaff && <p className="text-sm">Contact: {ticket.email}</p>}
+        {ticket.isStaff && (
+          <p className="text-sm break-all">Contact: {ticket.email}</p>
+        )}
       </section>
       {ticket.isStaff && (
         <section className="rounded-xl border bg-white p-5 space-y-4">
@@ -169,10 +171,10 @@ export default function CasePage({
               }, "Review saved");
             }}
           >
-            <label className="flex gap-3 items-center">
+            <label className="flex flex-col gap-2 sm:flex-row sm:gap-3 sm:items-center">
               Set status
               <select
-                className="rounded border p-2"
+                className="w-full min-w-0 max-w-full rounded border p-2 sm:w-auto"
                 value={nextStatus}
                 onChange={(e) =>
                   setNextStatus(e.target.value as typeof nextStatus)
@@ -184,10 +186,10 @@ export default function CasePage({
               </select>
             </label>
             {ticket.listingId && (
-              <label className="flex gap-3 items-center">
+              <label className="flex flex-col gap-2 sm:flex-row sm:gap-3 sm:items-center">
                 Listing action
                 <select
-                  className="rounded border p-2"
+                  className="w-full min-w-0 max-w-full rounded border p-2 sm:w-auto"
                   value={listingAction}
                   onChange={(e) =>
                     setListingAction(e.target.value as typeof listingAction)
