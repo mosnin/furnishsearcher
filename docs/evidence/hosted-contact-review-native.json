@@ -12,5 +12,7 @@
   "historyReadableAndStaffNotesPrivate": true,
   "realPublicPaidIdentityOrSmsAcceptance": false,
   "realPersonMessageEmailOrSmsSent": false,
-  "productionChanged": false
+  "productionChanged": false,
+  "reviewReleased": true,
+  "disposableStaffDeletedAndNativeAuthorityRevokedBeforeJwtExpiry": true
 }

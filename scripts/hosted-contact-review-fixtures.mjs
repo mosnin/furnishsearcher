@@ -279,7 +279,42 @@ if (mode === "setup") {
     ).page.find((row) => row.request._id === history.requestId);
     assert(item && !item.contactRestricted);
     if (mode === "cleanup") {
+      const { jwt } = await clerk.sessions.getToken(
+        fixture.sessionId,
+        "convex",
+      );
+      const claims = JSON.parse(
+        Buffer.from(jwt.split(".")[1], "base64url").toString(),
+      );
+      assert(claims.exp > Date.now() / 1000 + 15);
+      staff.setAuth(jwt);
       await clerk.users.deleteUser(fixture.clerkUserId);
+      let revoked = false;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        if (
+          (await call(staff, "query", "users:getByClerkId", {
+            clerkId: fixture.clerkUserId,
+          })) === null
+        ) {
+          revoked = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      assert(
+        revoked && claims.exp > Date.now() / 1000,
+        "Native staff authority must be revoked before token expiry",
+      );
+      await assert.rejects(
+        call(staff, "query", "support:get", { id: fixture.caseId }),
+      );
+      const receiptPath = "docs/evidence/hosted-contact-review-native.json";
+      const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+      Object.assign(receipt, {
+        reviewReleased: true,
+        disposableStaffDeletedAndNativeAuthorityRevokedBeforeJwtExpiry: true,
+      });
+      writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + "\n");
       fixture.cleaned = true;
       save();
       console.log(
