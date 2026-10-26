@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { PROPERTY_TYPES, AMENITIES } from "@/lib/utils";
+import { PROPERTY_TYPES, OWNER_AMENITIES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -648,7 +648,7 @@ export default function EditListingPage() {
                   Amenities
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {AMENITIES.map((amenity) => (
+                  {OWNER_AMENITIES.map((amenity) => (
                     <label
                       key={amenity}
                       className="flex items-center gap-2.5 cursor-pointer"

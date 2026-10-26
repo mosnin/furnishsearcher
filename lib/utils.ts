@@ -31,7 +31,7 @@ export function formatStayDate(date: number): string {
   }).format(new Date(date));
 }
 
-export { PROPERTY_TYPES, AMENITIES } from "./search-options";
+export { PROPERTY_TYPES, AMENITIES, OWNER_AMENITIES } from "./search-options";
 
 export const BUDGET_OPTIONS = [
   { label: "Under $1,500/mo", value: "1500" },

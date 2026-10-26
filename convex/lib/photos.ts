@@ -1,3 +1,4 @@
+import { listingAmenities } from "../../lib/listing-features";
 import { verifiedFeature } from "./billing";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -45,9 +46,10 @@ export async function listingPhotos<T extends Doc<"listings">>(
   listing: T,
 ) {
   const featured = await verifiedFeature(ctx, listing);
+  const effective = { ...listing, amenities: listingAmenities(listing) };
   if (!listing.photoAssets)
     return {
-      ...listing,
+      ...effective,
       featured,
       photoCaptions: listing.photos.map(() => ""),
       photoDrafts: listing.photos.map((url) => ({
@@ -75,7 +77,7 @@ export async function listingPhotos<T extends Doc<"listings">>(
     } => !!photo.url,
   );
   return {
-    ...listing,
+    ...effective,
     featured,
     photos: existing.map((p) => p.url),
     photoCaptions: existing.map((p) => p.caption),

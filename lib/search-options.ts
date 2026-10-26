@@ -33,3 +33,8 @@ export const SORT_OPTIONS = [
   "price_desc",
   "most_viewed",
 ] as const;
+
+// These features have their own labeled switches in the owner editor.
+export const OWNER_AMENITIES = AMENITIES.filter(
+  (label) => !["Pet Friendly", "Parking", "Utilities Included"].includes(label),
+);

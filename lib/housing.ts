@@ -1,3 +1,4 @@
+import { listingAmenities } from "./listing-features";
 import { v, type Infer } from "convex/values";
 import type { Doc } from "../convex/_generated/dataModel";
 import { housingCriteria } from "../convex/validators/housing";
@@ -129,7 +130,10 @@ export function housingDifferences(
       `Maximum ${listing.maxOccupancy}`,
     );
   const missing = (request.amenities ?? []).filter(
-    (a) => !listing.amenities.some((b) => a.toLowerCase() === b.toLowerCase()),
+    (a) =>
+      !listingAmenities(listing).some(
+        (b) => a.toLowerCase() === b.toLowerCase(),
+      ),
   );
   if (missing.length)
     add("Amenities", missing.join(", "), "Not listed for this rental space");

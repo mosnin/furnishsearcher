@@ -1,3 +1,4 @@
+import { listingAmenities } from "../lib/listing-features";
 import { findActiveUser } from "./lib/auth";
 import { syncPhotoReferences } from "./lib/photoRetention";
 import { profileImage } from "./lib/profileImages";
@@ -147,7 +148,7 @@ export const create = mutation({
         ? { details: validateListingDetails(args.details) }
         : {}),
       propertyType: args.propertyType,
-      amenities: args.amenities,
+      amenities: listingAmenities(args),
       photos: [],
       ...(photoAssets ? { photoAssets } : {}),
       petFriendly: args.petFriendly,
@@ -263,6 +264,12 @@ export const update = mutation({
     const patch = {
       ...names,
       ...updates,
+      amenities: listingAmenities({
+        amenities: args.amenities ?? listing.amenities,
+        petFriendly: args.petFriendly ?? listing.petFriendly,
+        parkingIncluded: args.parkingIncluded ?? listing.parkingIncluded,
+        utilitiesIncluded: args.utilitiesIncluded ?? listing.utilitiesIncluded,
+      }),
       ...(assets
         ? { photoAssets: assets, photos: [] }
         : photos
@@ -546,7 +553,7 @@ export const search = query({
       listings = listings.filter((l) => l.utilitiesIncluded);
     if (args.amenities?.length)
       listings = listings.filter((l) =>
-        args.amenities!.every((a) => l.amenities.includes(a)),
+        args.amenities!.every((a) => listingAmenities(l).includes(a)),
       );
     if (args.moveIn !== undefined || args.moveOut !== undefined) {
       if (args.moveIn === undefined || args.moveOut === undefined)

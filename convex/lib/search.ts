@@ -1,3 +1,4 @@
+import { listingAmenities } from "../../lib/listing-features";
 import { distanceMiles } from "../../lib/geo";
 import { publiclyVisible } from "./publication";
 import type { Doc } from "../_generated/dataModel";
@@ -80,7 +81,7 @@ export async function matchSearch(
     bathrooms: listing.bathrooms,
     propertyType: listing.propertyType,
     photos: (await listingPhotos(ctx, listing)).photos.slice(0, 5),
-    amenities: listing.amenities,
+    amenities: listingAmenities(listing),
     petFriendly: listing.petFriendly,
     utilitiesIncluded: listing.utilitiesIncluded,
     parkingIncluded: listing.parkingIncluded,

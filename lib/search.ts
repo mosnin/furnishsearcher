@@ -1,3 +1,4 @@
+import { listingAmenities } from "./listing-features";
 import {
   validatePoint,
   validateBounds,
@@ -455,7 +456,7 @@ export function matchesSearch(listing: Listing, f: SearchFilters) {
     "parkingIncluded",
   ] as const)
     if (f[key] !== undefined && listing[key] !== f[key]) return false;
-  return !f.amenities?.some((a) => !listing.amenities.includes(a));
+  return !f.amenities?.some((a) => !listingAmenities(listing).includes(a));
 }
 export function availableSearchStay(
   listing: {

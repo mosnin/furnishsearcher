@@ -137,3 +137,144 @@ describe("owner-supplied listing details", () => {
     expect(validateListingDetails(details).fees[0].amount).toBe(1000.25);
   });
 });
+
+describe("authoritative pet, parking and utility features", () => {
+  it("discards contradictory overlapping amenity labels when creating a rental", async () => {
+    const { t, owner, data } = await fixture();
+    const id = await owner.mutation(api.listings.create, {
+      ...data,
+      petFriendly: false,
+      parkingIncluded: false,
+      utilitiesIncluded: false,
+      amenities: [
+        "WiFi",
+        "Pet Friendly",
+        "Parking",
+        " Utilities Included ",
+        "pet friendly",
+        "WiFi",
+      ],
+    });
+    const raw = await t.run((ctx) => ctx.db.get(id));
+    expect(raw?.amenities).toEqual(["WiFi"]);
+    expect(raw).toMatchObject({
+      petFriendly: false,
+      parkingIncluded: false,
+      utilitiesIncluded: false,
+    });
+  });
+  it("keeps native partial feature and amenity updates consistent without changing unrelated flags", async () => {
+    const { t, owner, other, data } = await fixture();
+    const id = await owner.mutation(api.listings.create, {
+      ...data,
+      amenities: ["WiFi"],
+    });
+    await owner.mutation(api.listings.update, {
+      id,
+      parkingIncluded: true,
+      petFriendly: false,
+    });
+    let raw = await t.run((ctx) => ctx.db.get(id));
+    expect(raw?.amenities).toEqual(["WiFi", "Parking", "Utilities Included"]);
+    await owner.mutation(api.listings.update, {
+      id,
+      amenities: ["Dedicated Workspace", "Pet Friendly"],
+    });
+    raw = await t.run((ctx) => ctx.db.get(id));
+    expect(raw?.petFriendly).toBe(false);
+    expect(raw?.amenities).toEqual([
+      "Dedicated Workspace",
+      "Parking",
+      "Utilities Included",
+    ]);
+    await owner.mutation(api.listings.update, {
+      id,
+      utilitiesIncluded: false,
+      parkingIncluded: false,
+    });
+    expect((await t.run((ctx) => ctx.db.get(id)))?.amenities).toEqual([
+      "Dedicated Workspace",
+    ]);
+    await expect(
+      other.mutation(api.listings.update, { id, petFriendly: true }),
+    ).rejects.toThrow("Not authorized");
+  });
+  it("projects legacy contradictions consistently without rewriting stored rental or approval state", async () => {
+    const { t, owner, data } = await fixture();
+    const id = await owner.mutation(api.listings.create, { ...data });
+    await t.run((ctx) =>
+      ctx.db.patch(id, {
+        amenities: ["WiFi", "pet friendly", "Parking"],
+        petFriendly: false,
+        parkingIncluded: false,
+        utilitiesIncluded: true,
+      }),
+    );
+    const before = await t.run((ctx) => ctx.db.get(id));
+    const detail = await owner.query(api.listings.getById, { id });
+    const list = await owner.query(api.listings.getByLandlord, {
+      landlordId: data.landlordId,
+    });
+    expect(detail?.amenities).toEqual(["WiFi", "Utilities Included"]);
+    expect(list.find((l) => l._id === id)?.amenities).toEqual(
+      detail?.amenities,
+    );
+    expect(await t.run((ctx) => ctx.db.get(id))).toEqual(before);
+  });
+  it("uses the same flag authority for legacy direct search and housing-request amenity matching", async () => {
+    const { housingDifferences } = await import("../lib/housing");
+    const { matchesSearch } = await import("../lib/search");
+    const { t, owner, data } = await fixture();
+    const id = await owner.mutation(api.listings.create, data);
+    await t.run((ctx) =>
+      ctx.db.patch(id, {
+        amenities: ["Pet Friendly", "Parking", "Utilities Included"],
+        petFriendly: false,
+        parkingIncluded: false,
+        utilitiesIncluded: false,
+      }),
+    );
+    const raw = (await t.run((ctx) => ctx.db.get(id)))!;
+    for (const label of ["Pet Friendly", "Parking", "Utilities Included"]) {
+      expect(matchesSearch(raw, { amenities: [label] })).toBe(false);
+      expect(
+        housingDifferences(raw, {
+          city: "Austin",
+          state: "TX",
+          moveInDate: data.availableFrom,
+          duration: 1,
+          maxBudget: 2000,
+          bedrooms: 1,
+          petFriendly: false,
+          description: "Test",
+          amenities: [label],
+        }).some((d) => d.field === "Amenities"),
+      ).toBe(true);
+    }
+    const enabled = {
+      ...raw,
+      amenities: ["WiFi"],
+      petFriendly: true,
+      parkingIncluded: true,
+      utilitiesIncluded: true,
+    };
+    expect(
+      matchesSearch(enabled, {
+        amenities: ["Pet Friendly", "Parking", "Utilities Included"],
+      }),
+    ).toBe(true);
+    expect(
+      housingDifferences(enabled, {
+        city: "Austin",
+        state: "TX",
+        moveInDate: data.availableFrom,
+        duration: 1,
+        maxBudget: 2000,
+        bedrooms: 1,
+        petFriendly: false,
+        description: "Test",
+        amenities: ["Pet Friendly", "Parking", "Utilities Included"],
+      }),
+    ).toEqual([]);
+  });
+});
