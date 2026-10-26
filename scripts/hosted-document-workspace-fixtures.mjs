@@ -305,6 +305,7 @@ if (mode === "setup") {
     receipt.travelerBrowserAcknowledgedOnlyV1 = true;
     receipt.acknowledgementDidNotSignOrAcknowledgePrivateV2 = true;
   } else if (mode === "revoked") {
+    assert.equal(doc.canRemoveDraft, false);
     assert.equal(doc.state, "draft");
     assert.equal(doc.shared, null);
     assert.equal((await list(tenant)).page.length, 0);

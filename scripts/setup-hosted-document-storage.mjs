@@ -89,10 +89,11 @@ assert(
 if (backup) {
   assert.equal(backup.deployment, deployment);
   assert.equal(backup.active, active);
-  assert.deepEqual(
-    JSON.parse(backup.keyring),
-    keys,
-    "Private backup does not match development keys",
+  const savedKeys = JSON.parse(backup.keyring);
+  assert(
+    Object.keys(savedKeys).length === Object.keys(keys).length &&
+      Object.entries(keys).every(([id, key]) => savedKeys[id] === key),
+    "Private backup does not match development keys; values withheld",
   );
 } else if (!existsSync(backupPath))
   writeFileSync(backupPath, JSON.stringify({ deployment, active, keyring }), {
@@ -100,8 +101,14 @@ if (backup) {
     flag: "wx",
   });
 chmodSync(backupPath, 0o600);
-assert.equal(cli("env", "get", "RENTAL_DOCUMENT_KEYRING"), keyring);
-assert.equal(cli("env", "get", "RENTAL_DOCUMENT_ACTIVE_KEY"), active);
+assert(
+  cli("env", "get", "RENTAL_DOCUMENT_KEYRING") === keyring,
+  "Development keyring readback failed; values withheld",
+);
+assert(
+  cli("env", "get", "RENTAL_DOCUMENT_ACTIVE_KEY") === active,
+  "Development active-key readback failed; values withheld",
+);
 const client = new ConvexHttpClient(`https://${deployment}.convex.cloud`, {
   logger: false,
 });
@@ -110,7 +117,10 @@ const capability = await client.query(
   {},
 );
 assert.equal(capability.privateFiles, true);
-assert.deepEqual(readFileSync(".env.local"), selector);
+assert(
+  readFileSync(".env.local").equals(selector),
+  "Local selector changed; values withheld",
+);
 writeFileSync(
   "docs/evidence/hosted-document-storage.json",
   JSON.stringify(

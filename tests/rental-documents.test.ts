@@ -171,6 +171,14 @@ describe("private rental document lifecycle", () => {
       first = await f.upload();
     expect(
       (
+        await f.owner.query(api.rentalDocs.list, {
+          inquiryId: f.ids.inquiry,
+          paginationOpts: page,
+        })
+      ).page[0].canRemoveDraft,
+    ).toBe(true);
+    expect(
+      (
         await f.tenant.query(api.rentalDocs.list, {
           inquiryId: f.ids.inquiry,
           paginationOpts: page,
@@ -181,6 +189,22 @@ describe("private rental document lifecycle", () => {
       documentId: first.documentId,
       versionId: first.versionId,
     });
+    expect(
+      (
+        await f.owner.query(api.rentalDocs.list, {
+          inquiryId: f.ids.inquiry,
+          paginationOpts: page,
+        })
+      ).page[0].canRemoveDraft,
+    ).toBe(false);
+    expect(
+      (
+        await f.tenant.query(api.rentalDocs.list, {
+          inquiryId: f.ids.inquiry,
+          paginationOpts: page,
+        })
+      ).page[0].canRemoveDraft,
+    ).toBe(false);
     expect(
       (await f.tenant.fetch(`/documents/download?version=${first.versionId}`))
         .status,
@@ -206,6 +230,14 @@ describe("private rental document lifecycle", () => {
     await f.owner.mutation(api.rentalDocs.unshare, {
       documentId: first.documentId,
     });
+    expect(
+      (
+        await f.owner.query(api.rentalDocs.list, {
+          inquiryId: f.ids.inquiry,
+          paginationOpts: page,
+        })
+      ).page[0].canRemoveDraft,
+    ).toBe(false);
     expect(
       (await f.tenant.fetch(`/documents/download?version=${first.versionId}`))
         .status,

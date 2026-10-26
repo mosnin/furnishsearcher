@@ -1,6 +1,19 @@
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import { requireBooking } from "./bookings";
+export async function draftVersions(
+  ctx: QueryCtx | MutationCtx,
+  documentId: Id<"rentalDocuments">,
+) {
+  const versions = await ctx.db
+    .query("rentalDocumentVersions")
+    .withIndex("by_document", (q) => q.eq("documentId", documentId))
+    .take(21);
+  return {
+    versions,
+    removable: versions.length <= 20 && !versions.some((v) => v.acknowledgedBy),
+  };
+}
 export async function requireDocument(
   ctx: QueryCtx | MutationCtx,
   id: Id<"rentalDocuments">,

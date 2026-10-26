@@ -22,6 +22,7 @@ import {
   requireVersion,
   versionProjection,
   docAudit,
+  draftVersions,
 } from "./lib/rentalDocs";
 import {
   documentFilename,
@@ -55,6 +56,7 @@ export const list = query({
       latest: v.union(versionView, v.null()),
       shared: v.union(versionView, v.null()),
       signingSessionId: v.optional(v.id("rentalSignatures")),
+      canRemoveDraft: v.boolean(),
     }),
   ),
   handler: async (ctx, args) => {
@@ -83,6 +85,10 @@ export const list = query({
         latest: latest ? versionProjection(latest) : null,
         shared: shared ? versionProjection(shared) : null,
         signingSessionId: d.signingSessionId,
+        canRemoveDraft:
+          own && !d.sharedVersionId && !d.signingSessionId
+            ? (await draftVersions(ctx, d._id)).removable
+            : false,
       });
     }
     return { ...page, page: rows };
@@ -438,11 +444,8 @@ export const removeDraft = mutation({
       throw new Error(
         "Only the uploader can remove an unshared draft without signing history.",
       );
-    const versions = await ctx.db
-      .query("rentalDocumentVersions")
-      .withIndex("by_document", (q) => q.eq("documentId", doc._id))
-      .take(21);
-    if (versions.length > 20 || versions.some((r) => r.acknowledgedBy))
+    const { versions, removable } = await draftVersions(ctx, doc._id);
+    if (!removable)
       throw new Error(
         "This copy has receipt or signing history. Contact support for controlled deletion.",
       );

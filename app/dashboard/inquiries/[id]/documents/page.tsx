@@ -193,7 +193,7 @@ function DocumentCard({
                   }}
                 />
               </label>
-              {!shared && (
+              {!shared && doc.canRemoveDraft && (
                 <Button
                   variant="outline"
                   disabled={busy}
@@ -206,6 +206,12 @@ function DocumentCard({
                 >
                   Remove draft
                 </Button>
+              )}
+              {!shared && !doc.canRemoveDraft && (
+                <p className="text-xs text-slate-500">
+                  Document history must be retained. Contact support for
+                  controlled deletion.
+                </p>
               )}
             </>
           )}
