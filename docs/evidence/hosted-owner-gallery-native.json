@@ -18,5 +18,7 @@
   "anonymousPrivateListingDenied": true,
   "publicPaidIdentityAcceptance": false,
   "productionChanged": false,
-  "realEmailOrSmsSent": false
+  "realEmailOrSmsSent": false,
+  "ownPrivateFixtureDeleted": true,
+  "unusedImagesRetainNormalRecoveryPeriod": true
 }

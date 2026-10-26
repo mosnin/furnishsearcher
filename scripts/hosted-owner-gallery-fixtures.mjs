@@ -129,6 +129,13 @@ if (mode === "setup") {
     );
     fixture.cleaned = true;
     save();
+    const receiptPath = "docs/evidence/hosted-owner-gallery-native.json";
+    if (existsSync(receiptPath)) {
+      const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+      receipt.ownPrivateFixtureDeleted = true;
+      receipt.unusedImagesRetainNormalRecoveryPeriod = true;
+      writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + "\n");
+    }
     console.log(
       "Only this run's private gallery listing deleted; unused images retain their native recovery period.",
     );
