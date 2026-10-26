@@ -18,7 +18,7 @@ import {
   INVITATION_UNAVAILABLE,
 } from "./lib/reviewInvitations";
 import { pageMetadata, reviewKind } from "./validators/reviews";
-import { deliveryStatus } from "./validators/support";
+import { invitationDeliveryStatus } from "./validators/reviewInvitations";
 const day = 86400000;
 export const request = mutation({
   args: {
@@ -182,7 +182,7 @@ const row = v.object({
     v.literal("declined"),
     v.literal("expired"),
   ),
-  emailStatus: deliveryStatus,
+  emailStatus: invitationDeliveryStatus,
   createdAt: v.number(),
   expiresAt: v.number(),
   submitted: v.boolean(),
@@ -329,13 +329,17 @@ export const emailDetails = internalQuery({
   },
 });
 export const record = internalMutation({
-  args: { id: v.id("reviewInvitations"), status: deliveryStatus },
+  args: { id: v.id("reviewInvitations"), status: invitationDeliveryStatus },
   returns: v.null(),
   handler: async (ctx, { id, status }) => {
     const r = await ctx.db.get(id);
     if (r && r.emailStatus !== "sent")
       await ctx.db.patch(id, {
-        emailStatus: status,
+        emailStatus:
+          status !== "sent" &&
+          (r.state !== "active" || r.expiresAt <= Date.now() || r.reviewId)
+            ? "suppressed"
+            : status,
         lastAttemptAt: Date.now(),
       });
     return null;

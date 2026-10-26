@@ -1,3 +1,4 @@
+import { invitationDeliveryStatus } from "./validators/reviewInvitations";
 import { storedPerformanceCounts } from "./validators/performance";
 import { toolFields } from "./validators/rentalTools";
 import {
@@ -790,7 +791,7 @@ export default defineSchema({
       v.literal("declined"),
       v.literal("expired"),
     ),
-    emailStatus: deliveryStatus,
+    emailStatus: invitationDeliveryStatus,
     lastAttemptAt: v.optional(v.number()),
     createdAt: v.number(),
     expiresAt: v.number(),

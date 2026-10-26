@@ -405,6 +405,9 @@ describe("account-email review invitations", () => {
       ).toBeNull();
       await f.t.action(internal.reviewInvitationEmails.deliver, { id: r.id! });
       expect(send).not.toHaveBeenCalled();
+      expect((await f.t.run((ctx) => ctx.db.get(r.id!)))?.emailStatus).toBe(
+        "suppressed",
+      );
       await expect(
         f.traveler.mutation(api.reviews.create, {
           ...f.input,
@@ -434,9 +437,9 @@ describe("account-email review invitations", () => {
     expect((await f.t.run((ctx) => ctx.db.get(r.id!)))?.emailStatus).toBe(
       "failed",
     );
-    send.mockResolvedValueOnce({
-      data: { id: "synthetic-accepted" },
-      error: null,
+    send.mockImplementationOnce(async () => {
+      await f.o.mutation(api.reviewInvitations.close, { id: r.id! });
+      return { data: { id: "synthetic-accepted" }, error: null };
     });
     await f.t.action(internal.reviewInvitationEmails.deliver, { id: r.id! });
     expect(send.mock.calls[0][1]).toEqual(send.mock.calls[1][1]);

@@ -11,7 +11,13 @@ export const deliver = internalAction({
       internal.reviewInvitations.emailDetails,
       args,
     );
-    if (!details) return null;
+    if (!details) {
+      await ctx.runMutation(internal.reviewInvitations.record, {
+        ...args,
+        status: "suppressed",
+      });
+      return null;
+    }
     if (
       !process.env.RESEND_API_KEY ||
       !process.env.EMAIL_FROM ||
@@ -34,8 +40,15 @@ export const deliver = internalAction({
       )
         throw new Error("Invalid app URL");
       // Recheck contact and closure after preparing configuration, before transfer.
-      if (!(await ctx.runQuery(internal.reviewInvitations.emailDetails, args)))
+      if (
+        !(await ctx.runQuery(internal.reviewInvitations.emailDetails, args))
+      ) {
+        await ctx.runMutation(internal.reviewInvitations.record, {
+          ...args,
+          status: "suppressed",
+        });
         return null;
+      }
       const result = await new Resend(process.env.RESEND_API_KEY).emails.send(
         {
           from: process.env.EMAIL_FROM,

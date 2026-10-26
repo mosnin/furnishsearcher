@@ -243,7 +243,9 @@ export function ReviewEmailRequests({
                   </Button>
                 )}
                 {r.available &&
-                  ["failed", "unconfigured"].includes(r.emailStatus) && (
+                  ["failed", "unconfigured", "suppressed"].includes(
+                    r.emailStatus,
+                  ) && (
                     <Button
                       variant="outline"
                       disabled={busy}
