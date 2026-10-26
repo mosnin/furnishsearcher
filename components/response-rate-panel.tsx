@@ -16,12 +16,14 @@ import {
 import { toast } from "sonner";
 export function ResponseRatePanel({
   listingId,
+  refreshKey,
 }: {
   listingId: Id<"listings"> | null;
+  refreshKey?: number;
 }) {
   const report = useQuery(
     api.responsiveness.report,
-    listingId ? { listingId } : "skip",
+    listingId ? { listingId, refreshKey } : "skip",
   );
   const reset = useMutation(api.responsiveness.reset);
   const [open, setOpen] = useState(false),

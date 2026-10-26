@@ -47,7 +47,11 @@ export const properties = query({
   },
 });
 export const report = query({
-  args: { listingId: v.optional(v.id("listings")), days: v.number() },
+  args: {
+    listingId: v.optional(v.id("listings")),
+    days: v.number(),
+    refreshKey: v.optional(v.number()),
+  },
   returns: v.object({
     listingId: v.union(v.id("listings"), v.null()),
     title: v.string(),
@@ -58,6 +62,7 @@ export const report = query({
     phoneStartedAt: v.union(v.number(), v.null()),
     unmatchedStartedAt: v.union(v.number(), v.null()),
     legacyViews: v.union(v.number(), v.null()),
+    generatedAt: v.number(),
     start: v.number(),
     end: v.number(),
     rows: v.array(v.object({ day: v.number(), ...performanceCounts })),
@@ -120,6 +125,7 @@ export const report = query({
       phoneStartedAt: state?.phoneStartedAt ?? null,
       unmatchedStartedAt: state?.unmatchedStartedAt ?? null,
       legacyViews: l?.views ?? null,
+      generatedAt: Date.now(),
       start,
       end,
       rows: rows.map(

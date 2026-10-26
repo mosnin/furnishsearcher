@@ -1,4 +1,8 @@
-import { performanceWindow, PERFORMANCE_DAY } from "./listing-performance";
+import {
+  reportWindowDays,
+  performanceWindow,
+  PERFORMANCE_DAY,
+} from "./listing-performance";
 export type EligibilityObservation = {
   day: number;
   observedSpaces: number;
@@ -38,4 +42,16 @@ export function eligibilityCsv(
       ].join(","),
     ),
   ].join("\r\n");
+}
+
+export function eligibilityReportSeries(report: {
+  rows: EligibilityObservation[];
+  start: number;
+  end: number;
+}) {
+  return eligibilitySeries(
+    report.rows,
+    reportWindowDays(report),
+    report.end - 1,
+  );
 }

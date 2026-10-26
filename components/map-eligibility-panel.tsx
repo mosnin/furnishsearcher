@@ -4,22 +4,25 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { eligibilitySeries, eligibilityCsv } from "@/lib/map-eligibility";
+import { eligibilityReportSeries, eligibilityCsv } from "@/lib/map-eligibility";
 export function MapEligibilityPanel({
   listingId,
   days,
+  refreshKey,
 }: {
   listingId: Id<"listings"> | null;
   days: number;
+  refreshKey?: number;
 }) {
   const report = useQuery(api.mapEligibility.report, {
     ...(listingId ? { listingId } : {}),
     days,
+    refreshKey,
   });
   const check = useMutation(api.mapEligibility.check),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const rows = eligibilitySeries(report?.rows ?? [], days),
+  const rows = report ? eligibilityReportSeries(report) : [],
     observed = rows.filter((r) => r.observation),
     total = observed.reduce((n, r) => n + r.observation!.eligibleSpaces, 0);
   async function refresh() {

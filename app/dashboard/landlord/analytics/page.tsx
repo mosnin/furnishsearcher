@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ResponseRatePanel } from "@/components/response-rate-panel";
 import { MapEligibilityPanel } from "@/components/map-eligibility-panel";
 import Link from "next/link";
@@ -12,7 +12,8 @@ import {
   PERFORMANCE_METRICS,
   metricLabels,
   emptyPerformance,
-  performanceSeries,
+  performanceReportSeries,
+  reportRefreshDelay,
   performanceCsv,
   metricRecorded,
   type PerformanceMetric,
@@ -51,22 +52,35 @@ function AccountPerformance() {
   );
   const [selected, setSelected] = useState<Id<"listings"> | null>(null),
     [days, setDays] = useState(90),
+    [refreshKey, setRefreshKey] = useState(() => Date.now()),
     [metric, setMetric] = useState<PerformanceMetric>("views");
   const listingId = selected;
   const report = useQuery(
     api.listingPerformance.report,
     isAuthenticated && me
-      ? { ...(listingId ? { listingId } : {}), days }
+      ? { ...(listingId ? { listingId } : {}), days, refreshKey }
       : "skip",
   );
-  const rows = performanceSeries(
-    report?.rows ?? [],
-    days,
-    report?.startedAt ?? null,
-    Date.now(),
-    report?.phoneStartedAt ?? null,
-    report?.unmatchedStartedAt ?? null,
-  );
+  useEffect(() => {
+    const refresh = () =>
+      setRefreshKey((previous) => Math.max(previous + 1, Date.now()));
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    // The native sample supplies both the deadline and current time. This
+    // duration remains valid even if the device clock is ahead or behind.
+    const timer = report
+      ? setTimeout(refresh, reportRefreshDelay(report))
+      : undefined;
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [report?.generatedAt, report?.end]);
+  const rows = report ? performanceReportSeries(report) : [];
   const totals = rows.reduce((counts, row) => {
     for (const key of PERFORMANCE_METRICS)
       if (metricRecorded(row, key)) counts[key] += row[key];
@@ -139,7 +153,23 @@ function AccountPerformance() {
           </select>
         </label>
       </div>
-      <ResponseRatePanel key={listingId ?? "all"} listingId={listingId} />
+      {report && (
+        <p className="text-sm text-slate-600">
+          Reporting dates: {new Date(report.start).toISOString().slice(0, 10)}{" "}
+          through {new Date(report.end - 86400000).toISOString().slice(0, 10)}{" "}
+          UTC. Checked{" "}
+          {new Date(report.generatedAt)
+            .toISOString()
+            .replace("T", " ")
+            .slice(0, 19)}{" "}
+          UTC.
+        </p>
+      )}
+      <ResponseRatePanel
+        key={listingId ?? "all"}
+        listingId={listingId}
+        refreshKey={refreshKey}
+      />
       {status === "LoadingFirstPage" || status === "LoadingMore" ? (
         <p role="status">Loading rental spaces…</p>
       ) : results.length === 0 ? (
@@ -215,6 +245,7 @@ function AccountPerformance() {
               key={`${listingId ?? "all"}-${days}`}
               listingId={listingId}
               days={days}
+              refreshKey={refreshKey}
             />
             <section
               className="rounded-xl border bg-white p-4 space-y-4"

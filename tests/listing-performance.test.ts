@@ -7,9 +7,15 @@ import { api, internal } from "../convex/_generated/api";
 import { seedPublishedFixtures } from "./helpers/publication";
 import {
   performanceSeries,
+  performanceReportSeries,
+  reportRefreshDelay,
   performanceCsv,
   PERFORMANCE_DAY as DAY,
 } from "../lib/listing-performance";
+import {
+  eligibilityReportSeries,
+  eligibilityCsv,
+} from "../lib/map-eligibility";
 const modules = import.meta.glob("../convex/**/*.ts"),
   now = Date.UTC(2026, 9, 25, 12),
   clientId = "00000000-0000-4000-8000-000000000001";
@@ -406,4 +412,92 @@ it("continues bounded cleanup without deleting recent owner or listing days", as
     (await f.owner.query(api.listingPerformance.report, { days: 90 })).rows[0]
       .views,
   ).toBe(1);
+});
+
+it.each([7, 30, 90])(
+  "anchors %i-day activity and eligibility exports to the native window despite device clock changes",
+  async (days) => {
+    const f = await fixture();
+    await f.observe("views");
+    await f.owner.mutation(api.mapEligibility.check, {
+      listingId: f.ids.listing,
+    });
+    const report = await f.owner.query(api.listingPerformance.report, {
+      listingId: f.ids.listing,
+      days,
+      refreshKey: Number.MAX_SAFE_INTEGER,
+    });
+    const eligibility = await f.owner.query(api.mapEligibility.report, {
+      listingId: f.ids.listing,
+      days,
+      refreshKey: -Number.MAX_SAFE_INTEGER,
+    });
+    const activityBefore = performanceCsv(
+        performanceReportSeries(report),
+        report.mode,
+      ),
+      mapBefore = eligibilityCsv(
+        eligibilityReportSeries(eligibility),
+        eligibility.mode,
+        false,
+      );
+    for (const deviceTime of [now - 366 * DAY, now + 366 * DAY]) {
+      vi.setSystemTime(deviceTime);
+      const rows = performanceReportSeries(report),
+        mapRows = eligibilityReportSeries(eligibility);
+      expect(rows).toHaveLength(days);
+      expect(rows[0].day).toBe(report.start);
+      expect(rows.at(-1)!.day).toBe(report.end - DAY);
+      expect(rows.reduce((n, r) => n + r.views, 0)).toBe(1);
+      expect(rows.every((r) => !r.phoneRecorded && !r.unmatchedRecorded)).toBe(
+        true,
+      );
+      expect(performanceCsv(rows, report.mode)).toBe(activityBefore);
+      expect(eligibilityCsv(mapRows, eligibility.mode, false)).toBe(mapBefore);
+      expect(mapRows[0].day).toBe(eligibility.start);
+      expect(mapRows.at(-1)!.day).toBe(eligibility.end - DAY);
+    }
+  },
+);
+it("uses only server time across UTC rollover and refreshes ignored clock keys without changing authority", async () => {
+  const f = await fixture();
+  const before = Date.UTC(2026, 9, 25, 23, 59, 59);
+  vi.setSystemTime(before);
+  await f.observe("views");
+  await f.owner.mutation(api.mapEligibility.check, {
+    listingId: f.ids.listing,
+  });
+  const old = await f.owner.query(api.listingPerformance.report, {
+    listingId: f.ids.listing,
+    days: 7,
+    refreshKey: Date.UTC(2036, 0, 1),
+  });
+  expect(old.generatedAt).toBeGreaterThanOrEqual(before);
+  expect(old.end).toBe(Date.UTC(2026, 9, 26));
+  expect(reportRefreshDelay(old)).toBeLessThanOrEqual(2000);
+  const oldMap = await f.owner.query(api.mapEligibility.report, {
+    listingId: f.ids.listing,
+    days: 7,
+    refreshKey: 0,
+  });
+  vi.setSystemTime(Date.UTC(2026, 9, 26, 0, 0, 1));
+  const fresh = await f.owner.query(api.listingPerformance.report, {
+    listingId: f.ids.listing,
+    days: 7,
+    refreshKey: -1,
+  });
+  const freshMap = await f.owner.query(api.mapEligibility.report, {
+    listingId: f.ids.listing,
+    days: 7,
+    refreshKey: Number.MAX_SAFE_INTEGER,
+  });
+  expect(fresh.start).toBe(old.start + DAY);
+  expect(fresh.end).toBe(old.end + DAY);
+  expect(freshMap.start).toBe(oldMap.start + DAY);
+  expect(freshMap.end).toBe(oldMap.end + DAY);
+  expect(performanceReportSeries(fresh).at(-2)!.views).toBe(1);
+  expect(performanceReportSeries(fresh).at(-1)!.views).toBe(0);
+  expect(eligibilityReportSeries(freshMap).at(-2)!.observation).not.toBeNull();
+  expect(eligibilityReportSeries(freshMap).at(-1)!.observation).toBeNull();
+  expect(reportRefreshDelay(fresh)).toBeLessThanOrEqual(DAY);
 });

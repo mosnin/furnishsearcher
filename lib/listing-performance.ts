@@ -99,3 +99,44 @@ export function performanceCsv(
     ),
   ].join("\r\n");
 }
+
+// Use the exact native UTC window for charts and exports. Device clock skew
+// must not relabel, omit or fabricate days from an already fetched report.
+export function reportWindowDays(report: { start: number; end: number }) {
+  const days = (report.end - report.start) / PERFORMANCE_DAY;
+  if (
+    !Number.isSafeInteger(report.start) ||
+    !Number.isSafeInteger(report.end) ||
+    report.start % PERFORMANCE_DAY !== 0 ||
+    report.end % PERFORMANCE_DAY !== 0 ||
+    ![7, 30, 90].includes(days)
+  )
+    throw new Error("Invalid reported UTC window.");
+  return days;
+}
+export function performanceReportSeries(report: {
+  rows: Parameters<typeof performanceSeries>[0];
+  start: number;
+  end: number;
+  startedAt: number | null;
+  phoneStartedAt: number | null;
+  unmatchedStartedAt: number | null;
+}) {
+  return performanceSeries(
+    report.rows,
+    reportWindowDays(report),
+    report.startedAt,
+    report.end - 1,
+    report.phoneStartedAt,
+    report.unmatchedStartedAt,
+  );
+}
+export function reportRefreshDelay(report: {
+  end: number;
+  generatedAt: number;
+}) {
+  return Math.max(
+    1000,
+    Math.min(PERFORMANCE_DAY, report.end - report.generatedAt + 1000),
+  );
+}

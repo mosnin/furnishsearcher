@@ -19,8 +19,15 @@ async function scope(ctx: QueryCtx | MutationCtx, listingId?: Id<"listings">) {
   return { me, listing };
 }
 export const report = query({
-  args: { listingId: v.optional(v.id("listings")), days: v.number() },
+  args: {
+    listingId: v.optional(v.id("listings")),
+    days: v.number(),
+    refreshKey: v.optional(v.number()),
+  },
   returns: v.object({
+    start: v.number(),
+    end: v.number(),
+    generatedAt: v.number(),
     mode: v.union(v.literal("test"), v.literal("prod")),
     listingId: v.union(v.id("listings"), v.null()),
     currentEligible: v.union(v.boolean(), v.null()),
@@ -108,6 +115,9 @@ export const report = query({
       )
       .unique();
     return {
+      start,
+      end,
+      generatedAt: Date.now(),
       totals: totals
         ? {
             eligibleSpaceDays: totals.eligibleSpaceDays,
