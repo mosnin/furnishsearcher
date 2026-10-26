@@ -62,6 +62,7 @@ import type * as lib_photos from "../lib/photos.js";
 import type * as lib_profileImages from "../lib/profileImages.js";
 import type * as lib_providerContacts from "../lib/providerContacts.js";
 import type * as lib_publication from "../lib/publication.js";
+import type * as lib_recommendations from "../lib/recommendations.js";
 import type * as lib_rentalDocs from "../lib/rentalDocs.js";
 import type * as lib_responsiveness from "../lib/responsiveness.js";
 import type * as lib_reviews from "../lib/reviews.js";
@@ -86,6 +87,7 @@ import type * as photoRetention from "../photoRetention.js";
 import type * as profileImageFiles from "../profileImageFiles.js";
 import type * as profileImages from "../profileImages.js";
 import type * as publication from "../publication.js";
+import type * as recommendations from "../recommendations.js";
 import type * as referrals from "../referrals.js";
 import type * as rentalDocs from "../rentalDocs.js";
 import type * as rentalTools from "../rentalTools.js";
@@ -187,6 +189,7 @@ declare const fullApi: ApiFromModules<{
   "lib/profileImages": typeof lib_profileImages;
   "lib/providerContacts": typeof lib_providerContacts;
   "lib/publication": typeof lib_publication;
+  "lib/recommendations": typeof lib_recommendations;
   "lib/rentalDocs": typeof lib_rentalDocs;
   "lib/responsiveness": typeof lib_responsiveness;
   "lib/reviews": typeof lib_reviews;
@@ -211,6 +214,7 @@ declare const fullApi: ApiFromModules<{
   profileImageFiles: typeof profileImageFiles;
   profileImages: typeof profileImages;
   publication: typeof publication;
+  recommendations: typeof recommendations;
   referrals: typeof referrals;
   rentalDocs: typeof rentalDocs;
   rentalTools: typeof rentalTools;
@@ -279,5 +283,6 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  geospatial: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatial">;
+  geospatial: import("geospatial-legacy/_generated/component.js").ComponentApi<"geospatial">;
+  geospatialV2: import("@convex-dev/geospatial/_generated/component.js").ComponentApi<"geospatialV2">;
 };

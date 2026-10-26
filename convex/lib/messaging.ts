@@ -1,3 +1,4 @@
+import { syncRecommendation } from "./recommendations";
 import { trackConversation } from "./responsiveness";
 import { recordPerformance } from "./performance";
 import { syncInbox } from "./inbox";
@@ -201,11 +202,12 @@ export async function sendListingMessage(
       : {}),
     emailStatus: "pending",
   });
-  await trackConversation(
+  const responseChanged = await trackConversation(
     ctx,
     (await ctx.db.get(conversationId))!,
     (await ctx.db.get(messageId))!,
   );
+  if (responseChanged) await syncRecommendation(ctx, listing);
   await ctx.scheduler.runAfter(0, internal.messageEmails.notify, { messageId });
   return { messageId, conversationId };
 }

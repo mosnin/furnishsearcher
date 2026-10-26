@@ -27,6 +27,7 @@ export const searchFields = {
   flexibleDays: v.optional(v.number()),
   sort: v.optional(
     v.union(
+      v.literal("recommended"),
       v.literal("newest"),
       v.literal("price_asc"),
       v.literal("price_desc"),

@@ -108,11 +108,21 @@ function SearchPageInner() {
     isAuthenticated && userId ? { clerkId: userId } : "skip",
   );
   const save = useMutation(api.savedSearches.save);
+  const recommendationsReady = useQuery(api.recommendations.status);
+  const mapIndexReady = useQuery(api.geo.indexStatus);
+  const preparingMap =
+    !!(applied.mapBounds || applied.nearLatitude !== undefined) &&
+    !mapIndexReady;
+  const preparingRecommendations =
+    applied.sort === "recommended" && !recommendationsReady;
   const {
     results: listings,
     status,
     loadMore,
-  } = useRentalSearch(applied, !!parsed.error);
+  } = useRentalSearch(
+    applied,
+    !!parsed.error || preparingRecommendations || preparingMap,
+  );
   function apply() {
     try {
       const original =
@@ -202,7 +212,8 @@ function SearchPageInner() {
     [listings],
   );
   const more = status === "CanLoadMore",
-    loading = status === "LoadingFirstPage";
+    loading =
+      status === "LoadingFirstPage" || preparingRecommendations || preparingMap;
   const loadControl = (
     <div className="py-5 text-center space-y-2">
       {more && (
@@ -429,6 +440,9 @@ function SearchPageInner() {
               )
             }
           >
+            <option value="recommended" disabled={!recommendationsReady}>
+              Recommended
+            </option>
             <option value="newest">Newest</option>
             <option value="price_asc">Price: Low–High</option>
             <option value="price_desc">Price: High–Low</option>
@@ -436,6 +450,24 @@ function SearchPageInner() {
           </select>
         </label>
       </div>
+      {preparingMap && (
+        <p
+          className="mx-auto max-w-screen-2xl w-full px-4 pb-4 text-sm text-slate-600"
+          role="status"
+        >
+          Preparing map search. You can use a list search while it finishes.
+        </p>
+      )}
+      {applied.sort === "recommended" && (
+        <p
+          className="mx-auto max-w-screen-2xl w-full px-4 pb-4 text-sm text-slate-600"
+          role="status"
+        >
+          {preparingRecommendations
+            ? "Preparing recommended order. You can use another sort while it finishes."
+            : "Matching rentals ordered by measured reply history, then recency. New rentals start with a neutral score."}
+        </p>
+      )}
       <div className="mx-auto max-w-screen-2xl w-full px-4 pb-4">
         <LocationSearch
           filters={applied}

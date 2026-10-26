@@ -1,3 +1,4 @@
+import { syncRecommendation } from "./lib/recommendations";
 import { listingAmenities } from "../lib/listing-features";
 import { findActiveUser } from "./lib/auth";
 import { syncPhotoReferences } from "./lib/photoRetention";
@@ -161,6 +162,7 @@ export const create = mutation({
       views: 0,
     });
     await syncPhotoReferences(ctx, (await ctx.db.get(listingId))!);
+    if (!group) await syncRecommendation(ctx, (await ctx.db.get(listingId))!);
     if (group) {
       await ctx.db.patch(group._id, { unitCount: group.unitCount + 1 });
       await syncGeo(ctx, (await ctx.db.get(listingId))!);
@@ -336,6 +338,8 @@ export const update = mutation({
       await syncPhotoReferences(ctx, (await ctx.db.get(id))!);
     if (!locationChanged && listing.mapLatitude !== undefined)
       await syncGeo(ctx, (await ctx.db.get(id))!);
+    if (locationChanged || listing.mapLatitude === undefined)
+      await syncRecommendation(ctx, (await ctx.db.get(id))!);
     if (changed)
       await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, {
         listingId: id,

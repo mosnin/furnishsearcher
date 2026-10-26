@@ -1,4 +1,5 @@
-import { geo } from "./lib/geo";
+import { recommendationsReady } from "./lib/recommendations";
+import { geo, legacyGeo } from "./lib/geo";
 import { radiusBounds } from "../lib/geo";
 import {
   paginationOptsValidator,
@@ -45,6 +46,52 @@ export const listings = query({
       const match = listing ? await matchSearch(ctx, listing, filters) : null;
       return { page: match ? [match] : [], isDone: true, continueCursor: "" };
     }
+    if (filters.sort === "recommended") {
+      if (!(await recommendationsReady(ctx)))
+        throw new Error(
+          "Recommended order is being prepared. Choose another sort while it finishes.",
+        );
+    }
+    if (
+      filters.sort === "recommended" &&
+      (filters.propertyGroupId ||
+        (!filters.mapBounds && filters.nearLatitude === undefined))
+    ) {
+      const group = filters.propertyGroupId
+        ? ctx.db.normalizeId("properties", filters.propertyGroupId)
+        : null;
+      if (filters.propertyGroupId && !group)
+        return { page: [], isDone: true, continueCursor: "" };
+      const source = group
+        ? ctx.db
+            .query("listingRecommendations")
+            .withIndex("by_property_score", (q) =>
+              q.eq("propertyGroupId", group).eq("status", "active"),
+            )
+        : filters.city
+          ? ctx.db
+              .query("listingRecommendations")
+              .withIndex("by_city_score", (q) =>
+                q
+                  .eq("status", "active")
+                  .eq("city", normalizeCity(filters.city!)),
+              )
+          : ctx.db
+              .query("listingRecommendations")
+              .withIndex("by_status_score", (q) => q.eq("status", "active"));
+      const result = await source.order("desc").paginate({
+        ...paginationOpts,
+        numItems: Math.min(24, paginationOpts.numItems),
+      });
+      const page = [];
+      for (const row of result.page) {
+        const listing = await ctx.db.get(row.listingId);
+        if (!listing || listing.landlordId !== row.ownerId) continue;
+        const match = await matchSearch(ctx, listing, filters);
+        if (match) page.push(match);
+      }
+      return { ...result, page };
+    }
     if (filters.propertyGroupId) {
       const groupId = ctx.db.normalizeId("properties", filters.propertyGroupId);
       if (!groupId) return { page: [], isDone: true, continueCursor: "" };
@@ -80,6 +127,19 @@ export const listings = query({
       return { ...result, page };
     }
     if (filters.mapBounds || filters.nearLatitude !== undefined) {
+      const legacyCursor =
+        paginationOpts.cursor !== null &&
+        !paginationOpts.cursor.startsWith("geo2:");
+      if (!legacyCursor) {
+        const state = await ctx.db
+          .query("dataMigrations")
+          .withIndex("by_name", (q) => q.eq("name", "geospatialV2"))
+          .unique();
+        if (!state?.complete)
+          throw new Error(
+            "Map search is being prepared. Use a list search while it finishes.",
+          );
+      }
       const rectangle =
         filters.mapBounds ??
         radiusBounds(
@@ -89,7 +149,7 @@ export const listings = query({
           },
           filters.radiusMiles!,
         );
-      const result = await geo.query(
+      const result = await (legacyCursor ? legacyGeo : geo).query(
         ctx,
         {
           shape: { type: "rectangle", rectangle },
@@ -97,7 +157,9 @@ export const listings = query({
             q.eq("sort", filters.sort ?? "newest").eq("status", "active"),
           limit: Math.max(1, Math.min(24, paginationOpts.numItems)),
         },
-        paginationOpts.cursor ?? undefined,
+        paginationOpts.cursor?.startsWith("geo2:")
+          ? paginationOpts.cursor.slice(5)
+          : (paginationOpts.cursor ?? undefined),
       );
       const page = [];
       for (const row of result.results) {
@@ -107,6 +169,13 @@ export const listings = query({
         );
         const listing = id ? await ctx.db.get(id) : null;
         if (listing) {
+          if (filters.sort === "recommended") {
+            const rank = await ctx.db
+              .query("listingRecommendations")
+              .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+              .unique();
+            if (!rank || rank.ownerId !== listing.landlordId) continue;
+          }
           const match = await matchSearch(ctx, listing, filters);
           if (match) page.push(match);
         }
@@ -114,7 +183,9 @@ export const listings = query({
       return {
         page,
         isDone: !result.nextCursor,
-        continueCursor: result.nextCursor ?? "",
+        continueCursor: result.nextCursor
+          ? `${legacyCursor ? "" : "geo2:"}${result.nextCursor}`
+          : "",
       };
     }
     const ready = await ctx.db

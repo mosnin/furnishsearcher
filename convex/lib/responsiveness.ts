@@ -100,8 +100,9 @@ export async function trackConversation(
         replyMessageId: message._id,
       });
       await increment(ctx, row, false, message.createdAt);
+      return true;
     }
-    return;
+    return false;
   }
   const key = conversationKey(c.tenantId, c.landlordId, c.listingId);
   const first = await ctx.db
@@ -139,7 +140,7 @@ export async function trackConversation(
       ? { startedAt: first.createdAt, firstMessageId: first._id }
       : {}),
   });
-  if (qualification !== "qualified" || !first) return;
+  if (qualification !== "qualified" || !first) return false;
   const candidates = await Promise.all(
     (["inbox", "property"] as const).map((origin) =>
       ctx.db
@@ -166,6 +167,7 @@ export async function trackConversation(
       replyMessageId: reply._id,
     });
   await increment(ctx, inserted, true, reply?.createdAt);
+  return true;
 }
 export async function responseStats(ctx: Ctx, listing: Doc<"listings">) {
   const state = await ctx.db

@@ -41,6 +41,20 @@ import { placeCandidate } from "./validators/geo";
 import { identityStatus } from "./validators/identity";
 
 export default defineSchema({
+  listingRecommendations: defineTable({
+    geoIndexed: v.optional(v.boolean()),
+    listingId: v.id("listings"),
+    ownerId: v.id("users"),
+    city: v.string(),
+    propertyGroupId: v.optional(v.id("properties")),
+    status: v.string(),
+    score: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_listing", ["listingId"])
+    .index("by_status_score", ["status", "score"])
+    .index("by_city_score", ["status", "city", "score"])
+    .index("by_property_score", ["propertyGroupId", "status", "score"]),
   responseTrackingState: defineTable({
     key: v.literal("v1"),
     cursor: v.union(v.string(), v.null()),

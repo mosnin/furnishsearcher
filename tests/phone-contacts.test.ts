@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import geospatial from "@convex-dev/geospatial/test";
+import geospatial from "./helpers/geospatial";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import schema from "../convex/schema";
 import {
@@ -26,7 +26,7 @@ afterEach(() => {
 });
 async function fixture() {
   const t = convexTest(schema, modules);
-  geospatial.register(t);
+  await geospatial.register(t);
   const ids = await t.run(async (ctx) => {
     const owner = await ctx.db.insert("users", {
       clerkId: "owner",

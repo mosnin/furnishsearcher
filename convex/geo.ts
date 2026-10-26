@@ -514,16 +514,49 @@ export const correctAddress = mutation({
 });
 
 export const reindex = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    version: v.optional(v.literal(2)),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
+    if (args.cursor !== null && args.version !== 2) {
+      await ctx.scheduler.runAfter(0, internal.geo.reindex, {
+        cursor: null,
+        version: 2,
+      });
+      return null;
+    }
+    let state = await ctx.db
+      .query("dataMigrations")
+      .withIndex("by_name", (q) => q.eq("name", "geospatialV2"))
+      .unique();
+    if (!state) {
+      const id = await ctx.db.insert("dataMigrations", {
+        name: "geospatialV2",
+        cursor: null,
+        complete: false,
+      });
+      state = (await ctx.db.get(id))!;
+    }
+    if (
+      state &&
+      ((!state.complete && state.cursor !== args.cursor) ||
+        (state.complete && args.cursor !== null))
+    )
+      return null;
     const page = await ctx.db
       .query("listings")
       .paginate({ cursor: args.cursor, numItems: 8 });
     for (const l of page.page) await syncGeo(ctx, l);
+    await ctx.db.patch(state._id, {
+      cursor: page.isDone ? null : page.continueCursor,
+      complete: page.isDone,
+    });
     if (!page.isDone)
       await ctx.scheduler.runAfter(0, internal.geo.reindex, {
         cursor: page.continueCursor,
+        version: 2,
       });
     return null;
   },
@@ -591,4 +624,33 @@ export const capabilities = query({
       : ("census" as const),
     placeNames: !!process.env.GEOAPIFY_API_KEY,
   }),
+});
+
+export const indexStatus = query({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => {
+    const state = await ctx.db
+      .query("dataMigrations")
+      .withIndex("by_name", (q) => q.eq("name", "geospatialV2"))
+      .unique();
+    return state?.complete ?? false;
+  },
+});
+
+export const resumeIndex = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const state = await ctx.db
+      .query("dataMigrations")
+      .withIndex("by_name", (q) => q.eq("name", "geospatialV2"))
+      .unique();
+    if (!state?.complete)
+      await ctx.scheduler.runAfter(0, internal.geo.reindex, {
+        cursor: state?.cursor ?? null,
+        version: 2,
+      });
+    return null;
+  },
 });

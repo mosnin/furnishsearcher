@@ -42,6 +42,10 @@ export const reset = mutation({
     if (!stats.canReset)
       throw new Error("A measured response rate below 75% is required.");
     await ctx.db.patch(me._id, { responseRateResetAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.recommendations.refreshPage, {
+      ownerId: me._id,
+      cursor: null,
+    });
     return null;
   },
 });
@@ -89,6 +93,10 @@ export const tick = internalMutation({
     if (state) await ctx.db.patch(state._id, { updatedAt: Date.now() });
     if (!state?.complete)
       await ctx.scheduler.runAfter(0, internal.responsiveness.backfill, {});
+    else
+      await ctx.scheduler.runAfter(0, internal.recommendations.refreshPage, {
+        cursor: null,
+      });
     return null;
   },
 });

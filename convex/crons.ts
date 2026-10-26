@@ -153,4 +153,10 @@ crons.interval(
   internal.responsiveness.tick,
   {},
 );
+crons.interval(
+  "Resume versioned spatial index adoption",
+  { hours: 1 },
+  internal.geo.resumeIndex,
+  {},
+);
 export default crons;

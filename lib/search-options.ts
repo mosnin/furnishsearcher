@@ -28,6 +28,7 @@ export const AMENITIES = [
   "Accessible Bathroom",
 ] as const;
 export const SORT_OPTIONS = [
+  "recommended",
   "newest",
   "price_asc",
   "price_desc",

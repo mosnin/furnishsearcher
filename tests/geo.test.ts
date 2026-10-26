@@ -1,6 +1,6 @@
 import { retainedSpatialPages } from "../lib/spatial-pages";
 import { convexTest } from "convex-test";
-import geospatial from "@convex-dev/geospatial/test";
+import geospatial from "./helpers/geospatial";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { FunctionReturnType } from "convex/server";
 import schema from "../convex/schema";
@@ -49,7 +49,7 @@ function response(latitude = 30.2671, longitude = -97.7432) {
 }
 async function setup() {
   const t = convexTest(schema, modules);
-  geospatial.register(t);
+  await geospatial.register(t);
   const ids = await t.run(async (ctx) => {
     const make = (clerkId: string, role: "landlord" | "tenant" | "admin") =>
       ctx.db.insert("users", {

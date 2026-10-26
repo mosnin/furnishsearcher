@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-26T01:37:28.809Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedLocalQaIdentities": true,
+  "publicationPrerequisites": {
+    "syntheticOnly": true,
+    "identityAndPayment": "Privileged local fixture state; not actual Jumio verification or a Creem transaction",
+    "staffApproval": "Actual authorized local mutation with the expected content revision"
+  },
+  "actualCensusLookups": 2,
+  "publicCensusOfficeExampleOnly": true,
+  "nativeFirstReplyReordersWholeListAndMap": true,
+  "radiusOrderAgrees": true,
+  "explicitSpatialPriceAndNewestSortsVerified": true,
+  "privateScoresNotReturned": true,
+  "hiddenRentalExcluded": true,
+  "ownRentalsDeletedAndConversationArchived": true,
+  "borrowedReceiptBoundCapacityRestored": true,
+  "realEmailOrSmsSent": false,
+  "productionChanged": false
+}

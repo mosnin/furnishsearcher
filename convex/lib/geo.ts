@@ -1,3 +1,4 @@
+import { syncRecommendation, removeRecommendation } from "./recommendations";
 import { recordMapEligibility } from "./mapEligibility";
 import { GeospatialIndex } from "@convex-dev/geospatial";
 import { components } from "../_generated/api";
@@ -7,15 +8,24 @@ import { SORT_OPTIONS } from "../../lib/search-options";
 export const geo = new GeospatialIndex<
   string,
   { sort: string; status: string }
+>(components.geospatialV2, { logLevel: "ERROR" });
+export const legacyGeo = new GeospatialIndex<
+  string,
+  { sort: string; status: string }
 >(components.geospatial, { logLevel: "ERROR" });
 export async function syncGeo(
   ctx: MutationCtx,
   l: Doc<"listings">,
   onlyViews = false,
 ) {
-  if (!onlyViews) await recordMapEligibility(ctx, l);
+  if (!onlyViews) {
+    await recordMapEligibility(ctx, l);
+    await syncRecommendation(ctx, l);
+  }
   if (l.mapLatitude === undefined || l.mapLongitude === undefined) return;
-  for (const sort of onlyViews ? (["most_viewed"] as const) : SORT_OPTIONS) {
+  for (const sort of onlyViews
+    ? (["most_viewed"] as const)
+    : SORT_OPTIONS.filter((s) => s !== "recommended")) {
     const score =
       sort === "newest"
         ? -l.createdAt
@@ -35,6 +45,10 @@ export async function syncGeo(
 }
 export async function removeGeo(ctx: MutationCtx, l: Doc<"listings">) {
   await recordMapEligibility(ctx, l, true);
+  await removeRecommendation(ctx, l._id);
   if (l.mapLatitude === undefined) return;
-  for (const sort of SORT_OPTIONS) await geo.remove(ctx, `${sort}:${l._id}`);
+  for (const sort of SORT_OPTIONS.filter((s) => s !== "recommended")) {
+    await geo.remove(ctx, `${sort}:${l._id}`);
+    await legacyGeo.remove(ctx, `${sort}:${l._id}`);
+  }
 }

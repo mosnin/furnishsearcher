@@ -1,3 +1,4 @@
+import { syncRecommendation } from "./recommendations";
 import { subjectDeleted } from "./auth";
 import { recordMapEligibility } from "./mapEligibility";
 import { propertyIssues } from "./units";
@@ -148,7 +149,10 @@ export async function reconcileListing(
       : {}),
   });
   if (listing.status !== status) await syncGeo(ctx, { ...listing, status });
-  else await recordMapEligibility(ctx, { ...listing, status });
+  else {
+    await recordMapEligibility(ctx, { ...listing, status });
+    await syncRecommendation(ctx, { ...listing, status });
+  }
   if (activating) {
     await ctx.scheduler.runAfter(0, internal.housingRequests.scanListing, {
       listingId: listing._id,
