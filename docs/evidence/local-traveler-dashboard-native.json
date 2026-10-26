@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-26T06:45:53.845Z",
+  "environment": "http://127.0.0.1:3210",
+  "privilegedSyntheticLocalIdentities": true,
+  "actualClerkJwt": false,
+  "syntheticLocalPublicationPrerequisites": true,
+  "normalNativeInquiryAndConfirmation": true,
+  "oneActiveAndOneUpcoming": true,
+  "validCalendarCoverage": true,
+  "completePagedReads": true,
+  "privateProjection": true,
+  "serverUtcDayAndIgnoredRefreshClock": true,
+  "anonymousDenied": true,
+  "fixtureRentalRemoved": true,
+  "syntheticInquiriesCancelledAndRetained": [
+    "j97fdtsaq1zppe99aj96w9aeah8h0tt4",
+    "j97a6nma8yeqazmym8desr3pa58h126v"
+  ],
+  "fixtureStaysAbsentAfterCancellation": true,
+  "cloudGrants": false,
+  "providerRequests": 0,
+  "actualRentalLeaseOrPayment": false,
+  "positiveStayScope": "only this run's two exact inquiries"
+}
