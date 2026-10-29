@@ -76,6 +76,7 @@ export async function readiness(ctx: Ctx, listing: Doc<"listings">) {
         : "Await approval of this listing revision.",
     );
   const owner = await ctx.db.get(listing.landlordId);
+  if (owner && owner.role !== "landlord") issues.push("This property requires a property owner account.");
   if (!owner || !(await identityPassed(ctx, owner)))
     issues.push("Complete owner identity verification.");
   const subscription = await activePaidSubscription(

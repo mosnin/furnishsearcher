@@ -190,7 +190,7 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
         {
           subject: "Review rental document",
           message:
-            "Review the exact rental document you approved in FurnishSearcher",
+            "Review the exact rental document you approved in globe",
           recipients: [
             { partyId: s.ownerPartyId, notification: false },
             { partyId: s.tenantPartyId, notification: false },
@@ -213,7 +213,7 @@ async function setup(ctx: ActionCtx, id: Id<"rentalSignatures">) {
         {
           subject: "Rental document ready for signature",
           message:
-            "Open this document through your private FurnishSearcher account",
+            "Open this document through your private globe account",
           recipients: [
             { partyId: s.ownerPartyId, notification: false },
             { partyId: s.tenantPartyId, notification: false },

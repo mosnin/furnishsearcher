@@ -1,0 +1,151 @@
+{
+  "repository": "https://github.com/Jakubantalik/transitions.dev",
+  "commit": "e3aefb554d8fd2cb3e91e773e82a0f2d5a4f82a0",
+  "selection": "24 named transitions requested by user; no skill install or catalog acquisition",
+  "files": [
+    {
+      "name": "card-resize",
+      "path": "cli/free/card-resize.md",
+      "sha256": "e464e54fd9bc855c96d1dc3a570227fbe9e97857626fd9ba85035d927a918157",
+      "bytes": 1658
+    },
+    {
+      "name": "notification-badge",
+      "path": "cli/free/notification-badge.md",
+      "sha256": "f8f58844de1acf988f9437e4e1957478c48c6392939ac161ae3b9f6b55ea02f9",
+      "bytes": 3974
+    },
+    {
+      "name": "text-states-swap",
+      "path": "cli/free/text-states-swap.md",
+      "sha256": "d6e2ba7a8c591c4e436303694b981d38bed78dc0c8583173dbdccb192eb390c0",
+      "bytes": 3091
+    },
+    {
+      "name": "menu-dropdown",
+      "path": "cli/free/menu-dropdown.md",
+      "sha256": "70048541fd6389cfee736bf15a2bb21b062bc59c022562dc8d19773499630243",
+      "bytes": 3506
+    },
+    {
+      "name": "modal",
+      "path": "cli/free/modal.md",
+      "sha256": "55638bf7e92d54d54cd09ad360442d7433e5b7a4b34bea24138643c76c03339a",
+      "bytes": 2814
+    },
+    {
+      "name": "panel-reveal",
+      "path": "cli/free/panel-reveal.md",
+      "sha256": "1e6e726ccbbf44a5122200096f9bae7f1484be55fd17c102bfee870fd1a7418f",
+      "bytes": 2742
+    },
+    {
+      "name": "icon-swap",
+      "path": "cli/free/icon-swap.md",
+      "sha256": "46cb518c5ba9d5425fd6a854e337ce2242a82a8d215c00153c6330f239cb610d",
+      "bytes": 2415
+    },
+    {
+      "name": "success-check",
+      "path": "cli/free/success-check.md",
+      "sha256": "bd588b8f6039e63184b4161f6ae086f2333ed8a155229da702d7563fee41e610",
+      "bytes": 7122
+    },
+    {
+      "name": "error-state-shake",
+      "path": "cli/free/error-state-shake.md",
+      "sha256": "f8c14b853e7d1ab1b1d7272d0d9e704e2877df837a44ee7fa58ab7e990a3e102",
+      "bytes": 8545
+    },
+    {
+      "name": "skeleton-reveal",
+      "path": "cli/free/skeleton-reveal.md",
+      "sha256": "ffa8d66692cb863a05799abab90cdd4f1ad43189833202428ada7385bffcd88f",
+      "bytes": 4730
+    },
+    {
+      "name": "tabs-sliding",
+      "path": "cli/free/tabs-sliding.md",
+      "sha256": "5d5476da745b58652daba496b309d5293be6f61297968e946c019dc8842f4d17",
+      "bytes": 4578
+    },
+    {
+      "name": "tooltip",
+      "path": "cli/free/tooltip.md",
+      "sha256": "eedc3c03c78ed66e8eef2d9bd031d27096d8d612f4444c5cc84f74aa39e94275",
+      "bytes": 3364
+    },
+    {
+      "name": "accordion",
+      "path": "cli/free/accordion.md",
+      "sha256": "5b01c4b3db1773e3408bcc8a0b00b86c3dd7c7ed94b08f0cb250bf823969c641",
+      "bytes": 5217
+    },
+    {
+      "name": "toast",
+      "path": "cli/free/toast.md",
+      "sha256": "a383f33a69db0fa325bdf3ac51ef2221bd784a6021cabc04c98725b070704343",
+      "bytes": 2792
+    },
+    {
+      "name": "learn-more-hover",
+      "path": "cli/free/learn-more-hover.md",
+      "sha256": "94f5162e497a9399bca8b57d5b64d03e8545233b8e27b953d8e35108fc33482c",
+      "bytes": 2794
+    },
+    {
+      "name": "checkbox-check",
+      "path": "cli/free/checkbox-check.md",
+      "sha256": "a8d879e720691dc70d2396f3819f77be2c384da443dba667eb95a103e6234c4e",
+      "bytes": 2667
+    },
+    {
+      "name": "toggle",
+      "path": "cli/free/toggle.md",
+      "sha256": "9e4c405e573e1cf3286cc2eadf94c4dea7fa1139a843298db3dfd94fc47d1684",
+      "bytes": 3056
+    },
+    {
+      "name": "banner-stacking",
+      "path": "cli/free/banner-stacking.md",
+      "sha256": "f6ec964b16b46000d520f0b07d9633d2910aa2f8d82ca43b20e027f7142a2935",
+      "bytes": 7347
+    },
+    {
+      "name": "avatar-group-hover",
+      "path": "cli/free/avatar-group-hover.md",
+      "sha256": "4f440f0f6e3e2c99631d6cd168e326ea7c41052bedea71331b0db1fc67e82a84",
+      "bytes": 7374
+    },
+    {
+      "name": "like-button",
+      "path": "cli/free/like-button.md",
+      "sha256": "116a03e19fc036036b0bb2d42837f0a8b67b898c1974f5375b3d87f1076e051e",
+      "bytes": 4334
+    },
+    {
+      "name": "number-pop-in",
+      "path": "cli/free/number-pop-in.md",
+      "sha256": "723c6318d4c785febeb998326651cbbd04294d7712f8d32dfac85fef9e8bf5d1",
+      "bytes": 3747
+    },
+    {
+      "name": "texts-reveal",
+      "path": "cli/free/texts-reveal.md",
+      "sha256": "532a7fc12d94008d38d73e10d384ff8493ac8497505dad32d560f9842185fda7",
+      "bytes": 3500
+    },
+    {
+      "name": "spinning-counter",
+      "path": "cli/free/spinning-counter.md",
+      "sha256": "e34bc3f7bcea2279216acf577f3279df89fb81861879834446482e3412833b49",
+      "bytes": 3189
+    },
+    {
+      "name": "dropdown-menu-morph",
+      "path": "transitions/dropdown-menu-morph/index.html",
+      "sha256": "b98540c4bfdcbb5eef65ab69bc6b4720e50ba552e899e4a66000ddf3b2a59c6b",
+      "bytes": 16657
+    }
+  ]
+}

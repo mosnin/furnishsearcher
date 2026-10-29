@@ -61,7 +61,7 @@ export function LandlordBadges({
     {
       id: "established",
       label: "Established",
-      tooltip: "FurnishFinder member for over 1 year",
+      tooltip: "globe member for over 1 year",
       icon: <Clock className="h-3 w-3" />,
       color: "bg-blue-100 text-blue-700 border-blue-200",
       earned: ageMonths >= 12,

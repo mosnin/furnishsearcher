@@ -82,7 +82,7 @@ function Breakdown({
                       className="h-1.5 mt-1 bg-blue-100 rounded"
                     >
                       <div
-                        className="h-full bg-[#1e3a8a] rounded"
+                        className="h-full bg-primary rounded"
                         style={{ width: `${(row.count / max) * 100}%` }}
                       />
                     </div>
@@ -352,7 +352,7 @@ export default function MarketInsightsPage() {
                         <button
                           type="button"
                           onClick={() => choose(row.city, row.state)}
-                          className="text-[#1e3a8a] underline"
+                          className="text-primary underline"
                         >
                           {row.city}, {row.state}
                         </button>

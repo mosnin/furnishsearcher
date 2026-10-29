@@ -267,8 +267,8 @@ export function AvailabilityCalendar({
                   "bg-red-100 text-red-700 hover:bg-red-200",
                 block?.type === "booked" &&
                   "bg-amber-100 text-amber-700 hover:bg-amber-200",
-                isSelected && "bg-[#0f2044]/20 text-[#0f2044]",
-                isSelStart && "bg-[#0f2044] text-white",
+                isSelected && "bg-primary/20 text-primary",
+                isSelStart && "bg-primary text-white",
                 editable && !isPast && !block && "cursor-pointer",
               )}
             >

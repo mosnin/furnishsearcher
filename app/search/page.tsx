@@ -39,6 +39,7 @@ import {
   parseDate,
   type SearchFilters,
 } from "@/lib/search";
+import { ListingCard } from "@/components/listing-card";
 import { ListingFilters } from "@/components/listing-filters";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,6 +161,7 @@ function SearchPageInner() {
       } else filters.flexibleDays = undefined;
       router.push(buildSearchUrl(filters));
       setError("");
+      setShowFilters(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Check your search fields.",
@@ -241,175 +243,29 @@ function SearchPageInner() {
         exhausted={status === "Exhausted"}
         selectedId={selectedListingId}
         onSelect={setSelectedListingId}
-        userId={user?._id}
+        userId={user?.role === "tenant" ? user._id : undefined}
       />
       {loadControl}
     </>
   );
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/80 sticky top-0 z-30">
-        <div className="max-w-screen-2xl mx-auto px-4 py-3 space-y-3">
-          {!parsed.error && <AppliedSearchSummary filters={applied} />}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Link href="/" className="font-semibold text-[#0f2044] text-[17px]">
-              FurnishFinder
-            </Link>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                apply();
-              }}
-              className="flex flex-1 gap-2 items-center min-w-64"
-            >
-              <label className="sr-only" htmlFor="search-location">
-                City, state, ZIP or property ID
-              </label>
-              <div className="flex flex-1 gap-2 items-center bg-slate-100 rounded-2xl p-3">
-                <MapPin className="w-4 h-4 text-slate-400" />
-                <input
-                  id="search-location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="City, state, ZIP or property ID"
-                  maxLength={200}
-                  className="bg-transparent text-sm outline-none w-full"
-                />
-              </div>
-              <Button type="submit" aria-label="Search properties">
-                <Search className="w-4 h-4" />
-              </Button>
-            </form>
-            <Button
-              variant="outline"
-              aria-expanded={showFilters}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <SlidersHorizontal className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-            <Button
-              variant="outline"
-              disabled={!!parsed.error}
-              onClick={() => {
-                if (!user) {
-                  router.push(
-                    `/sign-in?redirect_url=${encodeURIComponent(buildSearchUrl(applied))}`,
-                  );
-                  return;
-                }
-                setSaveName(
-                  locationLabel === "All locations"
-                    ? "My search"
-                    : locationLabel,
-                );
-                setSaveOpen(true);
-              }}
-            >
-              <BookmarkPlus className="w-4 h-4 mr-2" />
-              Save search
-            </Button>
-            <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
-              {(["list", "split", "map"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  aria-label={`${mode} view`}
-                  aria-pressed={viewMode === mode}
-                  onClick={() => setViewMode(mode)}
-                  className={cn(
-                    "rounded-lg p-2",
-                    viewMode === mode && "bg-white shadow-sm text-[#0f2044]",
-                  )}
-                >
-                  {mode === "map" ? (
-                    <Map className="w-4 h-4" />
-                  ) : mode === "list" ? (
-                    <List className="w-4 h-4" />
-                  ) : (
-                    <span className="flex">
-                      <List className="w-3 h-4" />
-                      <Map className="w-3 h-4" />
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              apply();
-            }}
-            className="flex gap-3 items-end flex-wrap"
-          >
-            <label className="text-xs text-slate-600">
-              Move-in
-              <input
-                type="date"
-                value={moveIn}
-                onChange={(e) => setMoveIn(e.target.value)}
-                className="block rounded-lg border p-2 text-sm bg-white"
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Move-out (checkout)
-              <input
-                type="date"
-                value={moveOut}
-                onChange={(e) => setMoveOut(e.target.value)}
-                className="block rounded-lg border p-2 text-sm bg-white"
-              />
-            </label>
-            <label className="text-xs text-slate-600">
-              Date flexibility
-              <select
-                value={draft.flexibleDays ?? 0}
-                onChange={(e) =>
-                  setDraft({ ...draft, flexibleDays: Number(e.target.value) })
-                }
-                className="block rounded-lg border p-2 text-sm bg-white"
-              >
-                <option value={0}>Exact dates</option>
-                {[7, 14, 30].map((n) => (
-                  <option key={n} value={n}>
-                    ±{n} days
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button type="submit" variant="outline">
-              Apply dates
-            </Button>
-            <Button type="button" variant="ghost" onClick={clearDates}>
-              Clear dates
-            </Button>
-            <p className="text-xs text-slate-500 flex-1 min-w-48 pb-2">
-              Minimum stay 30 days. With flexibility, each date may move within
-              the chosen range; matching stay dates appear on each result.
-            </p>
-          </form>
-          {(error || parsed.error) && (
-            <p role="alert" className="text-sm text-red-700">
-              {error || parsed.error}{" "}
-              <Link className="underline" href="/search">
-                Clear search
-              </Link>
-            </p>
-          )}
-          {showFilters && (
-            <div className="border-t pt-4 pb-2">
-              <ListingFilters filters={draft} onFilterChange={setDraft} />
-              <div className="flex gap-3 mt-5">
-                <Button onClick={apply}>Apply filters</Button>
-                <Button variant="ghost" onClick={() => router.push("/search")}>
-                  Clear all
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+    <div className="public-results min-h-screen flex flex-col">
+      <div className="w-search-tools"><button className="w-filter-trigger" aria-expanded={showFilters} onClick={()=>setShowFilters(true)}><SlidersHorizontal size={17}/>Filters</button><button className="w-save-search" disabled={!!parsed.error || (!!user && user.role!=="tenant")} onClick={()=>{if(!user){router.push(`/sign-in?redirect_url=${encodeURIComponent(buildSearchUrl(applied))}`);return;}setSaveName(locationLabel==='All locations'?'My search':locationLabel);setSaveOpen(true);}}>Save search</button><div className="w-view-controls">{(["list","split","map"] as const).map(mode=><button key={mode} aria-label={`${mode} view`} aria-pressed={viewMode===mode} onClick={()=>setViewMode(mode)}>{mode==='map'?<Map size={17}/>:mode==='list'?<List size={17}/>:<span>List & map</span>}</button>)}</div></div>
+      <Dialog open={showFilters} onOpenChange={setShowFilters}><DialogContent className="w-filter-dialog"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription className="sr-only">Refine your monthly rental search.</DialogDescription></DialogHeader><div className="w-filter-scroll">      <div className="mx-auto max-w-screen-2xl w-full px-4 pb-4">
+        <LocationSearch
+          filters={applied}
+          onChange={(filters) => router.push(buildSearchUrl(filters))}
+        />
       </div>
-      <div className="max-w-screen-2xl mx-auto w-full p-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500 mb-3">
+              Approximate property areas for {mapListings.length} loaded
+              matches. {listings.length - mapListings.length} loaded listings
+              have no confirmed map location. Pins may group nearby listings.
+              Distances use these approximate areas, not travel routes.
+            </p>
+<ListingFilters filters={draft} onFilterChange={setDraft} prices={listings.map(l=>l.price)}/></div><div className="w-filter-footer"><button className="w-text-button" onClick={()=>setDraft({location:applied.location,city:applied.city,state:applied.state,propertyId:applied.propertyId,moveIn:applied.moveIn,moveOut:applied.moveOut,flexibleDays:applied.flexibleDays,sort:applied.sort})}>Clear all</button><button className="w-black-button" onClick={apply}>Show results</button></div></DialogContent></Dialog>
+      {(error||parsed.error)&&<p role="alert" className="w-search-error px-6">{error||parsed.error} <Link href="/search">Clear search</Link></p>}
+      <div className="public-results-header mx-auto w-full flex items-center justify-between gap-3">
         <div>
           <h1 className="font-semibold">
             {loading && !parsed.error
@@ -468,29 +324,17 @@ function SearchPageInner() {
             : "Matching rentals ordered by measured reply history, then recency. New rentals start with a neutral score."}
         </p>
       )}
-      <div className="mx-auto max-w-screen-2xl w-full px-4 pb-4">
-        <LocationSearch
-          filters={applied}
-          onChange={(filters) => router.push(buildSearchUrl(filters))}
-        />
-      </div>
-      <main className="flex-1 max-w-screen-2xl mx-auto w-full px-4 pb-8">
+      <main className="public-results-main flex-1 mx-auto w-full">
         {viewMode === "list" ? (
           grid
         ) : (
           <>
-            <p className="text-xs text-slate-500 mb-3">
-              Approximate property areas for {mapListings.length} loaded
-              matches. {listings.length - mapListings.length} loaded listings
-              have no confirmed map location. Pins may group nearby listings.
-              Distances use these approximate areas, not travel routes.
-            </p>
             <div
-              className="flex flex-col md:flex-row gap-4"
+              className="w-search-split"
               style={{ minHeight: "60vh" }}
             >
-              {viewMode === "split" && <div className="md:w-[52%]">{grid}</div>}
-              <div className="flex-1 h-[60vh] md:sticky md:top-48">
+              {viewMode === "split" && <div className="w-search-cards">{grid}</div>}
+              <div className="w-search-map">
                 <div className="flex gap-2 mb-2">
                   <Button
                     variant="outline"
@@ -642,7 +486,7 @@ function ListingsGrid({
 }) {
   if (loading)
     return (
-      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="w-results-grid">
         {Array.from({ length: 6 }, (_, i) => (
           <div
             key={i}
@@ -668,7 +512,7 @@ function ListingsGrid({
       </div>
     );
   return (
-    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="w-results-grid">
       {listings.map((l) => (
         <SearchListingCard
           key={l._id}
@@ -681,149 +525,8 @@ function ListingsGrid({
     </div>
   );
 }
-function SearchListingCard({
-  listing: l,
-  selected,
-  onSelect,
-  userId,
-}: {
-  listing: Listing;
-  selected: boolean;
-  onSelect: () => void;
-  userId?: Id<"users">;
-}) {
-  const router = useRouter();
-  const { userId: signedInClerkId } = useAuth();
-  const appearanceRef = useSearchAppearance(l._id);
-  const saved = useQuery(
-      api.saved.isSaved,
-      userId ? { tenantId: userId, listingId: l._id } : "skip",
-    ),
-    save = useMutation(api.saved.save),
-    unsave = useMutation(api.saved.unsave);
-  const [busy, setBusy] = useState(false);
-  const [confirmRemoval, setConfirmRemoval] = useState(false);
-  useEffect(() => {
-    setConfirmRemoval(false);
-  }, [userId, l._id]);
-  async function changeSaved(remove: boolean) {
-    if (!userId) {
-      router.push(signedInClerkId ? "/onboarding" : "/sign-in");
-      return;
-    }
-    if (busy) return;
-    setBusy(true);
-    try {
-      await (remove ? unsave : save)({ tenantId: userId, listingId: l._id });
-      setConfirmRemoval(false);
-    } catch {
-      toast.error("Unable to update saved property.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  const stay = new URLSearchParams();
-  if (l.matchedMoveIn !== undefined) {
-    stay.set("moveIn", date(l.matchedMoveIn));
-    stay.set("moveOut", date(l.matchedMoveOut));
-  }
-  return (
-    <article
-      ref={appearanceRef}
-      className={cn(
-        "bg-white rounded-2xl overflow-hidden shadow-sm ring-1",
-        selected ? "ring-[#0f2044] ring-2" : "ring-black/[0.06]",
-      )}
-    >
-      <div className="relative h-52 bg-slate-100">
-        <button
-          aria-label={
-            l.mapLatitude !== undefined
-              ? `Show ${l.title} on the map`
-              : `Map location unavailable for ${l.title}`
-          }
-          disabled={l.mapLatitude === undefined}
-          onClick={onSelect}
-          className="w-full h-full"
-        >
-          {l.photos[0] ? (
-            <img
-              src={l.photos[0]}
-              alt={l.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <MapPin className="w-10 h-10 mx-auto text-slate-300" />
-          )}
-        </button>
-        <button
-          className="absolute top-3 right-3 bg-white/90 rounded-xl p-2 shadow-sm"
-          aria-label={saved ? "Unsave property" : "Save property"}
-          aria-pressed={!!saved}
-          disabled={busy || (!!userId && saved === undefined)}
-          onClick={() => {
-            if (saved) setConfirmRemoval(true);
-            else void changeSaved(false);
-          }}
-        >
-          <Heart
-            className={cn(
-              "w-4 h-4",
-              saved ? "fill-red-500 text-red-500" : "text-slate-600",
-            )}
-          />
-        </button>
-        <span className="absolute bottom-3 left-3 bg-white/90 text-xs rounded-lg px-2 py-1">
-          {l.propertyType}
-        </span>
-      </div>
-      <div className="p-4">
-        <h2 className="font-semibold text-sm truncate">{l.title}</h2>
-        <p className="text-xs text-slate-500 mt-1">
-          {l.city}, {l.state}
-        </p>
-        {l.distanceMiles !== undefined && (
-          <p className="text-xs text-slate-600 mt-1">
-            About {l.distanceMiles.toFixed(1)} miles from your reference ·
-            straight-line area estimate
-          </p>
-        )}
-        <p className="text-xs text-slate-400 mt-1 break-all">
-          Property ID: {l.publicId ?? l._id}
-        </p>
-        <div className="flex items-center justify-between my-3">
-          <p>
-            <strong className="text-[#0f2044] text-lg">
-              {formatPrice(l.price)}
-            </strong>
-            <span className="text-xs text-slate-500"> /mo</span>
-          </p>
-          <p className="flex items-center gap-2 text-xs text-slate-500">
-            <Bed className="w-3 h-3" />
-            {l.bedrooms}
-            <Bath className="w-3 h-3" />
-            {l.bathrooms}
-          </p>
-        </div>
-        {l.matchedMoveIn !== undefined && (
-          <p className="rounded-lg bg-blue-50 text-xs text-blue-900 p-2 mb-3">
-            Available stay: {date(l.matchedMoveIn)} → {date(l.matchedMoveOut)} ·{" "}
-            {Math.round((l.matchedMoveOut! - l.matchedMoveIn) / DAY)} nights
-          </p>
-        )}
-        <Link
-          href={`/listings/${l._id}${stay.size ? `?${stay}` : ""}`}
-          className="block text-center bg-[#0f2044] hover:bg-[#1a3360] text-white rounded-xl py-2 text-sm"
-        >
-          View listing
-        </Link>
-      </div>
-      <RemoveSavedDialog
-        open={confirmRemoval}
-        onOpenChange={setConfirmRemoval}
-        onConfirm={() => void changeSaved(true)}
-        busy={busy}
-      />
-    </article>
-  );
+function SearchListingCard({listing,selected,onSelect}:{listing:Listing;selected:boolean;onSelect:()=>void;userId?:Id<"users">}) {
+ const appearanceRef=useSearchAppearance(listing._id);
+ const stay=new URLSearchParams();if(listing.matchedMoveIn!==undefined){stay.set('moveIn',date(listing.matchedMoveIn));stay.set('moveOut',date(listing.matchedMoveOut));}
+ return <article ref={appearanceRef} className="w-search-result" data-selected={selected}><ListingCard listing={listing} href={`/listings/${listing._id}${stay.size?`?${stay}`:''}`}/>{listing.matchedMoveIn!==undefined&&<p className="w-matched-stay">{date(listing.matchedMoveIn)} – {date(listing.matchedMoveOut)}</p>}{listing.distanceMiles!==undefined&&<p className="w-matched-stay">About {listing.distanceMiles.toFixed(1)} miles from your reference</p>}{listing.mapLatitude!==undefined&&<button className="w-show-on-map" aria-pressed={selected} onClick={onSelect}>Show on map</button>}</article>;
 }

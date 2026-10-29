@@ -292,7 +292,7 @@ export default function LeafletMapInner(p: Props) {
               )}
               <a
                 href={selected.href ?? `/listings/${selected.id}`}
-                className="block rounded bg-[#0f2044] p-2 text-center text-white"
+                className="block rounded bg-primary p-2 text-center text-white"
               >
                 View listing
               </a>

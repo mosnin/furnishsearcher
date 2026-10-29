@@ -1,824 +1,355 @@
 "use client";
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import {
+  PageHeader,
+  ActionLink,
+  Button,
+  Widget,
+  Metric,
+  ViewTabs,
+  Empty,
+  Status,
+} from "@/components/ui-system/primitives";
 import TravelerNextSteps, {
   TravelerStays,
   useTravelerDashboard,
 } from "@/components/traveler-next-steps";
-
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { RecentMessages } from "@/components/dashboard/home-widgets";
+import { MagnifyingGlass, House } from "@phosphor-icons/react";
+import { formatPrice, formatDate } from "@/lib/utils";
+import { buildSearchUrl, criteriaOnly } from "@/lib/search";
 import { toast } from "sonner";
-import { buildSearchUrl, criteriaOnly, type SearchFilters } from "@/lib/search";
-import { cn, formatPrice, formatDate } from "@/lib/utils";
-
-type ConvDoc<T> = T & { _id: string };
-
-type ConvUser = {
-  _id: string;
-  name: string;
-  email: string;
-  role: "tenant" | "landlord" | "admin";
-};
-
-type ConvListing = {
-  featured?: boolean;
-  _id: string;
-  landlordId: string;
-  title: string;
-  city: string;
-  state: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  photos: string[];
-};
-
-type ConvConversation = {
-  _id: string;
-  tenantId: string;
-  landlordId: string;
-  lastMessage: string;
-  lastMessageAt: number;
-  tenantRead: boolean;
-  landlordRead: boolean;
-  archived?: boolean;
-  blockedByMe?: boolean;
-  listing: { title: string } | null;
-  otherUser: { name: string } | null;
-};
-
-type SavedSearch = SearchFilters & {
-  _id: string;
-  userId: string;
-  name: string;
-  location?: string;
-  city?: string;
-  state?: string;
-  maxPrice?: number;
-  bedrooms?: number;
-  propertyType?: string;
-  petFriendly?: boolean;
-  createdAt: number;
-};
-
-type HousingRequest = {
-  _id: string;
-  userId: string;
-  city: string;
-  state: string;
-  moveInDate: number;
-  duration: number;
-  maxBudget: number;
-  bedrooms: number;
-  petFriendly: boolean;
-  description: string;
-  status: "open" | "fulfilled" | "closed";
-  createdAt: number;
-};
-
-import { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import {
-  Heart,
-  MessageSquare,
-  Home,
-  CalendarDays,
-  MapPin,
-  BedDouble,
-  Bath,
-  ArrowRight,
-  Search,
-  Clock,
-  Bookmark,
-  X,
-  DollarSign,
-  FileText,
-  PlusCircle,
-} from "lucide-react";
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  loading,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  loading?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500 font-medium">{title}</p>
-            {loading ? (
-              <Skeleton className="h-8 w-16 mt-1" />
-            ) : (
-              <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-            )}
-          </div>
-          <div className="h-12 w-12 rounded-full bg-[#0f2044]/10 flex items-center justify-center">
-            <Icon className="h-6 w-6 text-[#0f2044]" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ListingCard({
-  listing,
-  userId,
-}: {
-  listing: {
-    _id: string;
-    title: string;
-    city: string;
-    state: string;
-    price: number;
-    bedrooms: number;
-    bathrooms: number;
-    photos: string[];
-    landlordId: string;
-    featured?: boolean;
-  };
-  userId: string;
-}) {
-  const photo = listing.photos[0];
-  return (
-    <Card className="overflow-hidden flex flex-col">
-      <div className="h-40 bg-slate-200 relative overflow-hidden">
-        {photo ? (
-          <img
-            src={photo}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Home className="h-10 w-10 text-slate-400" />
-          </div>
-        )}
-        {listing.featured && (
-          <Badge
-            variant="secondary"
-            className="absolute top-3 left-3 bg-white/90"
-          >
-            Sponsored
-          </Badge>
-        )}
-      </div>
-      <CardContent className="flex-1 flex flex-col p-4">
-        <h3 className="font-semibold text-slate-900 line-clamp-1">
-          {listing.title}
-        </h3>
-        <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-          <MapPin className="h-3.5 w-3.5" />
-          <span>
-            {listing.city}, {listing.state}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-slate-500 mt-2">
-          <span className="flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5" />
-            {listing.bedrooms} bd
-          </span>
-          <span className="flex items-center gap-1">
-            <Bath className="h-3.5 w-3.5" />
-            {listing.bathrooms} ba
-          </span>
-        </div>
-        <p className="text-[#0f2044] font-bold mt-2">
-          {formatPrice(listing.price)}
-          <span className="font-normal text-slate-500 text-sm">/mo</span>
-        </p>
-        <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
-          <Button asChild size="sm" className="flex-1">
-            <Link href={`/listings/${listing._id}`}>View</Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="flex-1">
-            <Link
-              href={`/dashboard/messages?listing=${listing._id}&landlord=${listing.landlordId}`}
-            >
-              Message
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function TenantDashboardPage() {
-  const router = useRouter();
-  const { userId, isLoaded } = useAuth();
-
-  const convexUser = useQuery(
+export default function TravelerHome() {
+  const { userId } = useAuth();
+  const [view, setView] = useState("overview");
+  const [busy, setBusy] = useState<string | null>(null);
+  const user = useQuery(
     api.users.getByClerkId,
     userId ? { clerkId: userId } : "skip",
   );
-
-  const savedSummary = useQuery(
-    api.saved.summary,
-    convexUser?._id ? {} : "skip",
-  );
-  const savedListings = savedSummary?.recent;
-
-  const inboxSummary = useQuery(
-    api.inbox.summary,
-    convexUser?._id ? {} : "skip",
-  );
-  const conversations = inboxSummary?.ready ? inboxSummary.recent : undefined;
-  const travelerDashboard = useTravelerDashboard(!!convexUser);
-
-  const featuredListings = useQuery(api.listings.getFeatured, {}) as
-    | ConvListing[]
-    | undefined;
-
-  const savedSearches = useQuery(
+  const saved = useQuery(api.saved.summary, user ? {} : "skip");
+  const inbox = useQuery(api.inbox.summary, user ? {} : "skip");
+  const searches = useQuery(
     api.savedSearches.getByUser,
-    convexUser?._id ? { userId: convexUser._id } : "skip",
-  ) as SavedSearch[] | undefined;
-
-  const removeSavedSearch = useMutation(api.savedSearches.remove);
-
-  const housingRequests = useQuery(
+    user ? { userId: user._id } : "skip",
+  );
+  const requests = useQuery(
     api.housingRequests.getByUser,
-    convexUser?._id ? { userId: convexUser._id } : "skip",
-  ) as HousingRequest[] | undefined;
-
-  const closeHousingRequest = useMutation(api.housingRequests.close);
-
-  const visibleConversations =
-    conversations?.filter((c) => !c.archived && !c.blockedByMe) ?? [];
-
-  const isLoading = !isLoaded || convexUser === undefined;
-  const firstName = convexUser?.name?.split(" ")[0] ?? "there";
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  const unreadMessages = inboxSummary?.ready ? inboxSummary.unread : 0;
-
-  const handleRemoveSavedSearch = async (id: string, name: string) => {
+    user ? { userId: user._id } : "skip",
+  );
+  const featured = useQuery(api.listings.getFeatured, {});
+  const dashboard = useTravelerDashboard(!!user);
+  const removeSearch = useMutation(api.savedSearches.remove),
+    closeRequest = useMutation(api.housingRequests.close);
+  const act = async (id: string, kind: "search" | "request") => {
+    if (busy) return;
+    setBusy(id);
     try {
-      await removeSavedSearch({ id: id as Id<"savedSearches"> });
-      toast.success(`"${name}" removed`);
-    } catch (err) {
-      console.error("Failed to remove saved search:", err);
-      toast.error("Failed to remove saved search.");
+      if (kind === "search")
+        await removeSearch({ id: id as Id<"savedSearches"> });
+      else await closeRequest({ id: id as Id<"housingRequests"> });
+      toast.success(
+        kind === "search" ? "Saved search removed" : "Housing request closed",
+      );
+    } catch {
+      toast.error("Could not save this change");
+    } finally {
+      setBusy(null);
     }
   };
-
-  const handleCloseHousingRequest = async (id: string) => {
-    try {
-      await closeHousingRequest({ id: id as Id<"housingRequests"> });
-      toast.success("Housing request closed.");
-    } catch (err) {
-      console.error("Failed to close housing request:", err);
-      toast.error("Failed to close housing request.");
-    }
-  };
-
-  if (convexUser === null)
+  if (user === null)
     return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold">Complete your profile</h1>
-        <p className="my-3">
-          Set up your app profile to view your private traveler dashboard.
-        </p>
-        <Button asChild>
-          <Link href="/onboarding">Continue profile setup</Link>
-        </Button>
+      <div className="ds-page">
+        <PageHeader
+          title="Complete your profile"
+          description="Set up your profile to view your private traveler workspace."
+        />
+        <ActionLink href="/onboarding">Continue profile setup</ActionLink>
       </div>
     );
-
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          {isLoading ? (
-            <>
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-40 mt-2" />
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Welcome back, {firstName}!
-              </h1>
-              <p className="text-slate-500 text-sm mt-1">{today}</p>
-            </>
-          )}
-        </div>
-        <Button asChild>
-          <Link href="/search">
-            <Search className="h-4 w-4 mr-2" />
-            Browse Listings
-          </Link>
-        </Button>
-      </div>
-
-      <TravelerNextSteps
-        dashboard={travelerDashboard}
-        unread={unreadMessages}
-        inboxReady={!!inboxSummary?.ready}
+    <div className="ds-page">
+      <PageHeader
+        title="Traveler home"
+        description="Your search, conversations and next stay."
+        action={
+          <ActionLink variant="primary" href="/search">
+            <MagnifyingGlass size={14} />
+            Find a rental
+          </ActionLink>
+        }
       />
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Saved Listings"
-          value={
-            savedSummary
-              ? `${savedSummary.count}${savedSummary.hasMore ? "+" : ""}`
-              : 0
-          }
-          icon={Heart}
-          loading={isLoading || savedListings === undefined}
-        />
-        <StatCard
-          title="Messages"
-          value={
-            unreadMessages > 0
-              ? `${unreadMessages} unread`
-              : visibleConversations.length
-          }
-          icon={MessageSquare}
-          loading={isLoading || conversations === undefined}
-        />
-        <StatCard
-          title="Active stays loaded"
-          value={travelerDashboard.active}
-          icon={Home}
-          loading={isLoading || travelerDashboard.loading}
-        />
-        <StatCard
-          title="Upcoming move-ins loaded"
-          value={travelerDashboard.upcoming}
-          icon={CalendarDays}
-          loading={isLoading || travelerDashboard.loading}
-        />
-      </div>
-
-      <TravelerStays dashboard={travelerDashboard} />
-
-      {/* Saved Listings */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Saved Listings
-          </h2>
-          <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/dashboard/tenant/saved">
-              View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
+      <ViewTabs
+        value={view}
+        onValueChange={setView}
+        tabs={[
+          { value: "overview", label: "Overview" },
+          { value: "searches", label: "Searches & requests" },
+        ]}
+      >
+        <div className="ds-metrics">
+          <Metric
+            label="Saved rentals"
+            value={saved ? `${saved.count}${saved.hasMore ? "+" : ""}` : "—"}
+            detail="Your private shortlist"
+            loading={!saved}
+          />
+          <Metric
+            label="Unread conversations"
+            value={inbox?.ready ? inbox.unread : "—"}
+            detail={inbox?.ready ? "Your complete inbox" : "Inbox is updating"}
+            loading={!inbox}
+          />
+          <Metric
+            label="Active stays"
+            value={dashboard.active}
+            detail="Accepted records loaded"
+            loading={dashboard.loading}
+          />
+          <Metric
+            label="Upcoming stays"
+            value={dashboard.upcoming}
+            detail="Accepted records loaded"
+            loading={dashboard.loading}
+          />
         </div>
-
-        {savedListings === undefined ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="h-40 w-full rounded-none" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : savedListings.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Heart className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No saved listings yet
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">
-                Browse listings and save your favorites to compare them later.
-              </p>
-              <Button asChild>
-                <Link href="/search">Browse Listings</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedListings.slice(0, 3).map((entry) =>
-              entry.listing ? (
-                <ListingCard
-                  key={entry._id}
-                  listing={entry.listing!}
-                  userId={convexUser?._id ?? ""}
-                />
-              ) : (
-                <Card key={entry._id}>
-                  <CardContent className="p-6 space-y-3">
-                    <p className="font-medium">Listing unavailable</p>
-                    <p className="text-sm text-slate-500">
-                      A saved listing is not currently public.
-                    </p>
-                    <Link
-                      href="/dashboard/tenant/saved"
-                      className="text-sm underline"
-                    >
-                      Manage saved listings
-                    </Link>
-                  </CardContent>
-                </Card>
-              ),
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* Recent Messages */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Recent Messages
-          </h2>
-          <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/dashboard/messages">
-              View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
-        </div>
-
-        {conversations === undefined ? (
-          <Card>
-            <CardContent className="p-0 divide-y divide-slate-100">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="p-4 flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3.5 w-48" />
-                    <Skeleton className="h-3 w-56" />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : visibleConversations.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <MessageSquare className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No messages in your inbox
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">
-                Find a listing you love and reach out to the landlord.
-              </p>
-              <Button asChild>
-                <Link href="/search">Browse Listings</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-0 divide-y divide-slate-100">
-              {visibleConversations.slice(0, 3).map((conv) => {
-                const isTenant = conv.tenantId === convexUser?._id;
-                const isUnread = isTenant
-                  ? !conv.tenantRead
-                  : !conv.landlordRead;
-                return (
-                  <Link
-                    key={conv._id}
-                    href={`/dashboard/messages?conv=${conv._id}`}
-                    className="flex items-start gap-3 p-4 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-[#0f2044]">
-                        {conv.otherUser?.name?.[0]?.toUpperCase() ?? "?"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={cn(
-                            "text-sm font-medium",
-                            isUnread ? "text-slate-900" : "text-slate-700",
-                          )}
-                        >
-                          {conv.otherUser?.name ?? "Unknown"}
-                        </span>
-                        <span className="text-xs text-slate-400 shrink-0 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(conv.lastMessageAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
-                        Re: {conv.listing?.title ?? "Listing"}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-sm mt-0.5 truncate",
-                          isUnread
-                            ? "text-slate-800 font-medium"
-                            : "text-slate-500",
-                        )}
-                      >
-                        {conv.lastMessage}
-                      </p>
-                    </div>
-                    {isUnread && (
-                      <div className="h-2 w-2 rounded-full bg-[#0f2044] mt-2 shrink-0" />
-                    )}
-                  </Link>
-                );
-              })}
-            </CardContent>
-          </Card>
-        )}
-      </section>
-
-      {/* My Saved Searches */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            My Saved Searches
-          </h2>
-          <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/search">
-              Browse Listings <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
-        </div>
-
-        {savedSearches === undefined ? (
-          <div className="flex flex-wrap gap-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-10 w-44 rounded-full" />
-            ))}
-          </div>
-        ) : savedSearches.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Bookmark className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No saved searches yet
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">
-                Save a search to get notified when matching listings are posted.
-              </p>
-              <Button asChild>
-                <Link href="/search">Browse Listings</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {savedSearches.map((search) => (
-              <div
-                key={search._id}
-                className="group flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm hover:border-[#0f2044]/40 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => {
-                  try {
-                    router.push(buildSearchUrl(criteriaOnly(search)));
-                  } catch {
-                    toast.error(
-                      "This saved search needs new criteria. Open Saved Searches to remove it.",
-                    );
+        {view === "overview" ? (
+          <div className="ds-home-grid">
+            <TravelerStays dashboard={dashboard} />
+            <TravelerNextSteps
+              dashboard={dashboard}
+              unread={inbox?.unread ?? 0}
+              inboxReady={!!inbox?.ready}
+            />
+            <Widget
+              title="Saved rentals"
+              description="Your most recently saved properties"
+              action={
+                <ActionLink variant="ghost" href="/dashboard/tenant/saved">
+                  View all
+                </ActionLink>
+              }
+            >
+              {!saved ? (
+                <Empty title="Loading saved rentals…" />
+              ) : !saved.recent.length ? (
+                <Empty
+                  title="Build your shortlist"
+                  action={
+                    <ActionLink href="/search">Browse rentals</ActionLink>
                   }
-                }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Search className="h-3.5 w-3.5 text-[#0f2044] shrink-0" />
-                  <span className="text-sm font-semibold text-slate-900 truncate max-w-[140px]">
-                    {search.name}
-                  </span>
-                </div>
-
-                {/* Criteria tags */}
-                <div className="flex items-center gap-1 flex-wrap">
-                  {(search.city || search.state) && (
-                    <span className="flex items-center gap-0.5 text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 font-medium">
-                      <MapPin className="h-2.5 w-2.5" />
-                      {[search.city, search.state].filter(Boolean).join(", ")}
-                    </span>
-                  )}
-                  {search.maxPrice && (
-                    <span className="flex items-center gap-0.5 text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 font-medium">
-                      <DollarSign className="h-2.5 w-2.5" />
-                      {search.maxPrice.toLocaleString()}
-                    </span>
-                  )}
-                  {search.bedrooms && (
-                    <span className="flex items-center gap-0.5 text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 font-medium">
-                      <BedDouble className="h-2.5 w-2.5" />
-                      {search.bedrooms}+ bd
-                    </span>
-                  )}
-                </div>
-
-                {/* Delete button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveSavedSearch(search._id, search.name);
-                  }}
-                  className="ml-1 p-0.5 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                  aria-label={`Remove "${search.name}"`}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Recommended */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Rental Highlights
-          </h2>
-          <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/search">
-              See all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
-        </div>
-
-        {featuredListings === undefined ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="h-40 w-full rounded-none" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : featuredListings.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <Search className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No rental highlights to show
-              </h3>
-              <p className="text-sm text-slate-500">
-                Browse search for the full current selection.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {featuredListings.slice(0, 3).map((listing) => (
-              <ListingCard
-                key={listing._id}
-                listing={listing}
-                userId={convexUser?._id ?? ""}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="mb-4 text-right">
-        <Link href="/dashboard/housing-requests" className="text-sm underline">
-          View all housing requests
-        </Link>
-      </div>
-
-      {/* My Housing Requests */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-[#0f2044]" />
-            My Housing Requests
-          </h2>
-          <Button
-            asChild
-            size="sm"
-            className="bg-[#0f2044] hover:bg-[#1a3360] text-white gap-1"
-          >
-            <Link href="/housing-request">
-              <PlusCircle className="h-4 w-4" />
-              New Request
-            </Link>
-          </Button>
-        </div>
-
-        {housingRequests === undefined ? (
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3.5 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-16 rounded-full" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : housingRequests.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No housing requests yet
-              </h3>
-              <p className="text-sm text-slate-500 mb-4">
-                Submit a request and let landlords come to you.
-              </p>
-              <Button asChild className="bg-[#0f2044] hover:bg-[#1a3360]">
-                <Link href="/housing-request">Submit a Request</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-0 divide-y divide-slate-100">
-              {housingRequests.map((req) => (
-                <div
-                  key={req._id}
-                  className="flex items-start gap-4 p-4 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0">
-                    <MapPin className="h-5 w-5 text-[#0f2044]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-slate-900 text-sm">
-                        {req.city}, {req.state}
-                      </span>
-                      <Badge
-                        variant={
-                          req.status === "open" ? "default" : "secondary"
-                        }
-                        className={cn(
-                          "text-xs capitalize",
-                          req.status === "open"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-slate-100 text-slate-600",
+                  Save properties to compare them in one place.
+                </Empty>
+              ) : (
+                <div className="ds-workspace-rows">
+                  {saved.recent.map((entry) => (
+                    <div className="ds-workspace-row" key={entry._id}>
+                      <div>
+                        {entry.listing ? (
+                          <>
+                            <Link href={`/listings/${entry.listing._id}`}>
+                              <strong>{entry.listing.title}</strong>
+                            </Link>
+                            <small className="ds-caption block">
+                              {entry.listing.city}, {entry.listing.state}
+                            </small>
+                          </>
+                        ) : (
+                          <>
+                            <strong>Listing unavailable</strong>
+                            <small className="ds-caption block">
+                              This saved listing is not currently public.
+                            </small>
+                          </>
                         )}
-                      >
-                        {req.status}
-                      </Badge>
+                      </div>
+                      {entry.listing && (
+                        <span>{formatPrice(entry.listing.price)}/mo</span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        Up to ${req.maxBudget.toLocaleString()}/mo
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BedDouble className="h-3 w-3" />
-                        {req.bedrooms}+ bed
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" />
-                        {new Date(req.moveInDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {req.duration} {req.duration === 1 ? "month" : "months"}
-                      </span>
-                    </div>
-                  </div>
-                  {req.status === "open" && (
-                    <button
-                      type="button"
-                      onClick={() => handleCloseHousingRequest(req._id)}
-                      className="text-xs text-slate-400 hover:text-red-500 hover:bg-red-50 px-2.5 py-1 rounded-md border border-slate-200 hover:border-red-200 transition-colors shrink-0 font-medium"
-                    >
-                      Close
-                    </button>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              )}
+            </Widget>
+            <RecentMessages enabled={!!user} />
+            <Widget
+              title="Rental highlights"
+              description="A limited selection of currently eligible rentals"
+              className="ds-full"
+              action={
+                <ActionLink variant="ghost" href="/search">
+                  Full search
+                </ActionLink>
+              }
+            >
+              {!featured ? (
+                <Empty title="Loading rentals…" />
+              ) : !featured.length ? (
+                <Empty title="No rentals in this showcase">
+                  Try the full search for your location and dates.
+                </Empty>
+              ) : (
+                <div className="ds-table-wrap">
+                  <table className="ds-table">
+                    <thead>
+                      <tr>
+                        <th>Rental</th>
+                        <th>Location</th>
+                        <th>Monthly rent</th>
+                        <th>
+                          <span className="sr-only">Actions</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {featured.map((listing) => (
+                        <tr key={listing._id}>
+                          <td>
+                            <div className="ds-property">
+                              <span className="ds-property-thumb">
+                                {listing.photos[0] ? (
+                                  <img src={listing.photos[0]} alt="" />
+                                ) : (
+                                  <House size={18} />
+                                )}
+                              </span>
+                              <div>
+                                <strong>{listing.title}</strong>
+                                {listing.featured && <Status>Sponsored</Status>}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            {listing.city}, {listing.state}
+                          </td>
+                          <td>{formatPrice(listing.price)}</td>
+                          <td>
+                            <ActionLink href={`/listings/${listing._id}`}>
+                              View rental
+                            </ActionLink>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Widget>
+          </div>
+        ) : (
+          <div className="ds-home-grid">
+            <Widget
+              title="Saved searches"
+              description="Resume your exact criteria"
+              action={
+                <ActionLink variant="ghost" href="/dashboard/tenant/searches">
+                  Manage searches
+                </ActionLink>
+              }
+            >
+              {!searches ? (
+                <Empty title="Loading saved searches…" />
+              ) : !searches.length ? (
+                <Empty
+                  title="No saved searches"
+                  action={
+                    <ActionLink href="/search">Start a search</ActionLink>
+                  }
+                >
+                  Save a search to return to its location, budget, dates and
+                  amenities.
+                </Empty>
+              ) : (
+                <div className="ds-task-list">
+                  {searches.map((search) => {
+                    let href = "/dashboard/tenant/searches";
+                    try {
+                      href = buildSearchUrl(criteriaOnly(search));
+                    } catch {}
+                    return (
+                      <article className="ds-task-row" key={search._id}>
+                        <div>
+                          <h3>{search.name}</h3>
+                          <p>
+                            {[search.city, search.state]
+                              .filter(Boolean)
+                              .join(", ") || "Saved location criteria"}
+                          </p>
+                          <ActionLink href={href}>Resume search</ActionLink>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          disabled={busy === search._id}
+                          onClick={() => void act(search._id, "search")}
+                          aria-label={`Remove saved search ${search.name}`}
+                        >
+                          {busy === search._id ? "Removing…" : "Remove"}
+                        </Button>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </Widget>
+            <Widget
+              title="Housing requests"
+              description="Your requests to property owners"
+              action={
+                <ActionLink variant="ghost" href="/dashboard/housing-requests">
+                  Manage requests
+                </ActionLink>
+              }
+            >
+              {!requests ? (
+                <Empty title="Loading requests…" />
+              ) : !requests.length ? (
+                <Empty
+                  title="No housing requests"
+                  action={
+                    <ActionLink href="/dashboard/housing-requests">
+                      Create a request
+                    </ActionLink>
+                  }
+                >
+                  Share your housing needs with property owners.
+                </Empty>
+              ) : (
+                <div className="ds-task-list">
+                  {requests.map((request) => (
+                    <article className="ds-task-row" key={request._id}>
+                      <div>
+                        <Status>{request.status}</Status>
+                        <h3>
+                          {request.city}, {request.state}
+                        </h3>
+                        <p>
+                          {formatDate(request.moveInDate)} · Up to{" "}
+                          {formatPrice(request.maxBudget)}/mo
+                        </p>
+                      </div>
+                      {request.status === "open" && (
+                        <Button
+                          variant="secondary"
+                          disabled={busy === request._id}
+                          onClick={() => void act(request._id, "request")}
+                        >
+                          {busy === request._id ? "Closing…" : "Close request"}
+                        </Button>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </Widget>
+          </div>
         )}
-      </section>
+      </ViewTabs>
     </div>
   );
 }

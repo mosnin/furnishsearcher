@@ -116,7 +116,7 @@ export default function ContactForm() {
         </div>
         <Link
           href="/dashboard/support"
-          className="text-sm text-[#1e3a8a] underline"
+          className="text-sm text-primary underline"
         >
           View cases submitted while signed in
         </Link>
@@ -125,7 +125,7 @@ export default function ContactForm() {
             setSubmitted(null);
             setForm(INITIAL_FORM);
           }}
-          className="text-sm text-[#1e3a8a] hover:underline font-medium mt-2"
+          className="text-sm text-primary hover:underline font-medium mt-2"
         >
           Send another message
         </button>
@@ -239,7 +239,7 @@ export default function ContactForm() {
       <Button
         type="submit"
         disabled={submitting}
-        className="w-full bg-[#0f2044] hover:bg-[#1a3360] text-white font-medium gap-2"
+        className="w-full bg-primary hover:bg-primary/90 text-white font-medium gap-2"
       >
         {submitting ? (
           <>

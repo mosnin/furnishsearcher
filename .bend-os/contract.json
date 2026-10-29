@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "basis": "User supplied24 named transition recipes and mandatory source persistence October29 2026",
+  "adapter": "none",
+  "protected": {
+    "LAWS.bend": "807e847f76b50812ee66df829ba4dc5da0277b07d1e844d1f2e27917b4e36d86"
+  }
+}

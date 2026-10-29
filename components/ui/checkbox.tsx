@@ -1,27 +1,62 @@
 "use client";
-
 import * as React from "react";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
+import { Checkbox as Base } from "@base-ui/react/checkbox";
+import { Minus } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
-
-const Checkbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <CheckboxPrimitive.Root
-    ref={ref}
-    className={cn(
-      "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-      className
-    )}
-    {...props}
-  >
-    <CheckboxPrimitive.Indicator className={cn("flex items-center justify-center text-current")}>
-      <Check className="h-4 w-4" />
-    </CheckboxPrimitive.Indicator>
-  </CheckboxPrimitive.Root>
-));
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
-
+type Props = Omit<
+  React.ComponentPropsWithoutRef<typeof Base.Root>,
+  "checked" | "defaultChecked" | "onCheckedChange"
+> & {
+  checked?: boolean | "indeterminate";
+  defaultChecked?: boolean | "indeterminate";
+  onCheckedChange?: (value: boolean | "indeterminate") => void;
+};
+const Checkbox = React.forwardRef<HTMLElement, Props>(
+  ({ className, checked, defaultChecked, onCheckedChange, ...props }, ref) => {
+    const [defaultMixed, setDefaultMixed] = React.useState(
+      defaultChecked === "indeterminate",
+    );
+    const mixed =
+      checked === undefined ? defaultMixed : checked === "indeterminate";
+    return (
+      <Base.Root
+        ref={ref}
+        className={cn("ds-checkbox t-check peer", className)}
+        checked={checked === "indeterminate" ? false : checked}
+        defaultChecked={
+          defaultChecked === "indeterminate" ? false : defaultChecked
+        }
+        indeterminate={mixed}
+        onCheckedChange={(value) => {
+          setDefaultMixed(false);
+          onCheckedChange?.(value);
+        }}
+        {...props}
+      >
+        <Base.Indicator>
+          {mixed ? (
+            <Minus size={12} />
+          ) : (
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m3 8 3 3 7-7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </Base.Indicator>
+      </Base.Root>
+    );
+  },
+);
+Checkbox.displayName = "Checkbox";
 export { Checkbox };

@@ -1,52 +1,41 @@
 "use client";
-import { IdentityPanel } from "@/components/identity-panel";
-import {
-  PublicationStatus,
-  type PublicationState,
-} from "@/components/publication-status";
-
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { Menu } from "@base-ui/react/menu";
+import {
+  Plus,
+  DotsThree,
+  House,
+  CaretDown,
+  CaretUp,
+} from "@phosphor-icons/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import type { FunctionReturnType } from "convex/server";
-import { Input } from "@/components/ui/input";
 import { US_STATES } from "@/lib/locations";
 import { formatPrice, formatDate } from "@/lib/utils";
-
+import { IdentityPanel } from "@/components/identity-panel";
+import { PublicationStatus } from "@/components/publication-status";
+import { FeatureListingButton } from "@/components/checkout-button";
+import {
+  Button,
+  ActionLink,
+  Input,
+  SelectField,
+  CheckField,
+  PageHeader,
+  Panel,
+  Modal,
+  Empty,
+  Status,
+} from "@/components/ui-system/primitives";
+import { ListingStatus } from "@/components/dashboard/home-widgets";
+import { toast } from "sonner";
 type ManagedListing = FunctionReturnType<
   typeof api.ownerDirectory.list
 >["page"][number];
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { FeatureListingButton } from "@/components/checkout-button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Eye,
-  ToggleLeft,
-  ToggleRight,
-  Home,
-  BedDouble,
-  Bath,
-  MapPin,
-  Building2,
-  CalendarDays,
-} from "lucide-react";
-
 type StatusFilter = "all" | ManagedListing["status"];
 const emptyFilters = {
   keyword: "",
@@ -55,468 +44,434 @@ const emptyFilters = {
   status: "all" as StatusFilter,
   includeHiddenUnits: true,
 };
-
-function StatusBadge({ status }: { status: ManagedListing["status"] }) {
-  const variants = {
-    active: "success",
-    inactive: "secondary",
-    pending: "outline",
-    incomplete: "outline",
-    rejected: "destructive",
-  } as const;
-  return (
-    <Badge variant={variants[status]} className="capitalize">
-      {status}
-    </Badge>
-  );
-}
-
 export default function LandlordListingsPage() {
   const { userId } = useAuth();
-  const [draft, setDraft] = useState(emptyFilters);
-  const [filters, setFilters] = useState(emptyFilters);
-  const [deleteTarget, setDeleteTarget] = useState<Id<"listings"> | null>(null);
+  const [draft, setDraft] = useState(emptyFilters),
+    [filters, setFilters] = useState(emptyFilters);
+  const [deleteTarget, setDeleteTarget] = useState<ManagedListing | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const convexUser = useQuery(
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const user = useQuery(
     api.users.getByClerkId,
     userId ? { clerkId: userId } : "skip",
   );
-
   const {
     results: filtered,
-    status: pageStatus,
+    status,
     loadMore,
   } = usePaginatedQuery(
     api.ownerDirectory.list,
-    convexUser?.role === "landlord" ? filters : "skip",
+    user?.role === "landlord" ? filters : "skip",
     { initialNumItems: 10 },
   );
-  const publishMutation = useMutation(api.listings.publish);
-  const unpublishMutation = useMutation(api.listings.unpublish);
-  const deleteMutation = useMutation(api.listings.deleteListing);
-
-  const handleToggle = async (id: Id<"listings">, status: string) => {
+  const publish = useMutation(api.listings.publish),
+    unpublish = useMutation(api.listings.unpublish),
+    remove = useMutation(api.listings.deleteListing);
+  const loading = user === undefined || status === "LoadingFirstPage";
+  const more = status === "CanLoadMore" || status === "LoadingMore";
+  const toggle = async (listing: ManagedListing) => {
     try {
-      if (status === "active") {
-        await unpublishMutation({ id });
-        toast.success("Listing set to inactive");
+      if (listing.publication.live) {
+        await unpublish({ id: listing._id });
+        toast.success("Listing hidden");
       } else {
-        const result = await publishMutation({ id });
+        const result = await publish({ id: listing._id });
         toast.success(
           result.live
-            ? "Listing is now live"
-            : "Publication requested. Complete the remaining requirements.",
+            ? "Listing is live"
+            : "Publication requested. Review remaining requirements.",
         );
       }
-    } catch (error) {
+    } catch (e) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update status",
+        e instanceof Error ? e.message : "Could not update publication",
       );
     }
   };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const deleteListing = async () => {
+    if (!deleteTarget || deleting) return;
     setDeleting(true);
     try {
-      await deleteMutation({ id: deleteTarget });
+      await remove({ id: deleteTarget._id as Id<"listings"> });
       toast.success("Listing deleted");
       setDeleteTarget(null);
     } catch {
-      toast.error("Failed to delete listing");
+      toast.error("Could not delete listing");
     } finally {
       setDeleting(false);
     }
   };
-
-  const isLoading =
-    convexUser === undefined || pageStatus === "LoadingFirstPage";
-  const hasMore = pageStatus === "CanLoadMore" || pageStatus === "LoadingMore";
-
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Listings</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Manage and monitor all your property listings
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/landlord/listings/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Listing
-          </Link>
-        </Button>
-      </div>
-
-      <form
-        className="rounded-lg border bg-white p-4 space-y-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setFilters({ ...draft });
-        }}
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm font-medium space-y-1">
-            Search properties and units
-            <Input
-              value={draft.keyword}
-              maxLength={200}
-              placeholder="Address, headline, property number or unit"
-              onChange={(e) => setDraft({ ...draft, keyword: e.target.value })}
-            />
-          </label>
-          <label className="text-sm font-medium space-y-1">
-            City
-            <Input
-              value={draft.city}
-              maxLength={80}
-              placeholder="Exact city"
-              onChange={(e) => setDraft({ ...draft, city: e.target.value })}
-            />
-          </label>
-          <label className="text-sm font-medium space-y-1">
-            State
-            <select
-              className="block h-10 w-full rounded-xl border px-3 bg-white"
-              value={draft.state}
-              onChange={(e) => setDraft({ ...draft, state: e.target.value })}
-            >
-              <option value="">All states</option>
-              {Object.entries(US_STATES).map(([code, name]) => (
-                <option key={code} value={code}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm font-medium space-y-1">
-            Listing status
-            <select
-              className="block h-10 w-full rounded-xl border px-3 bg-white"
-              value={draft.status}
-              onChange={(e) =>
-                setDraft({ ...draft, status: e.target.value as StatusFilter })
-              }
-            >
-              <option value="all">All statuses</option>
-              <option value="active">Active · currently live</option>
-              <option value="inactive">Inactive · approved, not live</option>
-              <option value="incomplete">Incomplete details</option>
-              <option value="pending">Pending staff review</option>
-              <option value="rejected">Rejected by staff</option>
-            </select>
-          </label>
-        </div>
-        <div className="flex flex-wrap gap-3 items-center">
-          <label className="flex gap-2 items-center text-sm">
-            <input
-              type="checkbox"
-              checked={draft.includeHiddenUnits}
-              onChange={(e) =>
-                setDraft({ ...draft, includeHiddenUnits: e.target.checked })
-              }
-            />
-            Include units you have hidden
-          </label>
-          <Button type="submit">Apply filters</Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setDraft(emptyFilters);
-              setFilters(emptyFilters);
-            }}
-          >
-            Clear filters
-          </Button>
-        </div>
-        <p className="text-xs text-slate-500">
-          Newest first. Status reflects current publication requirements. Hidden
-          units are child units you explicitly unpublished; pending units remain
-          searchable. Review paid access and expiry in{" "}
-          <Link className="underline" href="/dashboard/landlord/billing">
-            Billing
-          </Link>
-          .
-        </p>
-      </form>
-      <p role="status" className="text-sm text-slate-500">
-        {isLoading
-          ? "Searching your portfolio…"
-          : `${filtered.length} matching rental${filtered.length === 1 ? "" : "s"} loaded. ${hasMore ? "More portfolio records remain to search." : "All portfolio records searched."}`}
-      </p>
-
-      {/* Listings */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <Skeleton className="h-16 w-24 rounded-md shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-56" />
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3.5 w-64" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Building2 className="h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="text-base font-medium text-slate-900 mb-1">
-              {hasMore
-                ? "No matches in the records searched so far"
-                : "No matching listings"}
-            </h3>
-            <p className="text-sm text-slate-500">
-              {hasMore
-                ? "Continue searching the next page of your portfolio."
-                : "Clear or adjust the filters, or add a new listing."}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((listing) => {
-            const photo = listing.photos[0];
-            return (
-              <Card key={listing._id} className="overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="flex flex-col sm:flex-row items-start gap-0">
-                    {/* Photo */}
-                    <div className="h-32 sm:h-auto sm:w-32 w-full bg-slate-200 shrink-0 overflow-hidden">
-                      {photo ? (
-                        <img
-                          src={photo}
-                          alt={listing.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full min-h-[128px] flex items-center justify-center">
-                          <Home className="h-8 w-8 text-slate-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0 p-4 flex flex-col gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold text-slate-900 truncate">
-                            {listing.title}
-                          </h3>
-                          <StatusBadge status={listing.status} />
-                          {listing.moderationHold && (
-                            <Link
-                              href="/contact"
-                              className="text-sm text-amber-800 underline"
-                            >
-                              Under staff review · contact support
-                            </Link>
-                          )}
-                          {listing.featured &&
-                            listing.featuredUntil &&
-                            listing.featuredUntil > Date.now() && (
-                              <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-semibold">
-                                ★ Featured
-                              </Badge>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>
-                            {listing.city}, {listing.state} {listing.zip}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
-                          <span className="font-medium text-slate-700">
-                            {formatPrice(listing.price)}/mo
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <BedDouble className="h-3.5 w-3.5" />
-                            {listing.bedrooms} bd
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bath className="h-3.5 w-3.5" />
-                            {listing.bathrooms} ba
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3.5 w-3.5" />
-                            {listing.views} legacy views
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 mt-1 break-words">
-                          {listing.address}
-                        </p>
-                        <p className="text-xs text-slate-500 break-words">
-                          {listing.publicId ?? listing._id}
-                          {listing.unitName ? ` · ${listing.unitName}` : ""}
-                          {listing.hiddenUnit ? " · Hidden unit" : ""}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Created {formatDate(listing.createdAt)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Link
-                          className="text-xs underline"
-                          href={`/dashboard/landlord/listings/${listing._id}/location`}
-                        >
-                          {listing.locationConfirmedAt
-                            ? "Location confirmed"
-                            : "Confirm map location"}
-                        </Link>
-                        <Link
-                          className="text-xs underline"
-                          href={`/dashboard/landlord/listings/${listing._id}/units`}
-                        >
-                          Property units
-                        </Link>
-                        {/* Actions */}
-                        <div className="flex flex-wrap items-center gap-2 sm:max-w-64">
-                          <Button asChild variant="outline" size="sm">
-                            <Link href={`/listings/${listing._id}`}>
-                              <Eye className="h-3.5 w-3.5 mr-1" />
-                              View
-                            </Link>
-                          </Button>
-                          <Button asChild variant="outline" size="sm">
-                            <Link
-                              href={`/dashboard/landlord/listings/${listing._id}/edit`}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-1" />
-                              Edit
-                            </Link>
-                          </Button>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            title="Manage availability"
-                          >
-                            <Link
-                              href={`/dashboard/landlord/listings/${listing._id}/availability`}
-                            >
-                              <CalendarDays className="h-3.5 w-3.5" />
-                            </Link>
-                          </Button>
-                          {!(
-                            listing.featured &&
-                            listing.featuredUntil &&
-                            listing.featuredUntil > Date.now()
-                          ) && (
-                            <FeatureListingButton
-                              listingId={listing._id as Id<"listings">}
-                              className="h-8 px-3 text-xs"
-                            />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              handleToggle(
-                                listing._id as Id<"listings">,
-                                listing.publication?.live
-                                  ? "active"
-                                  : "inactive",
-                              )
-                            }
-                            title={
-                              listing.publication?.live
-                                ? "Hide listing"
-                                : "Request publication"
-                            }
-                            className="text-slate-500"
-                          >
-                            {listing.publication?.live ? (
-                              <ToggleRight className="h-5 w-5 text-emerald-600" />
-                            ) : (
-                              <ToggleLeft className="h-5 w-5" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              setDeleteTarget(listing._id as Id<"listings">)
-                            }
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            title="Delete listing"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <PublicationStatus state={listing.publication} />
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {hasMore && (
-        <Button
-          variant="outline"
-          disabled={pageStatus === "LoadingMore"}
-          onClick={() => loadMore(10)}
+    <div className="ds-page">
+      <PageHeader
+        title="Listings"
+        description="Manage your properties, units and publication status."
+        action={
+          <ActionLink variant="primary" href="/dashboard/landlord/listings/new">
+            <Plus size={14} />
+            Add listing
+          </ActionLink>
+        }
+      />
+      <Panel>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setFilters({ ...draft });
+          }}
         >
-          {pageStatus === "LoadingMore"
-            ? "Searching…"
-            : filtered.length
-              ? "Search more portfolio records"
-              : "Continue searching"}
-        </Button>
-      )}
-
-      <IdentityPanel enabled={!!convexUser?._id} />
-
-      {/* Delete confirmation dialog */}
-      <Dialog
+          <div className="ds-filter-bar">
+            <label className="ds-field">
+              Search properties and units
+              <Input
+                value={draft.keyword}
+                maxLength={200}
+                placeholder="Address, title or property number"
+                onChange={(e) =>
+                  setDraft({ ...draft, keyword: e.target.value })
+                }
+              />
+            </label>
+            <label className="ds-field">
+              City
+              <Input
+                value={draft.city}
+                maxLength={80}
+                placeholder="Exact city"
+                onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+              />
+            </label>
+            <SelectField
+              label="State"
+              value={draft.state}
+              onValueChange={(state) => setDraft({ ...draft, state })}
+              options={[
+                { value: "", label: "All states" },
+                ...Object.entries(US_STATES).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+            />
+            <SelectField
+              label="Listing status"
+              value={draft.status}
+              onValueChange={(status) =>
+                setDraft({ ...draft, status: status as StatusFilter })
+              }
+              options={[
+                { value: "all", label: "All statuses" },
+                { value: "active", label: "Active · currently live" },
+                { value: "inactive", label: "Inactive · approved, not live" },
+                { value: "incomplete", label: "Incomplete details" },
+                { value: "pending", label: "Pending staff review" },
+                { value: "rejected", label: "Rejected by staff" },
+              ]}
+            />
+          </div>
+          <div className="ds-filter-actions">
+            <CheckField
+              checked={draft.includeHiddenUnits}
+              onCheckedChange={(includeHiddenUnits) =>
+                setDraft({ ...draft, includeHiddenUnits })
+              }
+            >
+              Include hidden units
+            </CheckField>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDraft(emptyFilters);
+                setFilters(emptyFilters);
+              }}
+            >
+              Clear filters
+            </Button>
+            <Button type="submit">Apply filters</Button>
+          </div>
+        </form>
+        <div
+          className="ds-table-wrap"
+          tabIndex={0}
+          role="region"
+          aria-label="Property directory table"
+        >
+          <table className="ds-table">
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Monthly rent</th>
+                <th>Details</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((listing) => (
+                <ListingRows
+                  key={listing._id}
+                  listing={listing}
+                  expanded={expanded === listing._id}
+                  onExpand={() =>
+                    setExpanded(expanded === listing._id ? null : listing._id)
+                  }
+                  onToggle={() => void toggle(listing)}
+                  onDelete={() => setDeleteTarget(listing)}
+                  onMenuOpen={(element) => {
+                    returnFocus.current = element;
+                  }}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {loading ? (
+          <Empty title="Searching your portfolio…" />
+        ) : (
+          filtered.length === 0 && (
+            <Empty
+              title={
+                more ? "No matches in these records" : "No matching listings"
+              }
+              action={
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setDraft(emptyFilters);
+                    setFilters(emptyFilters);
+                  }}
+                >
+                  Clear filters
+                </Button>
+              }
+            >
+              {more
+                ? "Continue searching the next page of your portfolio."
+                : "Adjust your filters or add a new property."}
+            </Empty>
+          )
+        )}
+        <footer className="ds-directory-foot">
+          <span role="status">
+            {loading
+              ? "Loading…"
+              : `${filtered.length} matching rentals loaded. ${more ? "More records remain to search." : "All portfolio records searched."}`}
+          </span>
+          {more && (
+            <Button
+              variant="secondary"
+              disabled={status === "LoadingMore"}
+              onClick={() => loadMore(10)}
+            >
+              {status === "LoadingMore" ? "Searching…" : "Search more records"}
+            </Button>
+          )}
+        </footer>
+      </Panel>
+      <p className="ds-caption">
+        Newest first. Status reflects current publication requirements. Hidden
+        units are units you explicitly unpublished.{" "}
+        <Link className="ds-link" href="/dashboard/landlord/billing">
+          Review paid access
+        </Link>
+        .
+      </p>
+      <Panel>
+        <IdentityPanel enabled={!!user?._id} />
+      </Panel>
+      <Modal
         open={deleteTarget !== null}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+        title="Delete listing"
+        description={`Delete ${deleteTarget?.title ?? "this listing"}? This permanently removes the listing and its saved entries. This action cannot be undone.`}
+        finalFocus={returnFocus}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Listing</DialogTitle>
-          </DialogHeader>
-          <p className="text-slate-600 text-sm">
-            Are you sure you want to delete this listing? This action cannot be
-            undone and will remove all saved entries associated with it.
-          </p>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting…" : "Delete Listing"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <footer className="ds-dialog-footer">
+          <Button
+            variant="secondary"
+            disabled={deleting}
+            onClick={() => setDeleteTarget(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={deleting}
+            onClick={() => void deleteListing()}
+          >
+            {deleting ? "Deleting…" : "Delete listing"}
+          </Button>
+        </footer>
+      </Modal>
     </div>
+  );
+}
+function ListingRows({
+  listing,
+  expanded,
+  onExpand,
+  onToggle,
+  onDelete,
+  onMenuOpen,
+}: {
+  listing: ManagedListing;
+  expanded: boolean;
+  onExpand: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+  onMenuOpen: (element: HTMLElement) => void;
+}) {
+  const base = `/dashboard/landlord/listings/${listing._id}`;
+  return (
+    <>
+      <tr>
+        <td>
+          <div className="ds-property">
+            <span className="ds-property-thumb">
+              {listing.photos[0] ? (
+                <img src={listing.photos[0]} alt="" />
+              ) : (
+                <House size={18} />
+              )}
+            </span>
+            <div>
+              <Link href={`${base}/edit`}>
+                <strong>{listing.title}</strong>
+              </Link>
+              <small>
+                {listing.publicId ?? "Property draft"}
+                {listing.unitName ? ` · ${listing.unitName}` : ""}
+              </small>
+            </div>
+          </div>
+        </td>
+        <td>
+          <ListingStatus status={listing.status} />
+          {listing.moderationHold && (
+            <small>
+              <Link className="ds-link" href="/dashboard/support">
+                Staff review
+              </Link>
+            </small>
+          )}
+          {listing.featured &&
+            listing.featuredUntil &&
+            listing.featuredUntil > Date.now() && (
+              <small>
+                <Status>Featured</Status>
+              </small>
+            )}
+        </td>
+        <td>
+          {listing.city}, {listing.state}
+          <small>{listing.zip}</small>
+        </td>
+        <td>{formatPrice(listing.price)}</td>
+        <td>
+          {listing.bedrooms} bd · {listing.bathrooms} ba
+        </td>
+        <td>
+          <div className="ds-row-actions">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Publication details for ${listing.title}`}
+              aria-expanded={expanded}
+              onClick={onExpand}
+            >
+              {expanded ? <CaretUp size={13} /> : <CaretDown size={13} />}
+            </Button>
+            <ActionLink href={`${base}/edit`}>Edit</ActionLink>
+            <Menu.Root>
+              <Menu.Trigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Actions for ${listing.title}`}
+                    onClick={(e) => onMenuOpen(e.currentTarget)}
+                  />
+                }
+              >
+                <DotsThree size={20} weight="bold" />
+              </Menu.Trigger>
+              <Menu.Portal>
+                <div className="furnish-ui ds-portal">
+                  <Menu.Positioner sideOffset={5} align="end">
+                    <Menu.Popup className="ds-menu">
+                      {[
+                        {
+                          label: "View listing",
+                          href: `/listings/${listing._id}`,
+                        },
+                        {
+                          label: "Manage availability",
+                          href: `${base}/availability`,
+                        },
+                        {
+                          label: listing.locationConfirmedAt
+                            ? "Location confirmed"
+                            : "Confirm map location",
+                          href: `${base}/location`,
+                        },
+                        { label: "Property units", href: `${base}/units` },
+                      ].map((item) => (
+                        <Menu.Item
+                          key={item.href}
+                          className="ds-menu-item"
+                          render={<Link href={item.href} />}
+                        >
+                          {item.label}
+                        </Menu.Item>
+                      ))}
+                      <Menu.Item className="ds-menu-item" onClick={onToggle}>
+                        {listing.publication.live
+                          ? "Hide listing"
+                          : "Request publication"}
+                      </Menu.Item>
+                      <Menu.Item
+                        className="ds-menu-item ds-menu-item--danger"
+                        onClick={onDelete}
+                      >
+                        Delete listing
+                      </Menu.Item>
+                    </Menu.Popup>
+                  </Menu.Positioner>
+                </div>
+              </Menu.Portal>
+            </Menu.Root>
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={6} className="ds-expanded-property">
+            <div>
+              <p>
+                {listing.address} · Created {formatDate(listing.createdAt)} ·{" "}
+                {listing.views} legacy views
+              </p>
+              <PublicationStatus state={listing.publication} />
+              {!(
+                listing.featured &&
+                listing.featuredUntil &&
+                listing.featuredUntil > Date.now()
+              ) && (
+                <FeatureListingButton
+                  listingId={listing._id}
+                  className="m-4 h-8 text-xs"
+                />
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

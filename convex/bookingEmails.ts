@@ -31,7 +31,7 @@ export const deliver = internalAction({
           {
             from: process.env.EMAIL_FROM,
             to: claim.email,
-            subject: "Booking update · FurnishSearcher",
+            subject: "Booking update · globe",
             text: `Your private rental workspace has an update. Review its current stay details, document or setup instruction. Review the current details and private history in your account: ${url}\n\nRental agreements, cancellation terms and payments are arranged directly with your stay partner.`,
           },
           { idempotencyKey: `booking-event-${args.id}` },

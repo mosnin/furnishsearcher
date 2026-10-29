@@ -246,7 +246,7 @@ export default function HousingRequestPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
-      <section className="bg-[#0f2044] text-white py-16 px-4">
+      <section className="bg-primary text-white py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm text-blue-100 mb-6">
             <Home className="h-4 w-4" />

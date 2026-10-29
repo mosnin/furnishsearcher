@@ -1,59 +1,26 @@
 "use client";
-
-import { useState, useRef } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Popover } from "@base-ui/react/popover";
+import { CaretDown, Minus, Plus } from "@phosphor-icons/react";
+import { DateRangeCalendar } from "@/components/public-experience/search-pill";
 import { parseDate } from "@/lib/search";
-import { useConvexAuth, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type InquiryProps = {
-  listingId: Id<"listings">;
+  listingId: string;
   minStay: number;
   petFriendly: boolean;
   needsProfile?: boolean;
+  maxOccupancy?: number;
 };
-export function BookingInquiry(props: InquiryProps) {
-  const params = useSearchParams();
-  return (
-    <BookingInquiryForm
-      key={JSON.stringify([
-        props.listingId,
-        params.get("moveIn"),
-        params.get("moveOut"),
-      ])}
-      {...props}
-    />
-  );
-}
-function BookingInquiryForm({
+export function BookingInquiry({
   listingId,
   minStay,
-  petFriendly,
-  needsProfile,
+  maxOccupancy = 30,
 }: InquiryProps) {
-  const { isAuthenticated, isLoading } = useConvexAuth();
-  const create = useMutation(api.inquiries.create);
-  const [open, setOpen] = useState(false);
-  const inFlight = useRef(false);
-  const reference = useRef<{ payload: string; id: string } | null>(null);
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const params = useSearchParams();
-  function initial(key: string) {
+  const params = useSearchParams(),
+    router = useRouter();
+  const initial = (key: string) => {
     const value = params.get(key) ?? "";
     try {
       parseDate(value);
@@ -61,165 +28,133 @@ function BookingInquiryForm({
     } catch {
       return "";
     }
-  }
-  const [moveIn, setMoveIn] = useState(() => initial("moveIn"));
-  const [moveOut, setMoveOut] = useState(() => initial("moveOut"));
-  const [occupants, setOccupants] = useState(1);
-  const [pets, setPets] = useState(false);
-  const [message, setMessage] = useState("");
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      const fields = {
-        listingId,
-        moveIn: Date.parse(moveIn),
-        moveOut: Date.parse(moveOut),
-        occupants,
-        pets,
-        message: message.trim(),
-      };
-      const payload = JSON.stringify(fields);
-      if (reference.current?.payload !== payload)
-        reference.current = { payload, id: crypto.randomUUID() };
-      await create({ ...fields, clientRequestId: reference.current.id });
-      setSent(true);
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Unable to send inquiry. Please try again.",
-      );
-    } finally {
-      inFlight.current = false;
-      setBusy(false);
+  };
+  const [moveIn, setMoveIn] = useState(() => initial("moveIn")),
+    [moveOut, setMoveOut] = useState(() => initial("moveOut"));
+  const [occupants, setOccupants] = useState(() =>
+    Math.max(1, Math.min(maxOccupancy, Number(params.get("occupants")) || 1)),
+  );
+  const [openDates, setOpenDates] = useState(false),
+    [openGuests, setOpenGuests] = useState(false),
+    [error, setError] = useState("");
+  const display = (value: string) =>
+    value
+      ? new Date(value + "T12:00:00Z").toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+          timeZone: "UTC",
+        })
+      : "Add date";
+  function proceed() {
+    const query = new URLSearchParams();
+    if (moveIn) query.set("moveIn", moveIn);
+    if (moveOut) query.set("moveOut", moveOut);
+    query.set("occupants", String(occupants));
+    if (
+      moveIn &&
+      moveOut &&
+      Date.parse(moveOut) - Date.parse(moveIn) <
+        Math.max(1, minStay) * 30 * 86400000
+    ) {
+      setError(`Choose a stay of at least ${Math.max(1, minStay) * 30} days.`);
+      setOpenDates(true);
+      return;
     }
+    router.push(`/listings/${listingId}/request?${query}`);
   }
-
   return (
-    <>
-      <Button
-        className="w-full"
-        onClick={() => setOpen(true)}
-        disabled={isLoading}
-      >
-        Send booking inquiry
-      </Button>
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          if (!inFlight.current) setOpen(next);
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {sent ? "Inquiry sent" : "Ask about your stay"}
-            </DialogTitle>
-            <DialogDescription>
-              {sent
-                ? "The owner can review your dates and reply. An inquiry does not charge you or sign a lease."
-                : `Minimum stay: ${Math.max(1, minStay) * 30} days. No payment is required to inquire.`}
-            </DialogDescription>
-          </DialogHeader>
-          {sent ? (
-            <div className="space-y-4">
-              <Button asChild>
-                <Link href="/dashboard/inquiries">View my inquiries</Link>
-              </Button>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Close
-              </Button>
-            </div>
-          ) : !isAuthenticated ? (
-            <Button asChild>
-              <Link
-                href={`/sign-in?redirect_url=${encodeURIComponent(`/listings/${listingId}`)}`}
-              >
-                Sign in to send an inquiry
-              </Link>
-            </Button>
-          ) : needsProfile ? (
-            <Button asChild>
-              <Link href="/onboarding">
-                Complete your profile to send an inquiry
-              </Link>
-            </Button>
-          ) : (
-            <form onSubmit={submit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="inquiry-in">Move-in</Label>
-                  <Input
-                    id="inquiry-in"
-                    type="date"
-                    value={moveIn}
-                    min={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setMoveIn(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="inquiry-out">Move-out</Label>
-                  <Input
-                    id="inquiry-out"
-                    type="date"
-                    value={moveOut}
-                    min={moveIn || new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setMoveOut(e.target.value)}
-                    required
-                  />
-                </div>
+    <div className="w-property-request-fields">
+      <Popover.Root open={openDates} onOpenChange={setOpenDates}>
+        <Popover.Trigger className="w-property-date-trigger">
+          <span>
+            <small>Move in</small>
+            <strong>{display(moveIn)}</strong>
+          </span>
+          <span>
+            <small>Move out</small>
+            <strong>{display(moveOut)}</strong>
+          </span>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner
+            side="bottom"
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="w-property-popover-positioner"
+          >
+            <Popover.Popup className="w-property-date-popover">
+              <DateRangeCalendar
+                start={moveIn}
+                end={moveOut}
+                onChange={(a, b) => {
+                  setMoveIn(a);
+                  setMoveOut(b);
+                  setError("");
+                }}
+              />
+              <div className="w-property-date-footer">
+                <span>{Math.max(1, minStay) * 30} day minimum</span>
+                <Popover.Close className="w-property-pill">Done</Popover.Close>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="inquiry-guests">Occupants</Label>
-                <Input
-                  id="inquiry-guests"
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={occupants}
-                  onChange={(e) => setOccupants(Number(e.target.value))}
-                  required
-                />
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+      <Popover.Root open={openGuests} onOpenChange={setOpenGuests}>
+        <Popover.Trigger className="w-property-guest-trigger">
+          <span>
+            <small>Guests</small>
+            <strong>
+              {occupants} {occupants === 1 ? "guest" : "guests"}
+            </strong>
+          </span>
+          <CaretDown size={18} />
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner
+            side="bottom"
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="w-property-popover-positioner"
+          >
+            <Popover.Popup className="w-property-guests-popover">
+              <span>Guests</span>
+              <div className="w-property-counter">
+                <button
+                  disabled={occupants <= 1}
+                  aria-label="Remove guest"
+                  onClick={() => setOccupants((n) => n - 1)}
+                >
+                  <Minus size={18} />
+                </button>
+                <span>{occupants}</span>
+                <button
+                  disabled={occupants >= maxOccupancy}
+                  aria-label="Add guest"
+                  onClick={() => setOccupants((n) => n + 1)}
+                >
+                  <Plus size={18} />
+                </button>
               </div>
-              {petFriendly && (
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={pets}
-                    onChange={(e) => setPets(e.target.checked)}
-                  />
-                  I am traveling with pets
-                </label>
-              )}
-              <div className="space-y-1">
-                <Label htmlFor="inquiry-message">Introduce yourself</Label>
-                <Textarea
-                  id="inquiry-message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  maxLength={2000}
-                  required
-                  placeholder="Tell the owner about your trip and who is staying."
-                />
-              </div>
-              {error && (
-                <p role="alert" className="text-sm text-red-700">
-                  {error}
-                </p>
-              )}
-              <Button className="w-full" type="submit" disabled={busy}>
-                {busy ? "Sending…" : "Send inquiry"}
-              </Button>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+              <Popover.Close className="w-property-pill">Done</Popover.Close>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+      <button className="w-property-reserve" onClick={proceed}>
+        Request stay
+      </button>
+      <p className="w-property-no-charge">
+        You won’t be charged. Owner approval required.
+      </p>
+      {error && (
+        <p className="w-property-form-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

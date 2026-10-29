@@ -1,446 +1,231 @@
 "use client";
-
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { formatPrice, formatDate } from "@/lib/utils";
-import OwnerNextSteps from "@/components/owner-next-steps";
-
-type LandlordConversation = {
-  _id: string;
-  tenantId: string;
-  landlordId: string;
-  listingId: string;
-  lastMessage: string;
-  lastMessageAt: number;
-  tenantRead: boolean;
-  landlordRead: boolean;
-  archived?: boolean;
-  blockedByMe?: boolean;
-  listing: { title: string } | null;
-  otherUser: { name: string } | null;
-};
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { House, Plus, ArrowUpRight } from "@phosphor-icons/react";
 import {
-  Building2,
-  Eye,
-  MessageSquare,
-  Heart,
-  Plus,
-  ArrowRight,
-  BedDouble,
-  Bath,
-  ToggleLeft,
-  ToggleRight,
-  Pencil,
-  Clock,
-  Home,
-} from "lucide-react";
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  loading,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  loading?: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500 font-medium">{title}</p>
-            {loading ? (
-              <Skeleton className="h-8 w-16 mt-1" />
-            ) : (
-              <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-            )}
-          </div>
-          <div className="h-12 w-12 rounded-full bg-[#0f2044]/10 flex items-center justify-center">
-            <Icon className="h-6 w-6 text-[#0f2044]" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StatusBadge({
-  status,
-}: {
-  status: "active" | "inactive" | "pending" | "incomplete" | "rejected";
-}) {
-  const variants = {
-    active: "success",
-    inactive: "secondary",
-    pending: "outline",
-    incomplete: "outline",
-    rejected: "destructive",
-  } as const;
-  return (
-    <Badge variant={variants[status]} className="capitalize">
-      {status}
-    </Badge>
-  );
-}
+  PageHeader,
+  ActionLink,
+  ViewTabs,
+  Metric,
+  Widget,
+  Empty,
+} from "@/components/ui-system/primitives";
+import {
+  PerformanceWidget,
+  RecentMessages,
+  ListingStatus,
+} from "@/components/dashboard/home-widgets";
+import OwnerNextSteps from "@/components/owner-next-steps";
+import { formatPrice } from "@/lib/utils";
 
 export default function LandlordDashboardPage() {
   const { userId } = useAuth();
-
-  const convexUser = useQuery(
+  const [view, setView] = useState("overview");
+  const user = useQuery(
     api.users.getByClerkId,
     userId ? { clerkId: userId } : "skip",
   );
-
   const directory = useQuery(
     api.ownerDirectory.list,
-    convexUser?.role === "landlord"
+    user?.role === "landlord"
       ? { paginationOpts: { cursor: null, numItems: 5 } }
       : "skip",
   );
-  const listings = directory?.page;
-
-  const inboxSummary = useQuery(
-    api.inbox.summary,
-    convexUser?._id ? {} : "skip",
-  );
-  const conversations = inboxSummary?.ready ? inboxSummary.recent : undefined;
-
-  const publishMutation = useMutation(api.listings.publish);
-  const unpublishMutation = useMutation(api.listings.unpublish);
-
-  const visibleConversations =
-    conversations?.filter((c) => !c.archived && !c.blockedByMe) ?? [];
-
-  const isLoading = convexUser === undefined || listings === undefined;
-
-  const activeListings = listings?.filter((l) => l.status === "active") ?? [];
-  const totalViews = listings?.reduce((sum, l) => sum + l.views, 0) ?? 0;
-  const unreadCount = inboxSummary?.ready ? inboxSummary.unread : 0;
-
-  const handleToggle = async (
-    listingId: Id<"listings">,
-    currentStatus: string,
-  ) => {
-    try {
-      if (currentStatus === "active") {
-        await unpublishMutation({ id: listingId });
-        toast.success("Listing set to inactive");
-      } else {
-        const result = await publishMutation({ id: listingId });
-        toast.success(
-          result.live
-            ? "Listing is now live"
-            : "Publication requested. Complete the remaining requirements.",
-        );
-      }
-    } catch (err) {
-      toast.error("Failed to update listing status");
-    }
-  };
-
+  const inbox = useQuery(api.inbox.summary, user?._id ? {} : "skip");
+  const listings = directory?.page ?? [];
+  const live = listings.filter((l) => l.publication.live).length;
+  const loading = directory === undefined;
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Landlord Dashboard
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Manage your listings and communicate with tenants
-          </p>
+    <div className="ds-page">
+      <PageHeader
+        title="Home"
+        description="Your rental workspace, at a glance."
+        action={
+          <ActionLink variant="primary" href="/dashboard/landlord/listings/new">
+            <Plus size={14} />
+            Add listing
+          </ActionLink>
+        }
+      />
+      <ViewTabs
+        value={view}
+        onValueChange={setView}
+        tabs={[
+          { value: "overview", label: "Overview" },
+          { value: "activity", label: "Activity" },
+        ]}
+      >
+        <div className="ds-metrics">
+          <Metric
+            label="Recent listings"
+            value={listings.length}
+            detail="Up to 5 newest rentals"
+            loading={loading}
+          />
+          <Metric
+            label="Live listings"
+            value={live}
+            detail="Within recent listings"
+            loading={loading}
+          />
+          <Metric
+            label="Not live"
+            value={listings.filter((l) => !l.publication.live).length}
+            detail="Within recent listings"
+            loading={loading}
+          />
+          <Metric
+            label="Unread conversations"
+            value={inbox?.ready ? inbox.unread : "—"}
+            detail={inbox?.ready ? "Your complete inbox" : "Inbox is updating"}
+            loading={!inbox}
+          />
         </div>
-        <Button asChild>
-          <Link href="/dashboard/landlord/listings/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Listing
-          </Link>
-        </Button>
-      </div>
-
-      {convexUser?.role === "landlord" && <OwnerNextSteps />}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Live in recent listings"
-          value={activeListings.length}
-          icon={Building2}
-          loading={isLoading}
-        />
-        <StatCard
-          title="Legacy views · recent listings"
-          value={totalViews.toLocaleString()}
-          icon={Eye}
-          loading={isLoading}
-        />
-        <StatCard
-          title="Messages"
-          value={
-            unreadCount > 0 ? `${unreadCount} new` : visibleConversations.length
-          }
-          icon={MessageSquare}
-          loading={isLoading || conversations === undefined}
-        />
-        <StatCard
-          title="Saved by Tenants"
-          value="—"
-          icon={Heart}
-          loading={isLoading}
-        />
-      </div>
-
-      <p className="text-xs text-slate-500">
-        Listing cards and their metrics cover the {listings?.length ?? 0} most
-        recently created rentals
-        {directory && !directory.isDone
-          ? "; more rentals are available in My Listings"
-          : ""}
-        . Legacy view counts are unverified historical counters.{" "}
-        <Link className="underline" href="/dashboard/landlord/analytics">
-          View measured activity reports
-        </Link>
-        .
-      </p>
-
-      {/* Empty state — no listings */}
-      {!isLoading && listings?.length === 0 && (
-        <Card className="border-dashed border-2 border-slate-300">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="h-16 w-16 rounded-full bg-[#0f2044]/10 flex items-center justify-center mb-4">
-              <Building2 className="h-8 w-8 text-[#0f2044]" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Create Your First Listing
-            </h3>
-            <p className="text-slate-500 max-w-sm mb-6">
-              Start attracting tenants by listing your furnished property. It
-              only takes a few minutes to get started.
-            </p>
-            <Button asChild size="lg">
-              <Link href="/dashboard/landlord/listings/new">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Listing
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* My Listings */}
-      {(isLoading || (listings && listings.length > 0)) && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">
-              My Listings
-            </h2>
-            <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-              <Link href="/dashboard/landlord/listings">
-                Manage all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Link>
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-4 flex flex-wrap items-center gap-4">
-                    <Skeleton className="h-16 w-24 rounded-md shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3.5 w-32" />
+        {view === "overview" ? (
+          <div className="ds-home-grid">
+            <PerformanceWidget enabled={user?.role === "landlord"} />
+            <Widget
+              title="Recent portfolio"
+              description="Current publication state"
+              action={
+                <ActionLink variant="ghost" href="/dashboard/landlord/listings">
+                  View all
+                </ActionLink>
+              }
+            >
+              <div className="ds-workspace-rows">
+                {loading ? (
+                  <Empty title="Loading portfolio…" />
+                ) : listings.length === 0 ? (
+                  <Empty
+                    title="Your first rental starts here"
+                    action={
+                      <ActionLink href="/dashboard/landlord/listings/new">
+                        Add listing
+                      </ActionLink>
+                    }
+                  >
+                    Add a property to manage its details, availability and
+                    inquiries.
+                  </Empty>
+                ) : (
+                  [
+                    { label: "Live", count: live },
+                    {
+                      label: "In review",
+                      count: listings.filter((l) => l.status === "pending")
+                        .length,
+                    },
+                    {
+                      label: "Incomplete",
+                      count: listings.filter((l) => l.status === "incomplete")
+                        .length,
+                    },
+                    {
+                      label: "Other nonlive",
+                      count: listings.filter(
+                        (l) =>
+                          !l.publication.live &&
+                          !["pending", "incomplete"].includes(l.status),
+                      ).length,
+                    },
+                  ].map((row) => (
+                    <div className="ds-workspace-row" key={row.label}>
+                      <span>{row.label}</span>
+                      <strong>{row.count}</strong>
                     </div>
-                    <Skeleton className="h-8 w-20" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {listings!.map((listing) => {
-                const photo = listing.photos[0];
-                return (
-                  <Card key={listing._id}>
-                    <CardContent className="p-4 flex flex-wrap items-center gap-4">
-                      <div className="h-16 w-24 rounded-md bg-slate-200 overflow-hidden shrink-0">
-                        {photo ? (
-                          <img
-                            src={photo}
-                            alt={listing.title}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center">
-                            <Home className="h-6 w-6 text-slate-400" />
+                  ))
+                )}
+              </div>
+              <footer className="ds-widget-footer">
+                {directory?.isDone
+                  ? "All portfolio records loaded."
+                  : "This preview covers your five newest rentals."}
+              </footer>
+            </Widget>
+            {user?.role === "landlord" && <OwnerNextSteps />}
+            <RecentMessages enabled={!!user} />
+            <Widget
+              title="Recent listings"
+              className="ds-full"
+              description="Continue working on your properties"
+              action={
+                <ActionLink variant="ghost" href="/dashboard/landlord/listings">
+                  Manage listings <ArrowUpRight size={13} />
+                </ActionLink>
+              }
+            >
+              <div className="ds-table-wrap">
+                <table className="ds-table">
+                  <thead>
+                    <tr>
+                      <th>Property</th>
+                      <th>Status</th>
+                      <th>Monthly rent</th>
+                      <th>Location</th>
+                      <th>
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listings.map((listing) => (
+                      <tr key={listing._id}>
+                        <td>
+                          <div className="ds-property">
+                            <span className="ds-property-thumb">
+                              {listing.photos[0] ? (
+                                <img src={listing.photos[0]} alt="" />
+                              ) : (
+                                <House size={18} />
+                              )}
+                            </span>
+                            <div>
+                              <Link
+                                href={`/dashboard/landlord/listings/${listing._id}/edit`}
+                              >
+                                <strong>{listing.title}</strong>
+                              </Link>
+                              <small>
+                                {listing.publicId ?? "Property draft"}
+                              </small>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-2 flex-wrap">
-                          <h3 className="font-medium text-slate-900 truncate">
-                            {listing.title}
-                          </h3>
-                          <StatusBadge status={listing.status} />
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-slate-500 mt-1 flex-wrap">
-                          <span>{formatPrice(listing.price)}/mo</span>
-                          <span className="flex items-center gap-1">
-                            <BedDouble className="h-3.5 w-3.5" />
-                            {listing.bedrooms} bd
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bath className="h-3.5 w-3.5" />
-                            {listing.bathrooms} ba
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3.5 w-3.5" />
-                            {listing.views} legacy views
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button asChild variant="outline" size="sm">
-                          <Link
+                        </td>
+                        <td>
+                          <ListingStatus status={listing.status} />
+                        </td>
+                        <td>{formatPrice(listing.price)}</td>
+                        <td>
+                          {listing.city}, {listing.state}
+                        </td>
+                        <td>
+                          <ActionLink
                             href={`/dashboard/landlord/listings/${listing._id}/edit`}
                           >
-                            <Pencil className="h-3.5 w-3.5 mr-1" />
                             Edit
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleToggle(
-                              listing._id as Id<"listings">,
-                              listing.status,
-                            )
-                          }
-                          title={
-                            listing.status === "active"
-                              ? "Set inactive"
-                              : "Set active"
-                          }
-                        >
-                          {listing.status === "active" ? (
-                            <ToggleRight className="h-5 w-5 text-emerald-600" />
-                          ) : (
-                            <ToggleLeft className="h-5 w-5 text-slate-400" />
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Recent Inquiries */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Recent Inquiries
-          </h2>
-          <Button asChild variant="link" size="sm" className="text-[#0f2044]">
-            <Link href="/dashboard/messages">
-              View all <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Link>
-          </Button>
-        </div>
-
-        {conversations === undefined ? (
-          <Card>
-            <CardContent className="p-0 divide-y divide-slate-100">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="p-4 flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3.5 w-48" />
-                    <Skeleton className="h-3 w-56" />
-                  </div>
-                  <Skeleton className="h-8 w-16 shrink-0" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : visibleConversations.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <MessageSquare className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-base font-medium text-slate-900 mb-1">
-                No messages in your inbox
-              </h3>
-              <p className="text-sm text-slate-500">
-                When tenants message you about your listings, they'll appear
-                here.
-              </p>
-            </CardContent>
-          </Card>
+                          </ActionLink>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!loading && listings.length === 0 && (
+                <Empty title="No listings yet" />
+              )}
+            </Widget>
+          </div>
         ) : (
-          <Card>
-            <CardContent className="p-0 divide-y divide-slate-100">
-              {visibleConversations.slice(0, 5).map((conv) => {
-                const isLandlord = conv.landlordId === convexUser?._id;
-                const isUnread = isLandlord
-                  ? !conv.landlordRead
-                  : !conv.tenantRead;
-                return (
-                  <div key={conv._id} className="p-4 flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-[#0f2044]">
-                        {conv.otherUser?.name?.[0]?.toUpperCase() ?? "?"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-slate-900">
-                          {conv.otherUser?.name ?? "Unknown Tenant"}
-                        </span>
-                        <span className="text-xs text-slate-400 shrink-0 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(conv.lastMessageAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
-                        Re: {conv.listing?.title ?? "Listing"}
-                      </p>
-                      <p className="text-sm text-slate-500 truncate mt-0.5">
-                        {conv.lastMessage}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {isUnread && (
-                        <div className="h-2 w-2 rounded-full bg-[#0f2044]" />
-                      )}
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/dashboard/messages?conv=${conv._id}`}>
-                          Reply
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+          <div className="ds-home-grid">
+            <PerformanceWidget enabled={user?.role === "landlord"} />
+            <RecentMessages enabled={!!user} />
+          </div>
         )}
-      </section>
+      </ViewTabs>
     </div>
   );
 }

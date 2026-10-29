@@ -181,7 +181,7 @@ export default function SaveSearchButton(filters: SearchFilters) {
               type="button"
               onClick={handleSave}
               disabled={isSaving || !searchName.trim()}
-              className="bg-[#0f2044] hover:bg-[#1a3360] text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               {isSaving ? "Saving…" : "Save Search"}
             </Button>

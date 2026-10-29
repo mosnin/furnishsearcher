@@ -99,7 +99,7 @@ describe("booking inquiries", () => {
   it("rejects blocked dates, short stays, invalid occupants, pets, duplicates and self-inquiries", async () => {
     const { t, ids, tenant, owner, request } = await fixture();
     await expect(owner.mutation(api.inquiries.create, request)).rejects.toThrow(
-      "own property",
+      "traveler account",
     );
     await expect(
       tenant.mutation(api.inquiries.create, { ...request, pets: true }),
@@ -218,10 +218,14 @@ describe("search and account behavior", () => {
         email: "x@example.test",
       }),
     ).rejects.toThrow();
-    await tenant.mutation(api.users.updateRole, {
+    await expect(tenant.mutation(api.users.updateRole, {
       userId: ids.tenant,
       role: "landlord",
-    });
+    })).rejects.toThrow("platform admin");
+    const signup = t.withIdentity({subject:"new-owner"});
+    const newUser = await signup.mutation(api.users.getOrCreate,{clerkId:"new-owner",name:"New owner",email:"new-owner@example.test"});
+    await signup.mutation(api.users.updateRole,{userId:newUser!._id,role:"landlord"});
+    await expect(signup.mutation(api.users.updateRole,{userId:newUser!._id,role:"tenant"})).rejects.toThrow("platform admin");
     await expect(
       tenant.mutation(api.users.updateRole, {
         userId: ids.tenant,
@@ -336,7 +340,7 @@ describe("inquiry retry acknowledgement", () => {
       "sign in",
     );
     await expect(owner.mutation(api.inquiries.create, args)).rejects.toThrow(
-      "own property",
+      "traveler account",
     );
     await t.run((ctx) =>
       ctx.db.patch(ids.tenant, { clerkDeletedAt: Date.now() }),

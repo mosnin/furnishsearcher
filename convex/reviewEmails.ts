@@ -37,7 +37,7 @@ export const deliver = internalAction({
         {
           from: process.env.EMAIL_FROM,
           to: details.email,
-          subject: "Review update · FurnishSearcher",
+          subject: "Review update · globe",
           text: `${details.body}\n\nView this update in your private account: ${url.toString()}`,
         },
         { idempotencyKey: `review-${args.id}` },

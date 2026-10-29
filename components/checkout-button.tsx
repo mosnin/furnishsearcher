@@ -77,7 +77,7 @@ export function SubscriptionCheckoutButton({
       disabled={loading}
       variant={variant}
       className={cn(
-        variant === "default" && "bg-[#1e3a8a] hover:bg-[#0f2044]",
+        variant === "default" && "bg-primary hover:bg-primary",
         className,
       )}
     >

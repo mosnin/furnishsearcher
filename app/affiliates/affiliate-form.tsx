@@ -176,7 +176,7 @@ export default function AffiliateForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-[#1e3a8a] hover:bg-[#1e40af] disabled:bg-[#1e3a8a]/60 text-white font-bold py-3 rounded-lg transition-colors text-sm"
+        className="w-full bg-primary hover:bg-[#1e40af] disabled:bg-primary/60 text-white font-bold py-3 rounded-lg transition-colors text-sm"
       >
         {submitting ? "Submitting..." : "Send partnership inquiry"}
       </button>

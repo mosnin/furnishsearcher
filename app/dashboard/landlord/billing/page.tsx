@@ -157,7 +157,7 @@ export default function LandlordBillingPage() {
                   View available plans and their current features.
                 </p>
               </div>
-              <Button asChild className="bg-[#1e3a8a] hover:bg-[#0f2044]">
+              <Button asChild className="bg-primary hover:bg-primary">
                 <Link href="/pricing">View plans</Link>
               </Button>
             </div>

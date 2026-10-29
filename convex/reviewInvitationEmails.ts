@@ -53,7 +53,7 @@ export const deliver = internalAction({
         {
           from: process.env.EMAIL_FROM,
           to: details.email,
-          subject: "An honest review was requested · FurnishSearcher",
+          subject: "An honest review was requested · globe",
           text: `A member has requested an honest review. Only review a stay you personally experienced. This request does not confirm a booking or verify a stay. Reviews require staff moderation before publication.\n\nSign in to the account associated with this email to view or decline the private request:\n${url.toString()}`,
         },
         { idempotencyKey: `review-invitation-${args.id}` },

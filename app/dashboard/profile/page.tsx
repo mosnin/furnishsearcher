@@ -69,7 +69,7 @@ export default function ProfilePage() {
         </p>
         <Link
           href="/sign-in"
-          className="bg-[#1e3a8a] text-white px-6 py-2 rounded-lg hover:bg-blue-900 transition-colors"
+          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-900 transition-colors"
         >
           Sign In
         </Link>
@@ -146,7 +146,7 @@ export default function ProfilePage() {
             className={cn(
               "px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
               activeTab === tab
-                ? "border-[#1e3a8a] text-[#1e3a8a]"
+                ? "border-[#1e3a8a] text-primary"
                 : "border-transparent text-gray-500 hover:text-gray-700",
             )}
           >
@@ -472,7 +472,7 @@ function PersonalInfoTab({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-[#1e3a8a] text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-900 transition-colors disabled:opacity-60 flex items-center gap-2"
+          className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-900 transition-colors disabled:opacity-60 flex items-center gap-2"
         >
           {saving ? (
             <>
@@ -548,7 +548,7 @@ function SavedSearchesTab({
         </p>
         <Link
           href="/search"
-          className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-900 transition-colors"
+          className="bg-primary text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-900 transition-colors"
         >
           Browse Listings
         </Link>
@@ -647,7 +647,7 @@ function HousingRequestsTab({
         </p>
         <Link
           href="/housing-request"
-          className="bg-[#1e3a8a] text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors"
+          className="bg-primary text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-900 transition-colors"
         >
           + New Request
         </Link>
@@ -661,7 +661,7 @@ function HousingRequestsTab({
           </p>
           <Link
             href="/housing-request"
-            className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-900 transition-colors"
+            className="bg-primary text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-900 transition-colors"
           >
             Submit a Request
           </Link>

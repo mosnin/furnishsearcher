@@ -1,3 +1,4 @@
+import {applyAccountRole} from "./lib/accountRoles";
 import { assertSubjectActive, subjectDeleted } from "./lib/auth";
 import { findActiveUser } from "./lib/auth";
 import { assertProviderContact } from "./lib/providerContacts";
@@ -47,6 +48,7 @@ export const getOrCreate = mutation({
       email: args.email,
       avatar: args.avatar,
       role: "tenant",
+      accountTypePending: true,
       createdAt: Date.now(),
     });
 
@@ -79,22 +81,8 @@ export const updateRole = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const caller = await findActiveUser(ctx, identity.subject);
-    if (
-      !caller ||
-      (caller.role !== "admin" &&
-        (caller._id !== args.userId || args.role === "admin"))
-    ) {
-      throw new Error("Not authorized to change this role");
-    }
-
-    const user = await ctx.db.get(args.userId);
-    if (!user) throw new Error(`User ${args.userId} not found`);
-
-    await ctx.db.patch(args.userId, { role: args.role });
+    const caller = await requireUser(ctx);
+    await applyAccountRole(ctx,caller,args.userId,args.role);
     return await ctx.db.get(args.userId);
   },
 });

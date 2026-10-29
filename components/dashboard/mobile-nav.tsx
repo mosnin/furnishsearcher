@@ -126,7 +126,7 @@ export default function MobileNav({ role }: { role: Role }) {
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
                 isActive
-                  ? "text-[#1e3a8a]"
+                  ? "text-primary"
                   : "text-slate-400 hover:text-slate-600",
               )}
             >
@@ -134,14 +134,14 @@ export default function MobileNav({ role }: { role: Role }) {
                 <Icon
                   className={cn(
                     "w-5 h-5 transition-colors",
-                    isActive ? "text-[#1e3a8a]" : "text-slate-400",
+                    isActive ? "text-primary" : "text-slate-400",
                   )}
                 />
                 {item.showBadge && <UnreadBadge />}
               </div>
               <span>{item.label}</span>
               {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-[#1e3a8a]" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-primary" />
               )}
             </Link>
           );

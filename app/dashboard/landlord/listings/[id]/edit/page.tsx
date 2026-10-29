@@ -92,9 +92,9 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               <div
                 className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-colors ${
                   isCompleted
-                    ? "bg-[#0f2044] border-[#0f2044] text-white"
+                    ? "bg-primary border-primary text-white"
                     : isActive
-                      ? "border-[#0f2044] text-[#0f2044] bg-white"
+                      ? "border-primary text-primary bg-white"
                       : "border-slate-200 text-slate-400 bg-white"
                 }`}
               >
@@ -107,7 +107,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               <span
                 className={`text-xs mt-1 font-medium ${
                   isActive
-                    ? "text-[#0f2044]"
+                    ? "text-primary"
                     : isCompleted
                       ? "text-slate-600"
                       : "text-slate-400"
@@ -119,7 +119,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             {i < STEPS.length - 1 && (
               <div
                 className={`h-0.5 w-8 mx-1 mt-[-14px] transition-colors ${
-                  currentStep > step.id ? "bg-[#0f2044]" : "bg-slate-200"
+                  currentStep > step.id ? "bg-primary" : "bg-slate-200"
                 }`}
               />
             )}

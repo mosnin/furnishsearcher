@@ -132,7 +132,7 @@ export const update = mutation({
         ? "rental_tool_received"
         : "rental_tool_owner_update",
       args.status === "owner_reported_complete"
-        ? "Owner reports this setup step was completed outside FurnishSearcher. No provider screening result or rent payment was verified."
+        ? "Owner reports this setup step was completed outside globe. No provider screening result or rent payment was verified."
         : args.status === "cancelled"
           ? "Owner cancelled the setup instruction."
           : "Traveler acknowledged receipt of setup instructions. This is not screening consent or a payment authorization.",

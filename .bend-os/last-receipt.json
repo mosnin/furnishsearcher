@@ -1,0 +1,20 @@
+{
+  "status": "pass",
+  "mode": "compiler-checked",
+  "command": [
+    "/Users/preston/.bend/bin/bend",
+    "PROOF.bend"
+  ],
+  "exit_code": 0,
+  "fresh_inputs": true,
+  "seconds": 0.1559,
+  "inputs_sha256": {
+    "PROOF.bend": "95350859247fc98963e86e28c863cec7ff47fe1d9efc54da46542e159140e077",
+    "LAWS.bend": "807e847f76b50812ee66df829ba4dc5da0277b07d1e844d1f2e27917b4e36d86",
+    "proof/motion/DATA.bend": "a5a7ee6a5ce5af26cb5e4cc4906fa00859ccd89c553ba9ef54d769c52b26ac47"
+  },
+  "contract_sha256": "240c79422622215f53d0308a70a7d6271f88042f0ab58af6d9b5a9788989d342",
+  "bend_binary_sha256": "fdd7d89be0904c4beb87c8daf7dc141eb95c0e082c4990df9d7f912097490680",
+  "output": "ALL PROOFS CHECK\nUse --verdict for mathematical validity.\n",
+  "coverage": "Only the encoded laws and recorded model inputs; external truth and product quality require separate evidence."
+}

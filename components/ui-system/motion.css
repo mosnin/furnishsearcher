@@ -1,0 +1,675 @@
+/* Product adaptation of the 24 selected Transitions.dev recipes.
+   Exact upstream bytes, license and commit receipt: vendor/transitions-dev/.
+   Base UI owns mount, focus and dismissal. Motion never delays native mutations. */
+:root {
+  --resize-dur: 300ms;
+  --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 150ms;
+  --motion-normal: 240ms;
+  --motion-enter: 300ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-distance: 8px;
+  --motion-scale: 0.98;
+  --motion-blur: 2px;
+  --badge-dur: 260ms;
+  --text-swap-dur: 120ms;
+  --dropdown-open-dur: 240ms;
+  --dropdown-close-dur: 150ms;
+  --modal-open-dur: 250ms;
+  --modal-close-dur: 150ms;
+  --panel-open-dur: 280ms;
+  --panel-close-dur: 180ms;
+  --icon-swap-dur: 200ms;
+  --check-path-dur: 300ms;
+  --shake-distance: 3px;
+  --shake-overshoot: 1.5px;
+  --shake-dur: 260ms;
+  --reveal-dur: 300ms;
+  --tabs-dur: 240ms;
+  --tt-in-dur: 150ms;
+  --tt-out-dur: 70ms;
+  --acc-expand: 250ms;
+  --acc-collapse: 180ms;
+  --toast-open: 300ms;
+  --toast-close: 180ms;
+  --learn-shift: 3px;
+  --check-draw: 240ms;
+  --toggle-dur: 240ms;
+  --stack-open: 300ms;
+  --avatar-dur: 200ms;
+  --like-pop: 280ms;
+  --digit-dur: 300ms;
+  --stagger-dur: 350ms;
+  --reel-dur: 500ms;
+}
+/* Card resize. Explicit dimensions only; layout remains interactive. */
+.t-resize {
+  transition:
+    width var(--resize-dur) var(--resize-ease),
+    height var(--resize-dur) var(--resize-ease),
+    border-radius var(--resize-dur) var(--resize-ease);
+}
+/* Dropdown, menu and tooltip lifecycle attributes are emitted by Base UI. */
+.furnish-ui :is(.ds-popup, .ds-menu) {
+  transform-origin: var(--transform-origin);
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
+  transition:
+    opacity var(--dropdown-open-dur) var(--motion-ease),
+    scale var(--dropdown-open-dur) var(--motion-ease),
+    translate var(--dropdown-open-dur) var(--motion-ease);
+}
+.furnish-ui :is(.ds-popup, .ds-menu)[data-starting-style] {
+  opacity: 0;
+  scale: 0.97;
+  translate: 0 -4px;
+}
+.furnish-ui :is(.ds-popup, .ds-menu)[data-ending-style] {
+  opacity: 0;
+  scale: 0.99;
+  translate: 0 -2px;
+  transition-duration: var(--dropdown-close-dur);
+}
+.furnish-ui .ds-tooltip {
+  transition-duration: var(--tt-in-dur);
+}
+.furnish-ui .ds-tooltip[data-ending-style] {
+  transition-duration: var(--tt-out-dur);
+}
+/* Separate scale property preserves the existing centered transform. */
+.furnish-ui .ds-dialog {
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity var(--modal-open-dur) var(--motion-ease),
+    scale var(--modal-open-dur) var(--motion-ease);
+}
+.furnish-ui .ds-dialog[data-starting-style],
+.furnish-ui .ds-dialog[data-ending-style] {
+  opacity: 0;
+  scale: 0.97;
+}
+.furnish-ui .ds-dialog[data-ending-style] {
+  transition-duration: var(--modal-close-dur);
+}
+.furnish-ui .ds-backdrop {
+  opacity: 1;
+  transition: opacity var(--modal-open-dur) ease;
+}
+.furnish-ui .ds-backdrop[data-starting-style],
+.furnish-ui .ds-backdrop[data-ending-style] {
+  opacity: 0;
+}
+.furnish-ui .ds-backdrop[data-ending-style] {
+  transition-duration: var(--modal-close-dur);
+}
+/* Accordion height follows Base UI's measured panel height, including interruption. */
+.dashboard-tools-nav > div:is([data-open], [data-closed]) {
+  height: var(--collapsible-panel-height);
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    height var(--acc-expand) var(--motion-ease),
+    opacity var(--acc-expand) var(--motion-ease);
+}
+.dashboard-tools-nav > div:is([data-open], [data-closed])[data-starting-style],
+.dashboard-tools-nav > div:is([data-open], [data-closed])[data-ending-style] {
+  height: 0;
+  opacity: 0;
+}
+.dashboard-tools-nav > div:is([data-open], [data-closed])[data-ending-style] {
+  transition-duration: var(--acc-collapse);
+}
+.dashboard-tools-nav [aria-expanded] svg:last-child {
+  transition: transform var(--acc-expand) var(--motion-ease);
+}
+.dashboard-tools-nav [aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}
+/* One sliding indicator; no DOM measurement loop or delayed selection. */
+.ds-tabs [role="tablist"][data-motion-tabs],
+.ds-segmented-list {
+  position: relative;
+}
+.ds-tab-indicator {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: var(--active-tab-width);
+  translate: var(--active-tab-left) 0;
+  background: currentColor;
+  pointer-events: none;
+  transition:
+    translate var(--tabs-dur) var(--motion-ease),
+    width var(--tabs-dur) var(--motion-ease);
+}
+[data-motion-tabs] .ds-tab[data-active]::after {
+  content: none;
+}
+.ds-segmented-indicator {
+  position: absolute;
+  left: 0;
+  top: var(--active-tab-top);
+  width: var(--active-tab-width);
+  height: var(--active-tab-height);
+  translate: var(--active-tab-left) 0;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px #0000000c;
+  pointer-events: none;
+  transition:
+    translate var(--tabs-dur) var(--motion-ease),
+    width var(--tabs-dur) var(--motion-ease),
+    height var(--tabs-dur) var(--motion-ease);
+}
+.ds-segmented-tab {
+  position: relative;
+  z-index: 1;
+}
+.ds-segmented-list .ds-segmented-tab[data-active] {
+  background: transparent;
+  box-shadow: none;
+}
+/* Checkbox draw and toggle travel carry the actual checked state. */
+.furnish-ui .ds-checkbox {
+  transition:
+    background var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
+}
+.furnish-ui .ds-checkbox [data-checked] svg {
+  animation: t-check-appear var(--check-draw) var(--motion-ease);
+}
+.furnish-ui .ds-checkbox[data-checked] svg path {
+  stroke-dasharray: 40;
+  animation: t-check-stroke var(--check-draw) var(--motion-ease);
+}
+@keyframes t-check-stroke {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes t-check-appear {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.furnish-ui .ds-switch {
+  transition: background var(--motion-fast) var(--motion-ease);
+}
+.furnish-ui .ds-switch-thumb {
+  transition: transform var(--toggle-dur) var(--motion-ease);
+}
+/* The skeleton pulses once. Revealed content and tab panels settle once per mount. */
+.furnish-ui .ds-skeleton,
+.furnish-ui .t-skeleton {
+  animation: t-skeleton-pulse 1000ms ease-in-out 1;
+}
+@keyframes t-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.t-content-reveal,
+.ds-view-panel {
+  animation: t-content-reveal var(--reveal-dur) var(--motion-ease) both;
+}
+@keyframes t-content-reveal {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    filter: blur(0);
+  }
+}
+/* Real validation remains visible; shaking never auto-clears an error. */
+.t-error-shake,
+.furnish-ui .ds-input[aria-invalid="true"] {
+  animation: t-input-shake var(--shake-dur) var(--motion-ease);
+}
+@keyframes t-input-shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: var(--shake-distance) 0;
+  }
+  50% {
+    translate: calc(var(--shake-distance) * -1) 0;
+  }
+  75% {
+    translate: var(--shake-overshoot) 0;
+  }
+}
+.t-text-swap {
+  display: inline-block;
+  transition:
+    opacity var(--text-swap-dur),
+    translate var(--text-swap-dur) var(--motion-ease),
+    filter var(--text-swap-dur);
+}
+.t-text-swap[data-phase="exit"] {
+  opacity: 0;
+  translate: 0 -3px;
+  filter: blur(1px);
+}
+.t-text-swap[data-phase="enter"] {
+  opacity: 0;
+  translate: 0 3px;
+  filter: blur(1px);
+  transition: none;
+}
+.t-digit-group,
+.t-digit-visual {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+}
+.t-digit {
+  display: inline-block;
+  animation: t-digit-pop var(--digit-dur) var(--motion-ease)
+    calc(var(--digit-index, 0) * 20ms) both;
+}
+@keyframes t-digit-pop {
+  from {
+    opacity: 0;
+    translate: 0 5px;
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    filter: blur(0);
+  }
+}
+.t-success-check {
+  display: inline-flex;
+  vertical-align: middle;
+  animation: t-success-settle 250ms var(--motion-ease);
+}
+.t-success-check path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+  animation: t-success-draw var(--check-path-dur) var(--motion-ease);
+}
+@keyframes t-success-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes t-success-settle {
+  from {
+    opacity: 0;
+    scale: 0.86;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+/* Notification badge: real count only, replays when its key changes. */
+.t-notification-badge {
+  animation: t-badge-enter var(--badge-dur) var(--motion-ease);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes t-badge-enter {
+  from {
+    opacity: 0;
+    translate: -3px 3px;
+    scale: 0.7;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+/* Like button and icon swap are derived from actual controls, not fake reactions. */
+.w-save-heart svg,
+.t-like-icon {
+  transition:
+    fill var(--motion-fast),
+    color var(--motion-fast);
+}
+.w-save-heart[aria-pressed="true"] svg,
+.t-like[aria-pressed="true"] .t-like-icon {
+  animation: t-like-pop var(--like-pop) var(--motion-ease);
+}
+@keyframes t-like-pop {
+  0%,
+  100% {
+    scale: 1;
+  }
+  35% {
+    scale: 0.82;
+  }
+  70% {
+    scale: 1.04;
+  }
+}
+.w-menu-symbol {
+  display: inline-flex;
+  transition:
+    rotate var(--icon-swap-dur) var(--motion-ease),
+    scale var(--icon-swap-dur) var(--motion-ease);
+}
+.w-menu-symbol[data-open="true"] {
+  rotate: 90deg;
+}
+/* Learn more hover and text reveal are useful only for navigational context. */
+.t-learn-arrow {
+  display: inline-block;
+  transition: translate 200ms var(--motion-ease);
+}
+a:hover .t-learn-arrow,
+a:focus-visible .t-learn-arrow {
+  translate: var(--learn-shift) 0;
+}
+.w-hero-copy h1 {
+  animation: t-text-reveal var(--stagger-dur) var(--motion-ease) both;
+}
+.w-hero-copy p {
+  animation: t-text-reveal var(--stagger-dur) var(--motion-ease) 35ms both;
+}
+@keyframes t-text-reveal {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+/* Sonner keeps its native stack/drag/exit model. Tune its existing motion tokens. */
+[data-sonner-toaster] {
+  --normal-duration: var(--toast-open);
+}
+[data-sonner-toast] {
+  transition-duration: var(--toast-open);
+}
+[data-sonner-toast][data-removed="true"] {
+  transition-duration: var(--toast-close);
+}
+[data-sonner-toast][data-type="success"] [data-icon] {
+  animation: t-success-settle 250ms var(--motion-ease);
+}
+/* Explicitly labeled specimens for no-data product surfaces. */
+.ds-motion-workshop {
+  margin-top: 24px;
+}
+.ds-motion-workshop > header h2 {
+  font-weight: 600;
+  font-size: 16px;
+}
+.ds-motion-workshop > header p {
+  color: var(--ds-muted);
+  margin-top: 6px;
+  max-width: 720px;
+}
+.ds-motion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.ds-motion-grid > article {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 220px;
+}
+.ds-motion-grid h3 {
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.ds-motion-grid p {
+  margin-block: 12px;
+  color: var(--ds-muted);
+}
+.ds-motion-grid .ds-button {
+  margin-bottom: 10px;
+}
+.ds-motion-resize {
+  width: 120px;
+  height: 45px;
+  border: 1px solid var(--ds-line);
+  border-radius: 8px;
+  padding: 10px;
+  overflow: hidden;
+}
+.ds-motion-resize[data-expanded="true"] {
+  width: 100%;
+  height: 110px;
+}
+.t-stack {
+  position: relative;
+  height: 72px;
+  margin-top: 54px;
+}
+.t-stack-banner {
+  position: absolute;
+  inset: 0 0 auto;
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+  padding: 12px;
+  translate: 0 calc(var(--stack-index) * -8px);
+  scale: calc(1 - var(--stack-index) * 0.035);
+  z-index: calc(3 - var(--stack-index));
+  transition:
+    translate var(--stack-open) var(--motion-ease),
+    scale var(--stack-open) var(--motion-ease);
+}
+.t-stack[data-spread="true"] .t-stack-banner {
+  translate: 0 calc(var(--stack-index) * -30px);
+  scale: 1;
+}
+.t-avatar-group {
+  display: flex;
+  padding: 12px 0;
+}
+.t-avatar {
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: #ececf0;
+  display: grid;
+  place-items: center;
+  margin-left: -5px;
+  transition:
+    translate var(--avatar-dur) var(--motion-ease),
+    scale var(--avatar-dur) var(--motion-ease);
+}
+.t-avatar:hover,
+.t-avatar:focus-visible {
+  translate: 0 -4px;
+  scale: 1.05;
+  z-index: 1;
+}
+.ds-motion-morph-anchor {
+  height: 140px;
+  position: relative;
+}
+.t-morph {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 40px;
+  background: #f6f6f6;
+  transition:
+    width 300ms var(--motion-ease),
+    height 300ms var(--motion-ease),
+    border-radius 300ms var(--motion-ease);
+}
+.t-morph[data-open="true"] {
+  width: 100%;
+  height: 130px;
+  border-radius: 14px;
+}
+.t-morph-plus {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  transition:
+    opacity 150ms,
+    rotate 250ms;
+}
+.t-morph[data-open="true"] .t-morph-plus {
+  opacity: 0;
+  rotate: 45deg;
+  pointer-events: none;
+}
+.t-morph-menu {
+  padding: 16px;
+  opacity: 0;
+  translate: 12px 0;
+  transition:
+    opacity 200ms,
+    translate 300ms var(--motion-ease);
+}
+.t-morph[data-open="true"] .t-morph-menu {
+  opacity: 1;
+  translate: 0 0;
+}
+.t-reel,
+.t-reel-visual {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+}
+.t-reel-col {
+  display: inline-block;
+  height: 24px;
+  overflow: hidden;
+}
+.t-reel-digit {
+  display: block;
+  height: 24px;
+  line-height: 24px;
+}
+.t-reel-strip {
+  display: block;
+  translate: 0 calc(var(--reel-target) * -24px);
+  animation: t-reel-settle var(--reel-dur) var(--motion-ease) both;
+}
+@keyframes t-reel-settle {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 calc(var(--reel-target) * -24px);
+  }
+}
+@media (max-width: 900px) {
+  .ds-motion-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 540px) {
+  .ds-motion-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .furnish-ui
+    :is(
+      .ds-popup,
+      .ds-menu,
+      .ds-dialog,
+      .ds-backdrop,
+      .ds-motion-collapse,
+      .ds-checkbox svg,
+      .ds-checkbox svg path,
+      .ds-switch,
+      .ds-switch-thumb,
+      .ds-checkbox,
+      .ds-tab-indicator,
+      .ds-segmented-indicator
+    ),
+  .dashboard-tools-nav > div:is([data-open], [data-closed]),
+  .t-resize,
+  .t-text-swap,
+  .t-digit,
+  .t-success-check,
+  .t-success-check path,
+  .t-error-shake,
+  .t-content-reveal,
+  .ds-view-panel,
+  .t-notification-badge,
+  .t-like-icon,
+  .t-avatar,
+  .t-stack-banner,
+  .t-morph,
+  .t-morph-menu,
+  .t-morph-plus,
+  .t-reel-strip,
+  .w-menu-symbol,
+  .w-save-heart svg,
+  .w-hero-copy h1,
+  .w-hero-copy p,
+  .t-learn-arrow,
+  [data-sonner-toast] {
+    animation: none !important;
+    transition: none !important;
+    filter: none !important;
+  }
+  .t-text-swap[data-phase],
+  .t-content-reveal,
+  .ds-view-panel,
+  .w-hero-copy h1,
+  .w-hero-copy p {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .t-skeleton,
+  .furnish-ui .ds-skeleton {
+    animation: none !important;
+  }
+}
+
+/* Dropdown menu morph: adapt the saved surface recipe to Base UI's top-right anchor. */
+.w-account-menu {
+  clip-path: inset(0 round 14px);
+  transition:
+    opacity var(--dropdown-open-dur) var(--motion-ease),
+    transform var(--dropdown-open-dur) var(--motion-ease),
+    clip-path var(--dropdown-open-dur) var(--motion-ease);
+}
+.w-account-menu[data-starting-style],
+.w-account-menu[data-ending-style] {
+  clip-path: inset(0 0 85% 78% round 20px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .w-account-menu {
+    transition: none !important;
+    clip-path: none !important;
+  }
+}

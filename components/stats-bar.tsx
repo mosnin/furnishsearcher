@@ -25,7 +25,7 @@ const STATS = [
 
 export default function StatsBar() {
   return (
-    <section className="bg-[#0f2044] relative overflow-hidden">
+    <section className="bg-primary relative overflow-hidden">
       {/* Subtle background texture */}
       <div
         className="absolute inset-0 opacity-[0.03]"

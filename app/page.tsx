@@ -1,31 +1,7 @@
 import Link from "next/link";
+import { House, Tag, ChatText, CalendarCheck } from "@phosphor-icons/react/dist/ssr";
 import Navbar from "@/components/navbar";
 import Hero from "@/components/hero";
-import StatsBar from "@/components/stats-bar";
-import HowItWorks from "@/components/how-it-works";
 import FeaturedListings from "@/components/featured-listings";
-import TrustSection from "@/components/trust-section";
-import TopCities from "@/components/top-cities";
 import Footer from "@/components/footer";
-
-export default function HomePage() {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <Hero />
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <Link href="/search/guided" className="text-sm underline">
-            Describe your ideal stay or refine your search
-          </Link>
-        </div>
-        <StatsBar />
-        <HowItWorks />
-        <FeaturedListings />
-        <TrustSection />
-        <TopCities />
-      </main>
-      <Footer />
-    </div>
-  );
-}
+export default function HomePage(){return <div className="public-site w-site"><Navbar/><main><Hero/><FeaturedListings/><section className="w-home-story"><div><h2>Nothing between you and your next stay</h2><p>Find a furnished home for a month or more. Talk directly with the owner, agree on the details and keep your stay organized.</p><Link href="/list-your-property" className="w-owner-story-link"><House size={24}/><span>Have a home worth sharing?<strong>List your property ↗</strong></span></Link></div><div className="w-story-features">{[{icon:House,title:'A place for your next chapter',description:'Search furnished homes for work, relocation and longer stays.'},{icon:Tag,title:'Clear monthly rental details',description:'Review pricing, fees and included amenities before sending an inquiry.'},{icon:ChatText,title:'Speak directly with the owner',description:'Ask questions and discuss your proposed stay in one conversation.'},{icon:CalendarCheck,title:'Plan your stay together',description:'Request your dates, wait for owner approval and review shared stay documents.'}].map(item=><article key={item.title}><span><item.icon size={20}/></span><h3>{item.title}</h3><p>{item.description}</p></article>)}</div></section></main><Footer/></div>;}

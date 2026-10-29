@@ -108,7 +108,7 @@ export function PhotoUpload({
           disabled={disabled || uploading}
           onClick={openPicker}
           aria-label={label ?? "Upload avatar"}
-          className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2044] transition-colors group"
+          className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-slate-100 hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors group"
         >
           {preview ? (
             <img
@@ -169,7 +169,7 @@ export function PhotoUpload({
           disabled={disabled || uploading}
           onClick={openPicker}
           aria-label={label ?? "Upload cover photo"}
-          className="relative w-full h-48 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2044] transition-colors overflow-hidden group"
+          className="relative w-full h-48 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors overflow-hidden group"
         >
           {preview ? (
             <img
@@ -238,7 +238,7 @@ export function PhotoUpload({
         disabled={disabled || uploading}
         onClick={openPicker}
         aria-label={label ?? "Upload listing photo"}
-        className="relative w-full aspect-square rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2044] transition-colors overflow-hidden group"
+        className="relative w-full aspect-square rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors overflow-hidden group"
       >
         {preview ? (
           <img

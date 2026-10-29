@@ -1,11 +1,14 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useConvexAuth, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-
+import {
+  Widget,
+  ActionLink,
+  Button,
+  Status,
+  Empty,
+} from "@/components/ui-system/primitives";
 export default function OwnerNextSteps() {
   const { isAuthenticated } = useConvexAuth();
   const [refresh, setRefresh] = useState(0);
@@ -22,93 +25,90 @@ export default function OwnerNextSteps() {
     isAuthenticated ? {} : "skip",
     { initialNumItems: 10 },
   );
-  const tasks = [...(account?.tasks ?? []), ...results];
-  tasks.sort(
+  const tasks = [...(account?.tasks ?? []), ...results].sort(
     (a, b) =>
       ({ attention: 0, setup: 1, optional: 2 })[a.priority] -
       { attention: 0, setup: 1, optional: 2 }[b.priority],
   );
   const loading = !account || status === "LoadingFirstPage";
   return (
-    <section className="space-y-4" aria-labelledby="owner-next-steps-heading">
-      <div>
-        <h2
-          id="owner-next-steps-heading"
-          className="text-lg font-semibold text-slate-900"
+    <Widget
+      title="Next steps"
+      description="Account setup and publication requirements"
+      action={
+        <span className="ds-caption">
+          {loading ? "Checking…" : `${tasks.length} loaded`}
+        </span>
+      }
+    >
+      {loading ? (
+        <Empty title="Checking your next steps…" />
+      ) : tasks.length === 0 ? (
+        <Empty
+          title={
+            status === "Exhausted"
+              ? "You're up to date"
+              : "No actions in these records"
+          }
         >
-          What's next
-        </h2>
-        <p className="text-sm text-slate-500">
-          Your account and listing actions, based on their current saved status.
-        </p>
-      </div>
-      {loading && (
-        <p role="status" className="text-sm">
-          Checking your next steps…
-        </p>
-      )}
-      {!loading && tasks.length === 0 && status === "Exhausted" && (
-        <p role="status" className="text-sm">
-          No outstanding account or publication actions found.
-        </p>
-      )}
-      {!loading && tasks.length === 0 && status !== "Exhausted" && (
-        <p role="status" className="text-sm">
-          No actions in the properties checked so far. Continue checking your
-          remaining properties.
-        </p>
-      )}
-      <div className="grid gap-4 md:grid-cols-2">
-        {tasks.map((task) => (
-          <Card
-            key={task.id}
-            className={task.priority === "attention" ? "border-amber-300" : ""}
-          >
-            <CardContent className="p-5 space-y-3">
-              <p className="text-xs font-medium text-slate-500">
-                {task.priority === "attention"
-                  ? "Needs attention"
-                  : task.priority === "optional"
-                    ? "Optional"
-                    : "Listing setup"}
-              </p>
-              <h3 className="font-semibold break-words">{task.title}</h3>
-              <p className="text-sm text-slate-600">{task.detail}</p>
-              {task.issues.length > 0 && (
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {task.issues.map((issue) => (
-                    <li key={issue}>{issue}</li>
-                  ))}
-                </ul>
-              )}
-              <Button asChild variant="outline">
-                <Link
-                  href={task.href}
-                  aria-label={`${task.title} — review next step`}
+          {status === "Exhausted"
+            ? "No outstanding account or publication actions found."
+            : "Continue checking the rest of your properties."}
+        </Empty>
+      ) : (
+        <div className="ds-task-list">
+          {tasks.map((task) => (
+            <article className="ds-task-row" key={task.id}>
+              <div>
+                <Status
+                  tone={task.priority === "attention" ? "caution" : "neutral"}
                 >
-                  Review next step
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      {(status === "CanLoadMore" || status === "LoadingMore") && (
-        <Button
-          variant="outline"
-          disabled={status === "LoadingMore"}
-          onClick={() => loadMore(10)}
-        >
-          {status === "LoadingMore"
-            ? "Checking more properties…"
-            : "Check more properties"}
-        </Button>
+                  {task.priority === "attention"
+                    ? "Needs attention"
+                    : task.priority === "optional"
+                      ? "Optional"
+                      : "Listing setup"}
+                </Status>
+                <h3>{task.title}</h3>
+                <p>{task.detail}</p>
+                {task.issues.length > 0 && (
+                  <details>
+                    <summary>
+                      {task.issues.length} requirements to review
+                    </summary>
+                    <ul>
+                      {task.issues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+              <ActionLink
+                href={task.href}
+                aria-label={`${task.title} — review next step`}
+              >
+                Review
+              </ActionLink>
+            </article>
+          ))}
+        </div>
       )}
-      <p className="text-xs text-slate-500">
-        Tasks update after saved changes. Account dates are rechecked every
-        minute while this page is open. Completing a task does not purchase a
-        subscription, verify identity or publish a listing automatically.
-      </p>
-    </section>
+      {(status === "CanLoadMore" || status === "LoadingMore") && (
+        <div className="ds-widget-body">
+          <Button
+            variant="secondary"
+            disabled={status === "LoadingMore"}
+            onClick={() => loadMore(10)}
+          >
+            {status === "LoadingMore" ? "Checking…" : "Check more properties"}
+          </Button>
+        </div>
+      )}
+      <footer className="ds-widget-footer">
+        Updates after saved changes. Tasks do not automatically purchase access,
+        verify identity or publish listings.
+      </footer>
+    </Widget>
   );
 }

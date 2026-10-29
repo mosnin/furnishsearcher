@@ -48,12 +48,12 @@ export default function TrustSection() {
               key={title}
               className="bg-white rounded-2xl p-6 shadow-[0_1px_4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.06] flex flex-col gap-4"
             >
-              <Icon className="w-6 h-6 text-[#0f2044]" />
+              <Icon className="w-6 h-6 text-primary" />
               <h3 className="font-semibold text-slate-900">{title}</h3>
               <p className="text-slate-700 text-[14px] leading-[1.6] flex-1">
                 {description}
               </p>
-              <Link className="text-sm underline text-[#0f2044]" href={href}>
+              <Link className="text-sm underline text-primary" href={href}>
                 {label}
               </Link>
             </div>

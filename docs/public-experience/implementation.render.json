@@ -1,0 +1,17 @@
+{
+  "renderer": "pele",
+  "version": "1.12.0",
+  "source": "/Users/preston/Documents/Codex/2026-10-24/furnishsearcher-work/app/docs/public-experience/implementation.mmd",
+  "sourceSha256": "900a8e2356bcc81672e4b7a1f2e1abd7fd8a9d0547e6cab1f40895fca4760d76",
+  "svgSha256": "b0799d4d7878b1e339d8ff6c6135a4d3247522f061741a69ae6f8c40b3a4a3b9",
+  "htmlSha256": "c457bbcd97d3c521655e515325559b8f55a328338980c3c2423a6c7be13337a6",
+  "type": "flowchart",
+  "width": 932,
+  "height": 777,
+  "requestedWidth": 1100,
+  "outputs": [
+    "/Users/preston/Documents/Codex/2026-10-24/furnishsearcher-work/app/docs/public-experience/implementation.svg",
+    "/Users/preston/Documents/Codex/2026-10-24/furnishsearcher-work/app/docs/public-experience/implementation.html"
+  ],
+  "visualReview": "pending actual rendered inspection; renderer success does not establish meaning or legibility"
+}

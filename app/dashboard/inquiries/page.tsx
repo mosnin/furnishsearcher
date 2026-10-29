@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useConvexAuth, useMutation, usePaginatedQuery } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
+import { PageHeader, Empty } from "@/components/ui-system/primitives";
+import {
+  useConvexAuth,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -15,11 +22,16 @@ const date = (value: number) =>
 
 export default function InquiriesPage() {
   const { isAuthenticated } = useConvexAuth();
-  const [as, setAs] = useState<"tenant" | "landlord">("tenant");
+  const { userId } = useAuth();
+  const me = useQuery(
+    api.users.getByClerkId,
+    isAuthenticated && userId ? { clerkId: userId } : "skip",
+  );
+  const as = me?.role === "landlord" ? "landlord" : "tenant";
   const [busy, setBusy] = useState<string | null>(null);
   const { results, status, loadMore } = usePaginatedQuery(
     api.inquiries.getMine,
-    isAuthenticated ? { as } : "skip",
+    me && me.role !== "admin" ? { as } : "skip",
     { initialNumItems: 20 },
   );
   const respond = useMutation(api.inquiries.respond);
@@ -39,39 +51,37 @@ export default function InquiriesPage() {
     }
   }
   return (
-    <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Booking inquiries</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Review stay dates and keep track of the next step. Leases and payments
-          are arranged separately.
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button
-          variant={as === "tenant" ? "default" : "outline"}
-          onClick={() => setAs("tenant")}
-        >
-          Sent by me
-        </Button>
-        <Button
-          variant={as === "landlord" ? "default" : "outline"}
-          onClick={() => setAs("landlord")}
-        >
-          Received for my properties
-        </Button>
-      </div>
+    <div className="ds-page">
+      <PageHeader
+        title={as === "landlord" ? "Inquiries & stays" : "My inquiries & stays"}
+        description={
+          as === "landlord"
+            ? "Review traveler inquiries, agreed dates and the next step for each property."
+            : "Keep track of your rental inquiries and agreed stay dates."
+        }
+      />
       {status === "LoadingFirstPage" ? (
         <p role="status">Loading inquiries…</p>
       ) : results.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            No inquiries yet.{" "}
-            <Link className="underline" href="/search">
-              Browse rentals
-            </Link>
-          </CardContent>
-        </Card>
+        <Empty
+          title="No inquiries yet"
+          children={
+            as === "landlord"
+              ? "New traveler inquiries will appear here."
+              : "Find a rental and send the owner your proposed stay dates."
+          }
+          action={
+            <Button asChild variant="outline">
+              <Link
+                href={
+                  as === "landlord" ? "/dashboard/landlord/listings" : "/search"
+                }
+              >
+                {as === "landlord" ? "Manage listings" : "Browse rentals"}
+              </Link>
+            </Button>
+          }
+        />
       ) : (
         results.map((i) => (
           <Card key={i._id}>
@@ -187,6 +197,6 @@ export default function InquiriesPage() {
         </Button>
       )}
       {status === "LoadingMore" && <p role="status">Loading more…</p>}
-    </main>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { PageHeader, SelectField } from "@/components/ui-system/primitives";
 import { ResponseRatePanel } from "@/components/response-rate-panel";
 import { MapEligibilityPanel } from "@/components/map-eligibility-panel";
 import Link from "next/link";
@@ -102,55 +103,39 @@ function AccountPerformance() {
   if (!me) return <p>Complete your account profile first.</p>;
   return (
     <div className="space-y-6 min-w-0 w-full">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Listing performance
-        </h1>
-        <p className="text-sm text-slate-600 mt-2">
-          Recorded daily activity for each property or rental space. Dates use
-          UTC. Browser observations are not verified unique people.
-        </p>
-      </header>
+      <PageHeader
+        title="Listing performance"
+        description="Recorded daily activity for each rental space. Dates use UTC. Browser observations are not verified unique people."
+      />
       <div className="flex flex-wrap items-end gap-4">
-        <label className="text-sm min-w-0 max-w-full">
-          Property or unit
-          <select
-            className="block mt-1 border rounded-md p-2 max-w-full w-full"
-            value={listingId ?? ""}
-            onChange={(e) =>
-              setSelected(
-                e.target.value ? (e.target.value as Id<"listings">) : null,
-              )
-            }
-          >
-            <option value="">All my rental spaces</option>
-            {results.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.title}
-                {row.unitName ? ` · ${row.unitName}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Property or unit"
+          value={listingId ?? ""}
+          onValueChange={(value) =>
+            setSelected(value ? (value as Id<"listings">) : null)
+          }
+          options={[
+            { value: "", label: "All my rental spaces" },
+            ...results.map((row) => ({
+              value: row.id,
+              label: row.title + (row.unitName ? ` · ${row.unitName}` : ""),
+            })),
+          ]}
+        />
         {status === "CanLoadMore" && (
           <Button variant="outline" onClick={() => loadMore(30)}>
             Load more rental spaces
           </Button>
         )}
-        <label className="text-sm">
-          Reporting period
-          <select
-            className="block mt-1 border rounded-md p-2"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-          >
-            {[7, 30, 90].map((n) => (
-              <option key={n} value={n}>
-                Last {n} days
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Reporting period"
+          value={String(days)}
+          onValueChange={(value) => setDays(Number(value))}
+          options={[7, 30, 90].map((n) => ({
+            value: String(n),
+            label: `Last ${n} days`,
+          }))}
+        />
       </div>
       {report && (
         <p className="text-sm text-slate-600">
@@ -250,22 +235,15 @@ function AccountPerformance() {
               className="rounded-xl border bg-white p-4 space-y-4"
               aria-label="Daily listing activity"
             >
-              <label className="text-sm">
-                Chart activity
-                <select
-                  className="block mt-1 border rounded-md p-2"
-                  value={metric}
-                  onChange={(e) =>
-                    setMetric(e.target.value as PerformanceMetric)
-                  }
-                >
-                  {PERFORMANCE_METRICS.map((key) => (
-                    <option key={key} value={key}>
-                      {metricLabels[key]}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectField
+                label="Chart activity"
+                value={metric}
+                onValueChange={(value) => setMetric(value as PerformanceMetric)}
+                options={PERFORMANCE_METRICS.map((key) => ({
+                  value: key,
+                  label: metricLabels[key],
+                }))}
+              />
               {(metric === "phoneReveals"
                 ? report.phoneStartedAt
                 : metric === "unmatchedLeads"
@@ -387,7 +365,7 @@ function AccountPerformance() {
         )
       )}
       <Link
-        className="inline-block text-sm underline text-[#1e3a8a]"
+        className="inline-block text-sm underline text-primary"
         href="/market-insights"
       >
         Explore market supply and recorded demand

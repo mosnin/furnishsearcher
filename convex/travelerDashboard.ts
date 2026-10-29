@@ -27,6 +27,7 @@ export const account = query({
     const user = await requireUser(ctx),
       checkedAt = Date.now(),
       day = Math.floor(checkedAt / DAY) * DAY;
+    if (user.role !== "tenant") throw new Error("A traveler account is required.");
     const [search, saved] = await Promise.all([
       ctx.db
         .query("savedSearches")
@@ -124,6 +125,7 @@ export const stays = query({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx),
       day = Math.floor(Date.now() / DAY) * DAY;
+    if (user.role !== "tenant") throw new Error("A traveler account is required.");
     // The account's native day freezes the cursor range. Older windows remain
     // readable, but classification always uses today's native clock.
     const windowDay = args.windowDay ?? day;

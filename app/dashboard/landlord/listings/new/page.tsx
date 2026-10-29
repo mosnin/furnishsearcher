@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
@@ -8,7 +8,7 @@ import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PROPERTY_TYPES, OWNER_AMENITIES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,18 +22,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  Home,
-  MapPin,
-  Layers,
-  Star,
-  ImageIcon,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ListingPhotoEditor } from "@/components/listing-photo-editor";
 import { photoAssetsFromDrafts, type PhotoDraft } from "@/lib/photos";
+
+import wizard from "@/components/onboardingwizard.module.css";
 
 import { ListingDetailsEditor } from "@/components/listing-details-editor";
 import {
@@ -70,11 +63,50 @@ interface FormData {
 }
 
 const STEPS = [
-  { id: 1, label: "Basic Info", icon: Home },
-  { id: 2, label: "Location", icon: MapPin },
-  { id: 3, label: "Details", icon: Layers },
-  { id: 4, label: "Features", icon: Star },
-  { id: 5, label: "Photos", icon: ImageIcon },
+  {
+    id: 1,
+    label: "Tell us about your property",
+    description: "Give travelers a clear first impression of their next home.",
+  },
+  {
+    id: 2,
+    label: "Where is your property?",
+    description:
+      "Start with the address. You’ll confirm its map location after saving your draft.",
+  },
+  {
+    id: 3,
+    label: "Make room for your next guest",
+    description: "Add the bedrooms and bathrooms available in this rental.",
+  },
+  {
+    id: 4,
+    label: "What makes it feel like home?",
+    description:
+      "Choose the features and included essentials travelers can expect.",
+  },
+  {
+    id: 5,
+    label: "Let your property speak for itself",
+    description: "Add clear photos of the spaces your guests will use.",
+  },
+  {
+    id: 6,
+    label: "Set your monthly stay details",
+    description: "Choose your rent, availability and minimum stay.",
+  },
+  {
+    id: 7,
+    label: "A few details worth sharing",
+    description:
+      "Add the policies and practical details that help travelers decide.",
+  },
+  {
+    id: 8,
+    label: "Ready for a final look?",
+    description:
+      "Review your property before saving. This creates a draft, not a public listing.",
+  },
 ];
 
 const BATHROOM_OPTIONS = [
@@ -105,51 +137,17 @@ const initialForm: FormData = {
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-      {STEPS.map((step, i) => {
-        const Icon = step.icon;
-        const isCompleted = currentStep > step.id;
-        const isActive = currentStep === step.id;
-        return (
-          <div key={step.id} className="flex items-center shrink-0">
-            <div className="flex flex-col items-center">
-              <div
-                className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-colors ${
-                  isCompleted
-                    ? "bg-[#0f2044] border-[#0f2044] text-white"
-                    : isActive
-                      ? "border-[#0f2044] text-[#0f2044] bg-white"
-                      : "border-slate-200 text-slate-400 bg-white"
-                }`}
-              >
-                {isCompleted ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Icon className="h-4 w-4" />
-                )}
-              </div>
-              <span
-                className={`text-xs mt-1 font-medium ${
-                  isActive
-                    ? "text-[#0f2044]"
-                    : isCompleted
-                      ? "text-slate-600"
-                      : "text-slate-400"
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={`h-0.5 w-8 mx-1 mt-[-14px] transition-colors ${
-                  currentStep > step.id ? "bg-[#0f2044]" : "bg-slate-200"
-                }`}
-              />
-            )}
-          </div>
-        );
-      })}
+    <div
+      className={wizard.progress}
+      role="progressbar"
+      aria-label="Listing setup"
+      aria-valuemin={1}
+      aria-valuemax={STEPS.length}
+      aria-valuenow={currentStep}
+    >
+      {STEPS.map((item) => (
+        <span key={item.id} data-active={item.id <= currentStep} />
+      ))}
     </div>
   );
 }
@@ -234,7 +232,7 @@ function NewListingForm() {
         return false;
       }
     }
-    if (step === 3) {
+    if (step === 6) {
       if (!form.price || form.price <= 0) {
         toast.error("Valid price is required");
         return false;
@@ -244,11 +242,28 @@ function NewListingForm() {
         return false;
       }
     }
+    if (step === 7) {
+      try {
+        validateListingDetails(form.details);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Review the property details.",
+        );
+        return false;
+      }
+    }
     return true;
   }
 
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+  }, [step]);
+
   function nextStep() {
-    if (validateStep()) setStep((s) => Math.min(s + 1, 5));
+    if (validateStep()) setStep((s) => Math.min(s + 1, STEPS.length));
   }
 
   function prevStep() {
@@ -323,7 +338,7 @@ function NewListingForm() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className={wizard.shell}>
       {parent && (
         <section className="rounded-xl border p-4 space-y-3 mb-6">
           <h2 className="font-semibold">
@@ -361,343 +376,386 @@ function NewListingForm() {
           </label>
         </section>
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className={wizard.top}>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Add New Listing</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Step {step} of {STEPS.length}
+          <p className={wizard.eyebrow}>
+            Your property · Step {step} of {STEPS.length}
           </p>
+          <h1 ref={heading} tabIndex={-1} className={wizard.heading}>
+            {STEPS[step - 1].label}
+          </h1>
+          <p className={wizard.intro}>{STEPS[step - 1].description}</p>
         </div>
         <Button asChild variant="ghost">
-          <Link href="/dashboard/landlord">Cancel</Link>
+          <Link href="/dashboard/landlord">Close</Link>
         </Button>
       </div>
-
       <StepIndicator currentStep={step} />
-
-      <Card>
-        <CardContent className="p-6">
-          {/* Step 1 — Basic Info */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <CardHeader className="p-0 pb-4">
-                <CardTitle className="text-lg">Basic Information</CardTitle>
-              </CardHeader>
-              <div className="space-y-2">
-                <Label htmlFor="title">Listing Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Modern 2BR Apartment in Downtown Austin"
-                  value={form.title}
-                  onChange={(e) => update("title", e.target.value)}
-                />
+      <Card className={wizard.surface}>
+        <CardContent>
+          <div key={step} className={wizard.step}>
+            {/* Step 1 — Basic Info */}
+            {step === 1 && (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Listing Title *</Label>
+                  <Input
+                    id="title"
+                    placeholder="e.g. Modern 2BR Apartment in Downtown Austin"
+                    value={form.title}
+                    onChange={(e) => update("title", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="propertyType">Property Type *</Label>
+                  <Select
+                    value={form.propertyType}
+                    onValueChange={(v) => update("propertyType", v)}
+                  >
+                    <SelectTrigger id="propertyType">
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your property — what makes it special, nearby amenities, neighborhood vibe…"
+                    rows={5}
+                    value={form.description}
+                    onChange={(e) => update("description", e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="propertyType">Property Type *</Label>
-                <Select
-                  value={form.propertyType}
-                  onValueChange={(v) => update("propertyType", v)}
+            )}
+
+            {/* Step 2 — Location */}
+            {step === 2 && parent && (
+              <p className="p-4">
+                Shared address: {property?.address}, {property?.city},{" "}
+                {property?.state} {property?.zip}.{" "}
+                <Link
+                  className="underline"
+                  href={`/dashboard/landlord/listings/${property?.primaryListingId ?? parent}/location`}
                 >
-                  <SelectTrigger id="propertyType">
-                    <SelectValue placeholder="Select property type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROPERTY_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe your property — what makes it special, nearby amenities, neighborhood vibe…"
-                  rows={5}
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 2 — Location */}
-          {step === 2 && parent && (
-            <p className="p-4">
-              Shared address: {property?.address}, {property?.city},{" "}
-              {property?.state} {property?.zip}.{" "}
-              <Link
-                className="underline"
-                href={`/dashboard/landlord/listings/${property?.primaryListingId ?? parent}/location`}
-              >
-                Manage property location
-              </Link>
-            </p>
-          )}
-          {step === 2 && !parent && (
-            <div className="space-y-5">
-              <CardHeader className="p-0 pb-4">
-                <CardTitle className="text-lg">Location</CardTitle>
-              </CardHeader>
-              <div className="space-y-2">
-                <Label htmlFor="address">Street Address *</Label>
-                <Input
-                  id="address"
-                  placeholder="123 Main St, Apt 4B"
-                  value={form.address}
-                  onChange={(e) => update("address", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+                  Manage property location
+                </Link>
+              </p>
+            )}
+            {step === 2 && !parent && (
+              <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
+                  <Label htmlFor="address">Street Address *</Label>
                   <Input
-                    id="city"
-                    placeholder="Austin"
-                    value={form.city}
-                    onChange={(e) => update("city", e.target.value)}
+                    id="address"
+                    placeholder="123 Main St, Apt 4B"
+                    value={form.address}
+                    onChange={(e) => update("address", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">State *</Label>
-                  <Input
-                    id="state"
-                    placeholder="TX"
-                    maxLength={2}
-                    value={form.state}
-                    onChange={(e) =>
-                      update("state", e.target.value.toUpperCase())
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2 max-w-xs">
-                <Label htmlFor="zip">ZIP Code *</Label>
-                <Input
-                  id="zip"
-                  placeholder="78701"
-                  maxLength={10}
-                  value={form.zip}
-                  onChange={(e) => update("zip", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 — Details */}
-          {step === 3 && (
-            <div className="space-y-5">
-              <CardHeader className="p-0 pb-4">
-                <CardTitle className="text-lg">Property Details</CardTitle>
-              </CardHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bedrooms">Bedrooms *</Label>
-                  <Select
-                    value={String(form.bedrooms)}
-                    onValueChange={(v) => update("bedrooms", Number(v))}
-                  >
-                    <SelectTrigger id="bedrooms">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n} {n === 1 ? "bedroom" : "bedrooms"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bathrooms">Bathrooms *</Label>
-                  <Select
-                    value={String(form.bathrooms)}
-                    onValueChange={(v) => update("bathrooms", Number(v))}
-                  >
-                    <SelectTrigger id="bathrooms">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BATHROOM_OPTIONS.map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n} {n === 1 ? "bathroom" : "bathrooms"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Monthly Price (USD) *</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                      $
-                    </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
                     <Input
-                      id="price"
-                      type="number"
-                      min={1}
-                      step={1}
-                      placeholder="2500"
-                      className="pl-7"
-                      value={form.price || ""}
-                      onChange={(e) => update("price", Number(e.target.value))}
+                      id="city"
+                      placeholder="Austin"
+                      value={form.city}
+                      onChange={(e) => update("city", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      placeholder="TX"
+                      maxLength={2}
+                      value={form.state}
+                      onChange={(e) =>
+                        update("state", e.target.value.toUpperCase())
+                      }
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="maxOccupancy">
-                    Maximum occupants (optional)
-                  </Label>
+                <div className="space-y-2 max-w-xs">
+                  <Label htmlFor="zip">ZIP Code *</Label>
                   <Input
-                    id="maxOccupancy"
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={form.maxOccupancy}
-                    onChange={(e) => update("maxOccupancy", e.target.value)}
-                    placeholder="Not specified"
+                    id="zip"
+                    placeholder="78701"
+                    maxLength={10}
+                    value={form.zip}
+                    onChange={(e) => update("zip", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="minStay">Minimum Stay (months)</Label>
-                  <Select
-                    value={String(form.minStay)}
-                    onValueChange={(v) => update("minStay", Number(v))}
-                  >
-                    <SelectTrigger id="minStay">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n} {n === 1 ? "month" : "months"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              </div>
+            )}
+
+            {/* Step 3 — Details */}
+            {step === 3 && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bedrooms">Bedrooms *</Label>
+                    <Select
+                      value={String(form.bedrooms)}
+                      onValueChange={(v) => update("bedrooms", Number(v))}
+                    >
+                      <SelectTrigger id="bedrooms">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {n === 1 ? "bedroom" : "bedrooms"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bathrooms">Bathrooms *</Label>
+                    <Select
+                      value={String(form.bathrooms)}
+                      onValueChange={(v) => update("bathrooms", Number(v))}
+                    >
+                      <SelectTrigger id="bathrooms">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BATHROOM_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {n === 1 ? "bathroom" : "bathrooms"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2 max-w-xs">
-                <Label htmlFor="availableFrom">Available From *</Label>
-                <Input
-                  id="availableFrom"
-                  type="date"
-                  value={form.availableFrom}
-                  onChange={(e) => update("availableFrom", e.target.value)}
+            )}
+
+            {/* Step 4 — Features */}
+            {step === 4 && (
+              <div className="space-y-6">
+                {/* Toggles */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">
+                        Pet Friendly
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Cats and/or dogs allowed
+                      </p>
+                    </div>
+                    <Switch
+                      aria-label="Pet Friendly"
+                      checked={form.petFriendly}
+                      onCheckedChange={(v) => update("petFriendly", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">
+                        Utilities Included
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Electric, gas, water included in rent
+                      </p>
+                    </div>
+                    <Switch
+                      aria-label="Utilities Included"
+                      checked={form.utilitiesIncluded}
+                      onCheckedChange={(v) => update("utilitiesIncluded", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">
+                        Parking Included
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Off-street or garage parking available
+                      </p>
+                    </div>
+                    <Switch
+                      aria-label="Parking Included"
+                      checked={form.parkingIncluded}
+                      onCheckedChange={(v) => update("parkingIncluded", v)}
+                    />
+                  </div>
+                </div>
+
+                {/* Amenities grid */}
+                <div>
+                  <p className="text-sm font-medium text-slate-900 mb-3">
+                    Amenities
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {OWNER_AMENITIES.map((amenity) => (
+                      <label
+                        key={amenity}
+                        className="flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Checkbox
+                          id={amenity}
+                          checked={form.amenities.includes(amenity)}
+                          onCheckedChange={() => toggleAmenity(amenity)}
+                        />
+                        <span className="text-sm text-slate-700">
+                          {amenity}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5 — Photos */}
+            {step === 5 && (
+              <div className="space-y-5">
+                <ListingPhotoEditor
+                  photos={form.photos}
+                  onChange={(photos) => update("photos", photos)}
+                  busy={photoBusy}
+                  onBusyChange={setPhotoBusy}
                 />
               </div>
-              <ListingDetailsEditor
-                value={form.details}
-                onChange={(details) => update("details", details)}
-              />
-            </div>
-          )}
-
-          {/* Step 4 — Features */}
-          {step === 4 && (
-            <div className="space-y-6">
-              <CardHeader className="p-0 pb-4">
-                <CardTitle className="text-lg">Features & Amenities</CardTitle>
-              </CardHeader>
-
-              {/* Toggles */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      Pet Friendly
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Cats and/or dogs allowed
-                    </p>
-                  </div>
-                  <Switch
-                    aria-label="Pet Friendly"
-                    checked={form.petFriendly}
-                    onCheckedChange={(v) => update("petFriendly", v)}
-                  />
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      Utilities Included
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Electric, gas, water included in rent
-                    </p>
-                  </div>
-                  <Switch
-                    aria-label="Utilities Included"
-                    checked={form.utilitiesIncluded}
-                    onCheckedChange={(v) => update("utilitiesIncluded", v)}
-                  />
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      Parking Included
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Off-street or garage parking available
-                    </p>
-                  </div>
-                  <Switch
-                    aria-label="Parking Included"
-                    checked={form.parkingIncluded}
-                    onCheckedChange={(v) => update("parkingIncluded", v)}
-                  />
-                </div>
-              </div>
-
-              {/* Amenities grid */}
-              <div>
-                <p className="text-sm font-medium text-slate-900 mb-3">
-                  Amenities
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {OWNER_AMENITIES.map((amenity) => (
-                    <label
-                      key={amenity}
-                      className="flex items-center gap-2.5 cursor-pointer"
-                    >
-                      <Checkbox
-                        id={amenity}
-                        checked={form.amenities.includes(amenity)}
-                        onCheckedChange={() => toggleAmenity(amenity)}
+            )}
+            {step === 6 && (
+              <div className="space-y-5">
+                {" "}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Monthly Price (USD) *</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                        $
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder="2500"
+                        className="pl-7"
+                        value={form.price || ""}
+                        onChange={(e) =>
+                          update("price", Number(e.target.value))
+                        }
                       />
-                      <span className="text-sm text-slate-700">{amenity}</span>
-                    </label>
-                  ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="maxOccupancy">
+                      Maximum occupants (optional)
+                    </Label>
+                    <Input
+                      id="maxOccupancy"
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={form.maxOccupancy}
+                      onChange={(e) => update("maxOccupancy", e.target.value)}
+                      placeholder="Not specified"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="minStay">Minimum Stay (months)</Label>
+                    <Select
+                      value={String(form.minStay)}
+                      onValueChange={(v) => update("minStay", Number(v))}
+                    >
+                      <SelectTrigger id="minStay">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {n === 1 ? "month" : "months"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2 max-w-xs">
+                  <Label htmlFor="availableFrom">Available From *</Label>
+                  <Input
+                    id="availableFrom"
+                    type="date"
+                    value={form.availableFrom}
+                    onChange={(e) => update("availableFrom", e.target.value)}
+                  />
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Step 5 — Photos */}
-          {step === 5 && (
-            <div className="space-y-5">
-              <CardHeader className="p-0 pb-4">
-                <CardTitle className="text-lg">Photos</CardTitle>
-              </CardHeader>
-              <ListingPhotoEditor
-                photos={form.photos}
-                onChange={(photos) => update("photos", photos)}
-                busy={photoBusy}
-                onBusyChange={setPhotoBusy}
-              />
-            </div>
-          )}
+            )}
+            {step === 7 && (
+              <div className="space-y-5">
+                {" "}
+                <ListingDetailsEditor
+                  value={form.details}
+                  onChange={(details) => update("details", details)}
+                />
+              </div>
+            )}
+            {step === 8 && (
+              <div>
+                <dl className={wizard.review}>
+                  {[
+                    ["Property", form.title],
+                    ["Type", form.propertyType],
+                    [
+                      "Location",
+                      parent
+                        ? `${property?.address}, ${property?.city}`
+                        : `${form.address}, ${form.city}, ${form.state} ${form.zip}`,
+                    ],
+                    [
+                      "Rooms",
+                      `${form.bedrooms} bedrooms · ${form.bathrooms} bathrooms`,
+                    ],
+                    [
+                      "Monthly rent",
+                      new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(form.price),
+                    ],
+                    [
+                      "Minimum stay",
+                      `${form.minStay} month${form.minStay === 1 ? "" : "s"}`,
+                    ],
+                    ["Available from", form.availableFrom],
+                    ["Photos", String(form.photos.length)],
+                    ["Amenities", form.amenities.join(", ") || "None selected"],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className={wizard.note}>
+                  You can edit this draft before requesting publication. Address
+                  verification and publication requirements still apply.
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Navigation buttons */}
-      <div className="flex items-center justify-between mt-6">
+      <div className={wizard.navigation}>
         <Button
           variant="outline"
           onClick={prevStep}
@@ -707,14 +765,14 @@ function NewListingForm() {
           Back
         </Button>
 
-        {step < 5 ? (
-          <Button onClick={nextStep}>
-            Next
+        {step < STEPS.length ? (
+          <Button onClick={nextStep} disabled={photoBusy}>
+            Continue
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
           <Button onClick={handleSubmit} disabled={submitting || photoBusy}>
-            {submitting ? "Creating…" : "Create Listing"}
+            {submitting ? "Creating…" : "Save property draft"}
           </Button>
         )}
       </div>

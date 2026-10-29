@@ -11,3 +11,6 @@ dist/
 /.clerk/
 
 /.convex/
+
+# Original hero footage is served from the official Pexels CDN.
+/public/media/globe-hero.mp4

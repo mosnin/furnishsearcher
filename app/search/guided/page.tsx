@@ -131,8 +131,8 @@ function AccountSearch() {
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex justify-between gap-4">
-        <Link href="/" className="font-semibold text-[#0f2044]">
-          FurnishFinder
+        <Link href="/" className="font-semibold text-primary">
+          globe
         </Link>
         <Link href={buildSearchUrl(initial)} className="underline">
           Standard search

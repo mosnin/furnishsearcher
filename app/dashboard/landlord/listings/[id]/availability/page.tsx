@@ -109,7 +109,7 @@ export default function AvailabilityPage({ params }: PageProps) {
             </Button>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-[#0f2044]" />
+            <CalendarDays className="h-6 w-6 text-primary" />
             Manage Availability
           </h1>
           <p className="text-slate-500 text-sm mt-1 truncate max-w-md">

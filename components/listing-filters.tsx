@@ -1,158 +1,19 @@
 "use client";
-import type { SearchFilters } from "@/lib/search";
-import { PROPERTY_TYPES, AMENITIES } from "@/lib/search-options";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-export type FilterState = SearchFilters;
-export function ListingFilters({
-  filters,
-  onFilterChange,
-  className,
-}: {
-  filters: SearchFilters;
-  onFilterChange: (filters: SearchFilters) => void;
-  className?: string;
-}) {
-  function update<K extends keyof SearchFilters>(
-    key: K,
-    value: SearchFilters[K],
-  ) {
-    onFilterChange({ ...filters, [key]: value });
-  }
-  return (
-    <div className={className}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold">Filters</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            onFilterChange({
-              location: filters.location,
-              city: filters.city,
-              state: filters.state,
-              propertyId: filters.propertyId,
-              moveIn: filters.moveIn,
-              moveOut: filters.moveOut,
-              flexibleDays: filters.flexibleDays,
-              sort: filters.sort,
-            })
-          }
-        >
-          Clear filters
-        </Button>
-      </div>
-      <fieldset className="space-y-3">
-        <legend className="font-medium text-sm mb-2">Property types</legend>
-        <div className="flex flex-wrap gap-3">
-          {PROPERTY_TYPES.map((type) => (
-            <label key={type} className="text-sm flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={filters.propertyTypes?.includes(type) ?? false}
-                onChange={(e) =>
-                  update(
-                    "propertyTypes",
-                    e.target.checked
-                      ? [...(filters.propertyTypes ?? []), type]
-                      : filters.propertyTypes?.filter((t) => t !== type),
-                  )
-                }
-              />
-              {type === "Room" ? "Room for rent" : type}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 my-5">
-        {(
-          [
-            ["minPrice", "Minimum monthly rent"],
-            ["maxPrice", "Maximum monthly rent"],
-            ["bedrooms", "Minimum bedrooms"],
-            ["bathrooms", "Minimum bathrooms"],
-            ["occupants", "Occupants"],
-          ] as const
-        ).map(([key, label]) => (
-          <div key={key} className="space-y-2">
-            <Label htmlFor={`search-${key}`}>{label}</Label>
-            <Input
-              id={`search-${key}`}
-              type="number"
-              min={key === "occupants" ? 1 : 0}
-              step={key === "bathrooms" ? 0.5 : 1}
-              max={key.includes("Price") ? 10000000 : 30}
-              value={filters[key] ?? ""}
-              onChange={(e) =>
-                update(
-                  key,
-                  e.target.value === "" ? undefined : Number(e.target.value),
-                )
-              }
-              placeholder="Any"
-            />
-          </div>
-        ))}
-      </div>
-      <div className="grid sm:grid-cols-3 gap-4 mb-5">
-        {(
-          [
-            ["petFriendly", "Pets", "Pet friendly", "No pets"],
-            ["utilitiesIncluded", "Utilities", "Included", "Not included"],
-            ["parkingIncluded", "Parking", "Included", "Not included"],
-          ] as const
-        ).map(([key, label, yes, no]) => (
-          <label key={key} className="text-sm space-y-2">
-            {label}
-            <select
-              className="block w-full rounded-md border p-2 bg-white"
-              value={filters[key] === undefined ? "" : String(filters[key])}
-              onChange={(e) =>
-                update(
-                  key,
-                  e.target.value === "" ? undefined : e.target.value === "true",
-                )
-              }
-            >
-              <option value="">Any</option>
-              <option value="true">{yes}</option>
-              <option value="false">{no}</option>
-            </select>
-          </label>
-        ))}
-      </div>
-      <fieldset>
-        <legend className="font-medium text-sm mb-3">
-          Amenities & accessibility · all selected features required
-        </legend>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {AMENITIES.filter(
-            (a) =>
-              !["Pet Friendly", "Parking", "Utilities Included"].includes(a),
-          ).map((a) => (
-            <label key={a} className="flex gap-2 items-center text-sm">
-              <input
-                type="checkbox"
-                checked={filters.amenities?.includes(a) ?? false}
-                onChange={(e) =>
-                  update(
-                    "amenities",
-                    e.target.checked
-                      ? [...(filters.amenities ?? []), a]
-                      : filters.amenities?.filter((item) => item !== a),
-                  )
-                }
-              />
-              {a}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <p className="text-xs text-slate-500 mt-4">
-        Amenities and accessibility features are described by the owner. Confirm
-        that the property meets your needs before arranging a stay.
-      </p>
-    </div>
-  );
+import { Slider } from '@base-ui/react/slider';
+import { Minus,Plus } from '@phosphor-icons/react';
+import type {SearchFilters} from '@/lib/search';
+import {PROPERTY_TYPES,AMENITIES} from '@/lib/search-options';
+import {Input} from '@/components/ui/input';
+import {SelectField} from '@/components/ui-system/primitives';
+export type FilterState=SearchFilters;
+export function ListingFilters({filters,onFilterChange,className,prices=[]}:{filters:SearchFilters;onFilterChange:(filters:SearchFilters)=>void;className?:string;prices?:number[]}){
+ const ceiling=Math.max(10000,Math.ceil(Math.max(...prices,filters.maxPrice??0)/1000)*1000);
+ const bins=Array.from({length:24},()=>0);for(const price of prices)bins[Math.min(23,Math.floor(price/ceiling*24))]++;
+ const max=Math.max(1,...bins);
+ function update<K extends keyof SearchFilters>(key:K,value:SearchFilters[K]){onFilterChange({...filters,[key]:value});}
+ return <div className={`w-filters ${className??''}`}><section><h3>Price per month</h3>{prices.length>0&&<div className="w-price-histogram" role="img" aria-label={`Monthly prices of ${prices.length} loaded matching rentals`}>{bins.map((n,i)=><i key={i} style={{height:`${n/max*64}px`}}/>)}</div>}<Slider.Root className="w-price-slider" value={[filters.minPrice??0,filters.maxPrice??ceiling]} min={0} max={ceiling} step={50} onValueChange={value=>{const values=value as number[];onFilterChange({...filters,minPrice:values[0]||undefined,maxPrice:values[1]===ceiling?undefined:values[1]});}}><Slider.Control><Slider.Track><Slider.Indicator/></Slider.Track><Slider.Thumb index={0} aria-label="Minimum monthly rent"/><Slider.Thumb index={1} aria-label="Maximum monthly rent"/></Slider.Control></Slider.Root><div className="w-price-fields">{([['minPrice','Minimum'],['maxPrice','Maximum']] as const).map(([key,label])=><label key={key}>{label}<span><b>$</b><Input aria-label={`${label} monthly rent`} type="number" min={0} max={10000000} value={filters[key]??''} onChange={e=>update(key,e.target.value===''?undefined:Number(e.target.value))} placeholder={key==='minPrice'?'0':'Any'}/></span></label>)}</div></section>
+ <section><h3>Property type</h3><div className="w-filter-pills">{PROPERTY_TYPES.map(type=><button type="button" key={type} aria-pressed={filters.propertyTypes?.includes(type)??false} onClick={()=>update('propertyTypes',filters.propertyTypes?.includes(type)?filters.propertyTypes.filter(v=>v!==type):[...(filters.propertyTypes??[]),type])}>{type==='Room'?'Room for rent':type}</button>)}</div></section>
+ <section><h3>Amenities</h3><div className="w-filter-pills">{AMENITIES.filter(a=>!['Pet Friendly','Parking','Utilities Included'].includes(a)).map(a=><button type="button" key={a} aria-pressed={filters.amenities?.includes(a)??false} onClick={()=>update('amenities',filters.amenities?.includes(a)?filters.amenities.filter(v=>v!==a):[...(filters.amenities??[]),a])}>{a}</button>)}</div></section>
+ <section><h3>Rooms and guests</h3>{([['bedrooms','Bedrooms',1,0],['bathrooms','Bathrooms',.5,0],['occupants','Guests',1,1]] as const).map(([key,label,step,min])=><div className="w-filter-counter" key={key}><span>{label}</span><div><button type="button" aria-label={`Fewer ${label.toLowerCase()}`} disabled={filters[key]===undefined} onClick={()=>update(key,(filters[key]??min)-step<min?undefined:(filters[key]??min)-step)}><Minus size={17}/></button><span>{filters[key]===undefined?'Any':filters[key]}</span><button type="button" aria-label={`More ${label.toLowerCase()}`} disabled={(filters[key]??0)>=30} onClick={()=>update(key,filters[key]===undefined?Math.max(min,step):(filters[key]??0)+step)}><Plus size={17}/></button></div></div>)}</section>
+ <section><h3>Stay preferences</h3><div className="w-preference-fields">{([['petFriendly','Pets','Pet friendly','No pets'],['utilitiesIncluded','Utilities','Included','Not included'],['parkingIncluded','Parking','Included','Not included']] as const).map(([key,label,yes,no])=><SelectField key={key} label={label} value={filters[key]===undefined?'any':String(filters[key])} onValueChange={v=>update(key,v==='any'?undefined:v==='true')} options={[{value:'any',label:'Any'},{value:'true',label:yes},{value:'false',label:no}]}/>)}</div><p className="w-filter-note">Owner supplied amenities and accessibility details. Confirm that a property meets your needs before arranging a stay.</p></section></div>;
 }

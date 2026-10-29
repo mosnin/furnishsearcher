@@ -478,6 +478,9 @@ export default defineSchema({
     notificationEmailProofAfter: v.optional(v.number()),
     notificationEmailRevision: v.optional(v.number()),
     welcomeEmailAttemptedAt: v.optional(v.number()),
+    accountTypePending: v.optional(v.boolean()),
+    accountTypeSelectedAt: v.optional(v.number()),
+    accountTypeChangedBy: v.optional(v.id("users")),
     role: v.union(
       v.literal("tenant"),
       v.literal("landlord"),
@@ -524,6 +527,7 @@ export default defineSchema({
     referralCode: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
+    .index("by_role_created", ["role", "createdAt"])
     .index("by_referral_code", ["referralCode"]),
 
   listingLocations: defineTable({

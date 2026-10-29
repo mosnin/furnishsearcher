@@ -18,7 +18,7 @@ export function AvatarUpload({ currentUrl, name, onUpload, size = 96 }: Props) {
       {/* Initials fallback — rendered underneath and visible when no photo */}
       {!currentUrl && (
         <div
-          className="absolute inset-0 rounded-full flex items-center justify-center bg-[#0f2044] text-white font-semibold select-none pointer-events-none"
+          className="absolute inset-0 rounded-full flex items-center justify-center bg-primary text-white font-semibold select-none pointer-events-none"
           style={{ fontSize: size * 0.35 }}
           aria-hidden="true"
         >
@@ -35,7 +35,8 @@ export function AvatarUpload({ currentUrl, name, onUpload, size = 96 }: Props) {
           // When there's no currentUrl, the PhotoUpload button sits on top of
           // the initials div. We set a transparent background so the initials
           // show through the empty state.
-          !currentUrl && "[&>button]:bg-transparent [&>button]:border-transparent [&>button>div:first-child]:opacity-0"
+          !currentUrl &&
+            "[&>button]:bg-transparent [&>button]:border-transparent [&>button>div:first-child]:opacity-0",
         )}
       />
     </div>

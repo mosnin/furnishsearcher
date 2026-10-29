@@ -18,7 +18,7 @@ const STEPS = [
     description:
       "Message landlords directly — no middlemen, no booking agents. Ask questions, schedule tours, and negotiate terms on your timeline.",
     color: "bg-navy-50",
-    iconColor: "text-[#0f2044]",
+    iconColor: "text-primary",
     borderColor: "border-slate-100",
   },
   {
@@ -43,7 +43,7 @@ export default function HowItWorks() {
             Simple Process
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight mb-4">
-            How FurnishFinder Works
+            How globe Works
           </h2>
           <p className="text-lg text-slate-500 max-w-2xl mx-auto">
             From search to move-in in three straightforward steps — no hidden
@@ -95,7 +95,7 @@ export default function HowItWorks() {
         <div className="mt-16 text-center">
           <a
             href="/search"
-            className="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#1a3360] text-white font-semibold rounded-2xl px-8 py-3 transition-all duration-200 shadow-lg shadow-[#0f2044]/20 hover:shadow-xl hover:shadow-[#0f2044]/30 hover:-translate-y-0.5 text-[15px]"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-2xl px-8 py-3 transition-all duration-200 shadow-lg shadow-[#0f2044]/20 hover:shadow-xl hover:shadow-[#0f2044]/30 hover:-translate-y-0.5 text-[15px]"
           >
             <Search className="w-4 h-4" />
             Start Searching Free

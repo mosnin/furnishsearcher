@@ -1,10 +1,11 @@
+import { PublicFrame, PublicHeader } from "@/components/public-page";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import { SubscriptionCheckoutButton } from "@/components/checkout-button";
 
 export const metadata: Metadata = {
-  title: "Pricing and Publication | FurnishFinder",
+  title: "Pricing and Publication | globe",
   description:
     "Review landlord subscription access and the requirements for publishing a furnished rental.",
 };
@@ -56,54 +57,24 @@ const FAQS = [
 ];
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <section className="bg-[#1e3a8a] text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <Link href="/" className="text-blue-300 underline">
-            Back to Home
-          </Link>
-          <h1 className="text-4xl sm:text-5xl font-extrabold mt-8">
-            Plans and publication
-          </h1>
-          <p className="mt-4 text-blue-200 text-lg">
-            Prepare your draft, then complete the requirements for publishing
-            your rental.
-          </p>
-        </div>
-      </section>
-      <section className="bg-amber-50 px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="font-bold text-slate-900 text-xl">
-            Paid access is required to publish
-          </h2>
-          <p className="mt-2 text-slate-700">
-            Your listing also needs completed identity verification, current
-            photos and property details, staff approval and no publication hold.
-            Your dashboard shows what remains to be completed.
-          </p>
-        </div>
-      </section>
-      <section className="py-16 px-4 bg-gray-50">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+    <PublicFrame>
+      <main className="public-content-width">
+        <PublicHeader
+          title="Plans for your rental business"
+          description="Prepare a draft, then review the requirements for publishing your property."
+        />
+        <div className="public-content-grid public-content-grid--two">
           {PLANS.map((item) => (
-            <div
-              key={item.plan}
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col"
-            >
-              <h2 className="text-2xl font-extrabold text-[#0f2044]">
-                {item.name}
-              </h2>
-              <p className="mt-3 text-slate-600">{item.description}</p>
-              <p className="mt-4 text-sm text-slate-600">
+            <section className="ds-panel public-plan" key={item.plan}>
+              <h2>{item.name}</h2>
+              <p>{item.description}</p>
+              <p className="ds-caption">
                 Review current pricing and renewal terms at checkout.
               </p>
-              <ul className="space-y-3 mt-6 flex-1">
+              <ul>
                 {item.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-3 text-sm text-slate-700"
-                  >
-                    <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                  <li key={feature}>
+                    <CheckCircle size={16} aria-hidden="true" />
                     {feature}
                   </li>
                 ))}
@@ -111,52 +82,37 @@ export default function PricingPage() {
               <SubscriptionCheckoutButton
                 plan={item.plan}
                 label={`Review ${item.name} checkout`}
-                className="w-full mt-8 whitespace-normal h-auto min-h-10 py-3"
+                className="w-full mt-6"
               />
-            </div>
+            </section>
           ))}
         </div>
-      </section>
-      <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1e3a8a] mb-8">
-            Questions about access
-          </h2>
-          <div className="space-y-4">
+        <section className="public-content-section">
+          <h2>Before your listing goes live</h2>
+          <p>
+            A paid subscription, identity verification and approval of the
+            current listing revision are required. Your dashboard shows the
+            remaining steps.
+          </p>
+          <Link
+            className="ds-button ds-button--secondary"
+            href="/dashboard/landlord/listings"
+          >
+            Manage listings
+          </Link>
+        </section>
+        <section className="public-content-section">
+          <h2>Questions about access</h2>
+          <div className="public-faq">
             {FAQS.map((faq) => (
-              <div
-                key={faq.q}
-                className="border border-gray-200 rounded-xl p-6"
-              >
-                <h3 className="font-bold text-slate-900">{faq.q}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                  {faq.a}
-                </p>
-              </div>
+              <details key={faq.q}>
+                <summary>{faq.q}</summary>
+                <p>{faq.a}</p>
+              </details>
             ))}
           </div>
-          <div className="flex flex-wrap gap-6 mt-8">
-            <Link
-              href="/dashboard/landlord/listings"
-              className="font-semibold text-[#1e3a8a] underline"
-            >
-              Manage listings
-            </Link>
-            <Link
-              href="/search"
-              className="font-semibold text-[#1e3a8a] underline"
-            >
-              Browse rentals
-            </Link>
-            <Link
-              href="/contact"
-              className="font-semibold text-[#1e3a8a] underline"
-            >
-              Contact support
-            </Link>
-          </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </PublicFrame>
   );
 }

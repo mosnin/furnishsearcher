@@ -29,7 +29,7 @@ export default function BillingSuccessPage({
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-16">
       <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-        <h1 className="text-2xl font-bold text-[#0f2044]">{title}</h1>
+        <h1 className="text-2xl font-bold text-primary">{title}</h1>
         <p
           className="mt-3 text-slate-600 text-sm leading-relaxed"
           role="status"
@@ -53,7 +53,7 @@ export default function BillingSuccessPage({
         <div className="mt-8 flex flex-col gap-3">
           <Link
             href={isAuthenticated ? "/dashboard/landlord/billing" : "/sign-in"}
-            className="w-full bg-[#1e3a8a] text-white font-semibold px-5 py-3 rounded-lg"
+            className="w-full bg-primary text-white font-semibold px-5 py-3 rounded-lg"
           >
             {isAuthenticated ? "View billing" : "Sign in"}
           </Link>

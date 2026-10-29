@@ -35,7 +35,7 @@ function InsuranceEstimate() {
       </p>
       {available === false ? (
         <p className="text-sm" role="status">
-          In-app estimates are unavailable until FurnishSearcher has an approved
+          In-app estimates are unavailable until globe has an approved
           Steadily connection. You can visit Steadily directly.
         </p>
       ) : available === undefined ? (
@@ -170,7 +170,11 @@ function InsuranceEstimate() {
     </div>
   );
 }
-export default function OwnerProtectionTools() {
+export default function OwnerProtectionTools({
+  only,
+}: {
+  only?: "insurance" | "damage";
+}) {
   const { user } = useUser();
   const profile = useQuery(
     api.users.getByClerkId,
@@ -182,44 +186,51 @@ export default function OwnerProtectionTools() {
       className="space-y-4"
       aria-labelledby="property-protection-heading"
     >
-      <h2 id="property-protection-heading" className="text-xl font-semibold">
+      <h2
+        id="property-protection-heading"
+        className={only ? "sr-only" : "text-xl font-semibold"}
+      >
         Property protection
       </h2>
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card>
-          <CardContent className="p-5 space-y-3">
-            <h3 className="font-semibold text-lg">Landlord insurance</h3>
-            <p className="text-sm font-medium">Steadily</p>
-            <InsuranceEstimate />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5 space-y-3">
-            <h3 className="font-semibold text-lg">Damage protection</h3>
-            <p className="text-sm font-medium">RentalGuardian</p>
-            <p className="text-sm text-slate-600">
-              Explore protection for accidental tenant damage. Eligibility,
-              coverage, exclusions and claims are determined by the provider and
-              the plan you purchase.
-            </p>
-            <p className="text-sm">
-              Purchase, plan changes and claims are not connected to
-              FurnishSearcher. Use your provider account for an existing plan.
-            </p>
-            <a
-              className="inline-block underline text-sm"
-              href="https://www.rentalguardian.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Explore RentalGuardian
-            </a>
-            <p className="text-xs text-slate-500">
-              Damage protection is separate from landlord insurance. Provider
-              terms and availability apply.
-            </p>
-          </CardContent>
-        </Card>
+      <div className={only ? "grid gap-5" : "grid gap-5 md:grid-cols-2"}>
+        {only !== "damage" && (
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <h3 className="font-semibold text-lg">Landlord insurance</h3>
+              <p className="text-sm font-medium">Steadily</p>
+              <InsuranceEstimate />
+            </CardContent>
+          </Card>
+        )}
+        {only !== "insurance" && (
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <h3 className="font-semibold text-lg">Damage protection</h3>
+              <p className="text-sm font-medium">RentalGuardian</p>
+              <p className="text-sm text-slate-600">
+                Explore protection for accidental tenant damage. Eligibility,
+                coverage, exclusions and claims are determined by the provider
+                and the plan you purchase.
+              </p>
+              <p className="text-sm">
+                Purchase, plan changes and claims are not connected to
+                globe. Use your provider account for an existing plan.
+              </p>
+              <a
+                className="inline-block underline text-sm"
+                href="https://www.rentalguardian.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Explore RentalGuardian
+              </a>
+              <p className="text-xs text-slate-500">
+                Damage protection is separate from landlord insurance. Provider
+                terms and availability apply.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </section>
   );

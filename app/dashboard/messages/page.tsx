@@ -52,11 +52,11 @@ function ConversationItem({
       className={cn(
         "w-full text-left flex items-start gap-3 px-4 py-3 border-b border-slate-100",
         selected
-          ? "bg-[#0f2044]/5 border-r-2 border-r-[#0f2044]"
+          ? "bg-primary/5 border-r-2 border-r-primary"
           : "hover:bg-slate-50",
       )}
     >
-      <div className="h-10 w-10 shrink-0 rounded-full bg-[#0f2044]/10 flex items-center justify-center overflow-hidden">
+      <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
         {conv.otherUser?.avatar ? (
           <img
             src={conv.otherUser.avatar}
@@ -132,7 +132,7 @@ function MessageBubble({
         className={cn(
           "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
           mine
-            ? "bg-[#0f2044] text-white rounded-br-sm"
+            ? "bg-primary text-white rounded-br-sm"
             : "bg-slate-100 text-slate-900 rounded-bl-sm",
         )}
       >
@@ -492,7 +492,7 @@ function AccountMessages() {
                 className={cn(
                   "text-xs rounded-md px-2 py-1.5 capitalize",
                   folder === f
-                    ? "bg-[#0f2044] text-white"
+                    ? "bg-primary text-white"
                     : "bg-slate-100 text-slate-600",
                 )}
                 onClick={() => {
@@ -579,7 +579,7 @@ function AccountMessages() {
       </aside>
       <section
         className={cn(
-          "flex-1 flex-col bg-slate-50 min-w-0",
+          "flex-1 flex-col bg-white min-w-0",
           mobileThread ? "flex" : "hidden md:flex",
         )}
       >
@@ -728,7 +728,7 @@ function AccountMessages() {
                       ref={message._id === focusMessage ? matchRef : undefined}
                       className={
                         message._id === focusMessage
-                          ? "rounded-lg ring-2 ring-[#0f2044]/30 p-2"
+                          ? "rounded-lg ring-2 ring-ring/30 p-2"
                           : undefined
                       }
                       aria-label={
@@ -757,7 +757,7 @@ function AccountMessages() {
                       (m) => m.clientRequestId === sending.requestId,
                     ) && (
                       <div
-                        className="ml-auto max-w-[85%] rounded-xl bg-[#0f2044]/80 text-white p-4 text-sm"
+                        className="ml-auto max-w-[85%] rounded-xl bg-primary/80 text-white p-4 text-sm"
                         role="status"
                       >
                         <p className="whitespace-pre-wrap break-words">

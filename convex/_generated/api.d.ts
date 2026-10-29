@@ -9,6 +9,7 @@
  */
 
 import type * as accountOffboarding from "../accountOffboarding.js";
+import type * as adminAccounts from "../adminAccounts.js";
 import type * as analytics from "../analytics.js";
 import type * as availability from "../availability.js";
 import type * as billingWebhook from "../billingWebhook.js";
@@ -38,6 +39,7 @@ import type * as insurance from "../insurance.js";
 import type * as leadNotifications from "../leadNotifications.js";
 import type * as leadOffers from "../leadOffers.js";
 import type * as lib_accountOffboarding from "../lib/accountOffboarding.js";
+import type * as lib_accountRoles from "../lib/accountRoles.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_billing from "../lib/billing.js";
 import type * as lib_bookings from "../lib/bookings.js";
@@ -148,6 +150,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accountOffboarding: typeof accountOffboarding;
+  adminAccounts: typeof adminAccounts;
   analytics: typeof analytics;
   availability: typeof availability;
   billingWebhook: typeof billingWebhook;
@@ -177,6 +180,7 @@ declare const fullApi: ApiFromModules<{
   leadNotifications: typeof leadNotifications;
   leadOffers: typeof leadOffers;
   "lib/accountOffboarding": typeof lib_accountOffboarding;
+  "lib/accountRoles": typeof lib_accountRoles;
   "lib/auth": typeof lib_auth;
   "lib/billing": typeof lib_billing;
   "lib/bookings": typeof lib_bookings;

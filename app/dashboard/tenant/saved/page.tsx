@@ -107,7 +107,7 @@ export default function SavedListingsPage() {
           <p className="text-slate-500 text-sm mt-1 mb-4">
             Tap the heart on any listing to save it for later.
           </p>
-          <Button asChild className="bg-[#1e3a8a] hover:bg-[#0f2044]">
+          <Button asChild className="bg-primary hover:bg-primary">
             <Link href="/search">Browse listings</Link>
           </Button>
         </div>
@@ -144,7 +144,7 @@ export default function SavedListingsPage() {
                     <div className="p-4 space-y-2">
                       <Link
                         href={`/listings/${l._id}`}
-                        className="block font-semibold text-slate-900 line-clamp-1 hover:text-[#1e3a8a]"
+                        className="block font-semibold text-slate-900 line-clamp-1 hover:text-primary"
                       >
                         {l.title}
                       </Link>
@@ -155,7 +155,7 @@ export default function SavedListingsPage() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="text-[#1e3a8a] font-bold text-lg">
+                        <div className="text-primary font-bold text-lg">
                           {formatPrice(l.price)}
                           <span className="text-slate-400 font-normal text-sm">
                             /mo

@@ -1,357 +1,382 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useUser, useAuth, UserButton } from "@clerk/nextjs";
+import { Brand } from "@/components/brand";
+import Image from "next/image";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible } from "@base-ui/react/collapsible";
+import { dashboardHome, dashboardRouteAllowed } from "@/lib/dashboard-access";
 import {
-  LayoutDashboard,
-  CalendarDays,
-  Heart,
-  MessageSquare,
-  User,
-  Building2,
-  PlusSquare,
-  BarChart3,
-  Users,
-  ShieldCheck,
-  FileText,
-  Menu,
-  X,
-  Home,
-  TrendingUp,
-  CreditCard,
-  Search,
-} from "lucide-react";
-import MobileNav from "@/components/dashboard/mobile-nav";
-
-type NavItem = {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  badge?: string;
-};
-
-const tenantNav: NavItem[] = [
-  { label: "Overview", href: "/dashboard/tenant", icon: LayoutDashboard },
-  { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
-  { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
-  {
-    label: "Housing Requests",
-    href: "/dashboard/housing-requests",
-    icon: FileText,
-  },
-  {
-    label: "Booking Inquiries",
-    href: "/dashboard/inquiries",
-    icon: CalendarDays,
-  },
-  { label: "My Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
-  { label: "Rental Tools", href: "/dashboard/rental-tools", icon: FileText },
-  { label: "Support Cases", href: "/dashboard/support", icon: FileText },
-  { label: "My Profile", href: "/dashboard/profile", icon: User },
-  {
-    label: "Market Insights",
-    href: "/market-insights",
-    icon: TrendingUp,
-    badge: "NEW",
-  },
-];
-
-const landlordNav: NavItem[] = [
-  { label: "Overview", href: "/dashboard/landlord", icon: LayoutDashboard },
-  {
-    label: "My Listings",
-    href: "/dashboard/landlord/listings",
-    icon: Building2,
-  },
-  {
-    label: "Add Listing",
-    href: "/dashboard/landlord/listings/new",
-    icon: PlusSquare,
-  },
-  {
-    label: "Booking Inquiries",
-    href: "/dashboard/inquiries",
-    icon: CalendarDays,
-  },
-  {
-    label: "Tenant Requests",
-    href: "/dashboard/landlord/requests",
-    icon: Users,
-  },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  {
-    label: "Analytics",
-    href: "/dashboard/landlord/analytics",
-    icon: BarChart3,
-  },
-  { label: "Billing", href: "/dashboard/landlord/billing", icon: CreditCard },
-  { label: "My Reviews", href: "/dashboard/reviews", icon: MessageSquare },
-  { label: "Rental Tools", href: "/dashboard/rental-tools", icon: FileText },
-  { label: "Support Cases", href: "/dashboard/support", icon: FileText },
-  { label: "Saved Listings", href: "/dashboard/tenant/saved", icon: Heart },
-  { label: "Saved Searches", href: "/dashboard/tenant/searches", icon: Search },
-  { label: "My Profile", href: "/dashboard/profile", icon: User },
-  {
-    label: "Market Insights",
-    href: "/market-insights",
-    icon: TrendingUp,
-    badge: "NEW",
-  },
-];
-
-const adminNav: NavItem[] = [
-  { label: "Overview", href: "/dashboard/admin", icon: LayoutDashboard },
-  { label: "All Listings", href: "/dashboard/admin/listings", icon: Building2 },
-  {
-    label: "Review Moderation",
-    href: "/dashboard/admin/reviews",
-    icon: MessageSquare,
-  },
-  { label: "All Users", href: "/dashboard/admin/users", icon: Users },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  {
-    label: "Platform Analytics",
-    href: "/dashboard/admin/reports",
-    icon: BarChart3,
-  },
-  {
-    label: "Support & Reports",
-    href: "/dashboard/admin/support",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Market Insights",
-    href: "/market-insights",
-    icon: TrendingUp,
-    badge: "NEW",
-  },
-];
-
-function NavLink({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: NavItem;
-  isActive: boolean;
-  onClick?: () => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <Link
-      href={item.href}
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors duration-150",
-        isActive
-          ? "bg-[#0f2044] text-white"
-          : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900",
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1">{item.label}</span>
-      {item.badge && (
-        <span className="ml-auto inline-flex items-center rounded-full bg-[#0f2044] px-1.5 py-0.5 text-[10px] font-semibold text-white leading-none">
-          {item.badge}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-function SidebarContent({
-  navItems,
-  pathname,
-  userName,
-  onNavClick,
-}: {
-  navItems: NavItem[];
-  pathname: string;
-  userName: string;
-  onNavClick?: () => void;
-}) {
-  return (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center px-4 border-b border-slate-200/80">
-        <Link href="/" className="flex items-center gap-2">
-          <Home className="h-6 w-6 shrink-0 text-[#0f2044]" />
-          <span className="font-semibold text-[16px] text-[#0f2044]">
-            FurnishFinder
-          </span>
-        </Link>
-      </div>
-
-      {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            isActive={
-              item.href === "/dashboard/tenant" ||
-              item.href === "/dashboard/landlord" ||
-              item.href === "/dashboard/admin"
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
-            }
-            onClick={onNavClick}
-          />
-        ))}
-      </nav>
-
-      {/* User section */}
-      <div className="border-t border-slate-200/80 p-4">
-        <div className="bg-slate-50/80 rounded-xl p-3">
-          <div className="flex items-center gap-3">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8",
-                },
-              }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">
-                {userName}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+  Buildings,
+  MagnifyingGlass,
+  SidebarSimple,
+  CaretDown,
+  ArrowSquareOut,
+  Plus,
+  List,
+  Wrench,
+} from "@phosphor-icons/react";
+import { Button, Modal, Input } from "@/components/ui-system/primitives";
+import {
+  dashboardGroups,
+  rentalToolLinks,
+  dashboardFooter,
+  dashboardItemActive,
+  type DashboardRole,
+} from "@/components/dashboard/navigation";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isSignedIn, isLoaded: authLoaded, userId } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn, isLoaded, userId } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const convexUser = useQuery(
+  const user = useQuery(
     api.users.getByClerkId,
     userId ? { clerkId: userId } : "skip",
   );
-
+  const summary = useQuery(api.inbox.summary, user?._id ? {} : "skip");
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [search, setSearch] = useState(false);
+  const [term, setTerm] = useState("");
+  const searchTrigger = useRef<HTMLElement | null>(null);
+  const drawerTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (authLoaded && !isSignedIn) {
-      router.replace("/sign-in");
-    }
-  }, [authLoaded, isSignedIn, router]);
-
-  // Close sidebar on route change
+    if (isLoaded && !isSignedIn) router.replace("/sign-in");
+  }, [isLoaded, isSignedIn, router]);
   useEffect(() => {
-    setSidebarOpen(false);
+    try {
+      setCollapsed(
+        localStorage.getItem("furnishsearcher.dashboard.rail") === "collapsed",
+      );
+    } catch {}
+  }, []);
+  useEffect(() => {
+    setDrawer(false);
+    setSearch(false);
   }, [pathname]);
-
-  if (!authLoaded) {
+  useEffect(() => {
+    const open = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearch((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", open);
+    return () => window.removeEventListener("keydown", open);
+  }, []);
+  useEffect(() => {
+    if (user?.accountTypePending) {
+      router.replace("/onboarding");
+      return;
+    }
+    if (user && !dashboardRouteAllowed(user.role, pathname))
+      router.replace(dashboardHome(user.role));
+  }, [user, pathname, router]);
+  if (!isLoaded || !isSignedIn || user === undefined)
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="space-y-3 w-64">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
+      <div className="furnish-ui ds-empty" role="status">
+        Opening your workspace…
       </div>
     );
-  }
-
-  if (!isSignedIn) {
-    return null;
-  }
-
-  const role = convexUser?.role ?? "tenant";
-  const navItems =
-    role === "admin" ? adminNav : role === "landlord" ? landlordNav : tenantNav;
-  const userName = user?.fullName ?? user?.firstName ?? "User";
-
-  return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 bg-white/90 border-r border-slate-200/80 z-30">
-        <SidebarContent
-          navItems={navItems}
-          pathname={pathname}
-          userName={userName}
-        />
-      </aside>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile sidebar drawer */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-white/90 border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out md:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <SidebarContent
-          navItems={navItems}
-          pathname={pathname}
-          userName={userName}
-          onNavClick={() => setSidebarOpen(false)}
-        />
-      </aside>
-
-      {/* Main content */}
-      <div className="flex flex-1 flex-col md:pl-60 min-h-0 min-w-0 w-full">
-        {/* Mobile top bar */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 backdrop-blur-xl px-4 md:hidden">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100"
-            aria-label="Open sidebar"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Link href="/" className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-[#0f2044]" />
-            <span className="font-bold text-[#0f2044]">FurnishFinder</span>
-          </Link>
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "h-8 w-8",
-              },
-            }}
-          />
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 min-w-0 w-full overflow-y-auto pb-16 md:pb-0">
-          {children}
-        </main>
-
-        <MobileNav role={convexUser?.role ?? "tenant"} />
+  if (user?.accountTypePending)
+    return (
+      <div className="furnish-ui ds-empty" role="status">
+        Opening account setup…
       </div>
+    );
+  if (!user)
+    return (
+      <div className="furnish-ui ds-empty">
+        <h1>Complete your account setup</h1>
+        <Link href="/onboarding">Continue setup</Link>
+      </div>
+    );
+  if (!dashboardRouteAllowed(user.role, pathname))
+    return (
+      <div className="furnish-ui ds-empty" role="status">
+        Opening your account dashboard…
+      </div>
+    );
+  const role: DashboardRole = user.role;
+  const groups = dashboardGroups(role);
+  const pages = [
+    ...groups
+      .flatMap((group) => group.items)
+      .filter((item) => item.href !== "/dashboard/rental-tools"),
+    ...(role !== "admin" ? rentalToolLinks(role) : []),
+    ...dashboardFooter,
+  ];
+  const roleLabel =
+    role === "landlord"
+      ? "Property owner"
+      : role === "admin"
+        ? "Administration"
+        : "Traveler";
+  const rail = (mobile = false) => (
+    <>
+      <div className="dashboard-workspace" aria-label={`${roleLabel} account`}>
+        <span className="dashboard-workspace-mark">
+          <AccountIcon role={role} />
+        </span>
+        <span className="dashboard-workspace-text">
+          <strong>{roleLabel}</strong>
+          <small>{user?.name ?? "Your account"}</small>
+        </span>
+      </div>
+      <nav
+        aria-label={
+          mobile ? "Mobile dashboard navigation" : "Dashboard navigation"
+        }
+      >
+        {groups.map((group) => (
+          <div className="dashboard-nav-group" key={group.label}>
+            <p>{group.label}</p>
+            {group.items.map((item) =>
+              item.href === "/dashboard/rental-tools" ? (
+                <RentalToolsNav
+                  key={item.href}
+                  role={role}
+                  pathname={pathname}
+                  collapsed={!mobile && collapsed}
+                  onNavigate={() => setDrawer(false)}
+                />
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="dashboard-nav-link"
+                  aria-current={
+                    dashboardItemActive(pathname, item.href)
+                      ? "page"
+                      : undefined
+                  }
+                  title={item.label}
+                  onClick={() => setDrawer(false)}
+                >
+                  <item.icon weight="fill" />
+                  <span>{item.label}</span>
+                  {item.href === "/dashboard/messages" &&
+                    summary?.ready &&
+                    summary.unread > 0 && (
+                      <small
+                        key={summary.unread}
+                        className="t-notification-badge"
+                        aria-label={`${summary.unread} unread conversations`}
+                      >
+                        {summary.unread}
+                      </small>
+                    )}
+                </Link>
+              ),
+            )}
+          </div>
+        ))}
+      </nav>
+      <div className="dashboard-rail-footer">
+        {role === "landlord" && (
+          <Link
+            href="/dashboard/landlord/listings/new"
+            className="dashboard-nav-link"
+            title="Add listing"
+          >
+            <Plus weight="bold" />
+            <span>Add listing</span>
+          </Link>
+        )}
+        {dashboardFooter.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="dashboard-nav-link"
+            aria-current={
+              dashboardItemActive(pathname, item.href) ? "page" : undefined
+            }
+            title={item.label}
+          >
+            <item.icon weight="regular" />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+        {!mobile && (
+          <button
+            className="dashboard-collapse"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => {
+              setCollapsed(!collapsed);
+              try {
+                localStorage.setItem(
+                  "furnishsearcher.dashboard.rail",
+                  !collapsed ? "collapsed" : "expanded",
+                );
+              } catch {}
+            }}
+          >
+            <SidebarSimple size={16} />
+            <span>Collapse sidebar</span>
+          </button>
+        )}
+      </div>
+    </>
+  );
+  return (
+    <div className="furnish-ui dashboard-shell" data-collapsed={collapsed}>
+      <a href="#dashboard-main" className="dashboard-skip">
+        Skip to content
+      </a>
+      <header className="dashboard-bar">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="dashboard-mobile-trigger"
+          ref={drawerTrigger}
+          onClick={() => setDrawer(true)}
+          aria-label="Open navigation"
+        >
+          <List size={20} />
+        </Button>
+        <Link href="/dashboard" className="dashboard-brand">
+          <Brand size={32} />
+        </Link>
+        <button
+          ref={searchTrigger as React.RefObject<HTMLButtonElement>}
+          className="dashboard-bar-search"
+          onClick={() => {
+            setTerm("");
+            setSearch(true);
+          }}
+        >
+          <MagnifyingGlass size={16} />
+          <span>Go to a page</span>
+          <kbd>⌘ K</kbd>
+        </button>
+        <div className="dashboard-bar-right">
+          <Link href="/search">
+            Browse rentals <ArrowSquareOut size={13} />
+          </Link>
+          <UserButton appearance={{ elements: { avatarBox: "h-7 w-7" } }} />
+        </div>
+      </header>
+      <aside className="dashboard-rail">{rail()}</aside>
+      <main id="dashboard-main" className="dashboard-main" tabIndex={-1}>
+        {children}
+      </main>
+      <Modal
+        open={drawer}
+        onOpenChange={setDrawer}
+        title="Navigation"
+        className="ds-mobile-drawer"
+        finalFocus={drawerTrigger}
+      >
+        <aside className="dashboard-rail">{rail(true)}</aside>
+      </Modal>
+      <Modal
+        open={search}
+        onOpenChange={setSearch}
+        title="Go to a page"
+        description="Find a page in your rental workspace."
+        finalFocus={searchTrigger}
+      >
+        <div className="ds-nav-search">
+          <Input
+            aria-label="Find a dashboard page"
+            placeholder="Search pages…"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+          />
+          {pages
+            .filter((item) =>
+              item.label.toLowerCase().includes(term.toLowerCase()),
+            )
+            .map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSearch(false)}
+              >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          {!pages.some((item) =>
+            item.label.toLowerCase().includes(term.toLowerCase()),
+          ) && <p className="ds-caption">No pages match that search.</p>}
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+function AccountIcon({ role }: { role: DashboardRole }) {
+  return (
+    <Image
+      className="dashboard-account-icon"
+      src={`/icons/account-${role}.png`}
+      width={36}
+      height={36}
+      alt=""
+      quality={75}
+    />
+  );
+}
+function RentalToolsNav({
+  role,
+  pathname,
+  collapsed,
+  onNavigate,
+}: {
+  role: DashboardRole;
+  pathname: string;
+  collapsed: boolean;
+  onNavigate: () => void;
+}) {
+  const [open, setOpen] = useState(
+    pathname.startsWith("/dashboard/rental-tools"),
+  );
+  useEffect(() => {
+    if (pathname.startsWith("/dashboard/rental-tools")) setOpen(true);
+  }, [pathname]);
+  return (
+    <Collapsible.Root
+      open={open}
+      onOpenChange={setOpen}
+      className="dashboard-tools-nav"
+    >
+      <Collapsible.Trigger
+        className="dashboard-nav-link"
+        aria-label="Rental tools"
+        title="Rental tools"
+      >
+        <Wrench weight="fill" />
+        <span>Rental tools</span>
+        <CaretDown size={11} />
+      </Collapsible.Trigger>
+      <Collapsible.Panel>
+        <div className="dashboard-tool-items">
+          {rentalToolLinks(role).map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="dashboard-nav-link"
+              aria-current={
+                dashboardItemActive(pathname, item.href) ? "page" : undefined
+              }
+              title={item.label}
+              onClick={onNavigate}
+            >
+              <item.icon size={14} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </Collapsible.Panel>
+    </Collapsible.Root>
   );
 }

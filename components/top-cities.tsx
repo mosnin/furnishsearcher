@@ -78,7 +78,7 @@ export default function TopCities() {
               placeholder="Search cities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0f2044]/30 focus:border-[#0f2044]/50"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/50"
             />
           </div>
 
@@ -100,7 +100,7 @@ export default function TopCities() {
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
                   sortBy === opt.value
-                    ? "bg-white text-[#0f2044] shadow-sm"
+                    ? "bg-white text-primary shadow-sm"
                     : "text-slate-500 hover:text-slate-900",
                 )}
               >
@@ -114,7 +114,7 @@ export default function TopCities() {
             <select
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0f2044]/30 cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-ring/30 cursor-pointer"
             >
               <option value="all">All States</option>
               {STATES.map((s) => (
@@ -132,7 +132,7 @@ export default function TopCities() {
                 setSearch("");
                 setSelectedState("all");
               }}
-              className="text-xs text-[#0f2044]/70 hover:text-[#0f2044] underline px-2"
+              className="text-xs text-primary/70 hover:text-primary underline px-2"
             >
               Clear filters
             </button>
@@ -156,7 +156,7 @@ export default function TopCities() {
         {filtered.length > 100 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="mt-6 text-[#0f2044]/70 hover:text-[#0f2044] text-sm font-medium underline"
+            className="mt-6 text-primary/70 hover:text-primary text-sm font-medium underline"
           >
             Show all {filtered.length} cities
           </button>
@@ -222,7 +222,7 @@ function CityLink({ city }: { city: City }) {
     <Link
       href={`/search?location=${encodeURIComponent(`${city.name}, ${city.stateCode}`)}&city=${encodeURIComponent(city.name)}&state=${encodeURIComponent(city.stateCode)}`}
       className={cn(
-        "text-sm text-slate-700 hover:text-[#0f2044] hover:underline transition-colors",
+        "text-sm text-slate-700 hover:text-primary hover:underline transition-colors",
         city.popular && "font-medium",
       )}
     >

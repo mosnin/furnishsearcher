@@ -72,7 +72,7 @@ export function RentalSteps({
               </h3>
               <p className="text-sm">
                 {row.status === "owner_reported_complete"
-                  ? "Owner reports this step completed outside FurnishSearcher"
+                  ? "Owner reports this step completed outside globe"
                   : row.status === "received"
                     ? "Traveler received the instructions"
                     : row.status === "cancelled"

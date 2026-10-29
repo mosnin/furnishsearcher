@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "dna": {
+    "direction": "paper",
+    "density": "compact",
+    "tokens": {
+      "background": "#ffffff",
+      "surface": "#ffffff",
+      "elevated": "#ffffff",
+      "text": "#303030",
+      "muted": "#616161",
+      "border": "#8a8a8a",
+      "accent": "#303030",
+      "accentText": "#ffffff",
+      "focus": "#2563eb",
+      "radiusControl": 8,
+      "radiusSurface": 8,
+      "motionMs": 120,
+      "rowHeight": 40
+    }
+  },
+  "feedback": []
+}

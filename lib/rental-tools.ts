@@ -24,7 +24,7 @@ export const RENTAL_TOOLS = {
     description:
       "The owner sets up the property, rent schedule and tenant invitation in Baselane. Payment methods, processing and receipts remain in the provider account.",
     tenant:
-      "Wait for an official payment invitation from your owner’s provider. FurnishSearcher does not collect bank or card details for rent.",
+      "Wait for an official payment invitation from your owner’s provider. globe does not collect bank or card details for rent.",
   },
 } as const;
 export type RentalTool = keyof typeof RENTAL_TOOLS;

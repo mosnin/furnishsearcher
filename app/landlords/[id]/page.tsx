@@ -1,5 +1,7 @@
 "use client";
 
+import { PublicFrame } from "@/components/public-page";
+
 import React from "react";
 import Link from "next/link";
 import { useQuery, usePaginatedQuery } from "convex/react";
@@ -61,26 +63,32 @@ export default function LandlordProfilePage({ params }: PageProps) {
 
   // Loading state
   if (landlord === undefined) {
-    return <LandlordProfileSkeleton />;
+    return (
+      <PublicFrame>
+        <LandlordProfileSkeleton />
+      </PublicFrame>
+    );
   }
 
   // Not found
   if (landlord === null) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          Landlord not found
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          This profile may have been removed or does not exist.
-        </p>
-        <Link
-          href="/"
-          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Browse listings
-        </Link>
-      </div>
+      <PublicFrame>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+          <h1 className="text-2xl font-bold text-foreground">
+            Landlord not found
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            This profile may have been removed or does not exist.
+          </p>
+          <Link
+            href="/"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Browse listings
+          </Link>
+        </div>
+      </PublicFrame>
     );
   }
 
@@ -93,200 +101,204 @@ export default function LandlordProfilePage({ params }: PageProps) {
   const totalListings = listings.length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 flex flex-col gap-8">
-        {/* Breadcrumb */}
-        <nav className="text-sm text-muted-foreground flex items-center gap-1.5">
-          <Link href="/" className="hover:text-foreground transition-colors">
-            Home
-          </Link>
-          <span>/</span>
-          <span className="text-foreground font-medium truncate">
-            {displayName}
-          </span>
-        </nav>
+    <PublicFrame>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 flex flex-col gap-8">
+          {/* Breadcrumb */}
+          <nav className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <Link href="/" className="hover:text-foreground transition-colors">
+              Home
+            </Link>
+            <span>/</span>
+            <span className="text-foreground font-medium truncate">
+              {displayName}
+            </span>
+          </nav>
 
-        {/* ── Hero card ── */}
-        <Card className="border-border shadow-sm overflow-hidden">
-          <div className="h-24 bg-gradient-to-r from-[#0f2044] to-[#1a3a7a]" />
-          <CardContent className="px-6 pb-6 pt-0">
-            {/* Avatar row */}
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-10 sm:-mt-12">
-              <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-md shrink-0">
-                {avatarSrc && <AvatarImage src={avatarSrc} alt={displayName} />}
-                <AvatarFallback className="text-xl font-bold bg-[#0f2044] text-white">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+          {/* ── Hero card ── */}
+          <Card className="border-border shadow-sm overflow-hidden">
+            <div className="h-24 bg-gradient-to-r from-[#0f2044] to-[#1a3a7a]" />
+            <CardContent className="px-6 pb-6 pt-0">
+              {/* Avatar row */}
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-10 sm:-mt-12">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-background shadow-md shrink-0">
+                  {avatarSrc && (
+                    <AvatarImage src={avatarSrc} alt={displayName} />
+                  )}
+                  <AvatarFallback className="text-xl font-bold bg-white text-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
 
-            {/* Name & badges */}
-            <div className="mt-4 flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {displayName}
-                </h1>
-                {landlord.identityVerified && (
-                  <Badge className="gap-1 bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
-                    <BadgeCheck className="h-3.5 w-3.5" />
-                    {landlord.identityTestMode
-                      ? "Test identity check"
-                      : "Identity verified"}
-                  </Badge>
+              {/* Name & badges */}
+              <div className="mt-4 flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {displayName}
+                  </h1>
+                  {landlord.identityVerified && (
+                    <Badge className="gap-1 bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      {landlord.identityTestMode
+                        ? "Test identity check"
+                        : "Identity verified"}
+                    </Badge>
+                  )}
+                </div>
+
+                {(landlord.city || landlord.state) && (
+                  <p className="text-sm text-muted-foreground">
+                    {[landlord.city, landlord.state].filter(Boolean).join(", ")}
+                  </p>
+                )}
+
+                {landlord.occupation && (
+                  <p className="text-sm text-muted-foreground">
+                    {landlord.occupation}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Member since {formatDate(landlord.createdAt)}</span>
+                </div>
+
+                {landlord.bio && (
+                  <>
+                    <Separator className="mt-3" />
+                    <p className="text-sm text-muted-foreground leading-relaxed mt-3">
+                      {landlord.bio}
+                    </p>
+                  </>
+                )}
+                {(landlord.petInfo || landlord.petPhoto) && (
+                  <section className="mt-4 space-y-2">
+                    <h2 className="font-semibold">Pets</h2>
+                    {landlord.petInfo && (
+                      <p className="whitespace-pre-wrap text-sm">
+                        {landlord.petInfo}
+                      </p>
+                    )}
+                    {landlord.petPhoto && (
+                      <img
+                        src={landlord.petPhoto}
+                        alt="Landlord's pet"
+                        className="max-h-64 rounded-xl object-contain"
+                      />
+                    )}
+                  </section>
                 )}
               </div>
+            </CardContent>
+          </Card>
 
-              {(landlord.city || landlord.state) && (
-                <p className="text-sm text-muted-foreground">
-                  {[landlord.city, landlord.state].filter(Boolean).join(", ")}
-                </p>
+          {/* ── Stats row ── */}
+          <div className="grid grid-cols-3 gap-4">
+            <StatCard
+              icon={<Building2 className="h-5 w-5 text-primary" />}
+              label="Public listings loaded"
+              value={listingLoading ? "—" : String(totalListings)}
+            />
+            <StatCard
+              icon={<Star className="h-5 w-5 text-primary fill-amber-400" />}
+              label="Avg. Rating"
+              value={
+                ratingStats && ratingStats.count > 0
+                  ? ratingStats.average.toFixed(1)
+                  : "—"
+              }
+            >
+              {ratingStats && ratingStats.count > 0 && (
+                <StarRating
+                  rating={ratingStats.average}
+                  size="sm"
+                  showNumeric={false}
+                  className="mt-1"
+                />
               )}
+            </StatCard>
+            <StatCard
+              icon={<MessageSquare className="h-5 w-5 text-primary" />}
+              label="Reviews"
+              value={String(ratingStats?.count ?? 0)}
+            />
+          </div>
 
-              {landlord.occupation && (
-                <p className="text-sm text-muted-foreground">
-                  {landlord.occupation}
-                </p>
-              )}
+          {/* ── Tabs ── */}
+          <Tabs defaultValue="listings">
+            <TabsList className="mb-6">
+              <TabsTrigger value="listings">
+                Listings
+                {totalListings > 0 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({listings.length} loaded)
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="reviews">
+                Reviews
+                {(ratingStats?.count ?? 0) > 0 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({ratingStats?.count})
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Member since {formatDate(landlord.createdAt)}</span>
-              </div>
-
-              {landlord.bio && (
-                <>
-                  <Separator className="mt-3" />
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-3">
-                    {landlord.bio}
+            {/* Listings tab */}
+            <TabsContent value="listings">
+              <p role="status" className="text-sm text-muted-foreground mb-4">
+                {listingLoading
+                  ? "Loading public rentals…"
+                  : `${listings.length} public rental${listings.length === 1 ? "" : "s"} loaded. ${hasMoreListings ? "More portfolio records remain to check." : "All public portfolio records checked."}`}
+              </p>
+              {listingLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-72 rounded-xl" />
+                  ))}
+                </div>
+              ) : listings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                  <Building2 className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-muted-foreground text-sm">
+                    {hasMoreListings
+                      ? "No public listings in the records checked so far. Continue checking this portfolio."
+                      : "No public listings at the moment."}
                   </p>
-                </>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {listings.map((listing) => (
+                    <ListingCard key={listing._id} listing={listing} />
+                  ))}
+                </div>
               )}
-              {(landlord.petInfo || landlord.petPhoto) && (
-                <section className="mt-4 space-y-2">
-                  <h2 className="font-semibold">Pets</h2>
-                  {landlord.petInfo && (
-                    <p className="whitespace-pre-wrap text-sm">
-                      {landlord.petInfo}
-                    </p>
-                  )}
-                  {landlord.petPhoto && (
-                    <img
-                      src={landlord.petPhoto}
-                      alt="Landlord's pet"
-                      className="max-h-64 rounded-xl object-contain"
-                    />
-                  )}
-                </section>
+              {hasMoreListings && (
+                <Button
+                  className="mt-5"
+                  variant="outline"
+                  disabled={listingStatus === "LoadingMore"}
+                  onClick={() => loadMore(10)}
+                >
+                  {listingStatus === "LoadingMore"
+                    ? "Checking…"
+                    : listings.length
+                      ? "Load more public rentals"
+                      : "Check more portfolio records"}
+                </Button>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </TabsContent>
 
-        {/* ── Stats row ── */}
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard
-            icon={<Building2 className="h-5 w-5 text-[#0f2044]" />}
-            label="Public listings loaded"
-            value={listingLoading ? "—" : String(totalListings)}
-          />
-          <StatCard
-            icon={<Star className="h-5 w-5 text-amber-400 fill-amber-400" />}
-            label="Avg. Rating"
-            value={
-              ratingStats && ratingStats.count > 0
-                ? ratingStats.average.toFixed(1)
-                : "—"
-            }
-          >
-            {ratingStats && ratingStats.count > 0 && (
-              <StarRating
-                rating={ratingStats.average}
-                size="sm"
-                showNumeric={false}
-                className="mt-1"
-              />
-            )}
-          </StatCard>
-          <StatCard
-            icon={<MessageSquare className="h-5 w-5 text-[#0f2044]" />}
-            label="Reviews"
-            value={String(ratingStats?.count ?? 0)}
-          />
+            {/* Reviews tab */}
+            <TabsContent value="reviews">
+              <PublicReviews landlordId={landlord._id} />
+            </TabsContent>
+          </Tabs>
         </div>
-
-        {/* ── Tabs ── */}
-        <Tabs defaultValue="listings">
-          <TabsList className="mb-6">
-            <TabsTrigger value="listings">
-              Listings
-              {totalListings > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({listings.length} loaded)
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="reviews">
-              Reviews
-              {(ratingStats?.count ?? 0) > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({ratingStats?.count})
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Listings tab */}
-          <TabsContent value="listings">
-            <p role="status" className="text-sm text-muted-foreground mb-4">
-              {listingLoading
-                ? "Loading public rentals…"
-                : `${listings.length} public rental${listings.length === 1 ? "" : "s"} loaded. ${hasMoreListings ? "More portfolio records remain to check." : "All public portfolio records checked."}`}
-            </p>
-            {listingLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-72 rounded-xl" />
-                ))}
-              </div>
-            ) : listings.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-                <Building2 className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-muted-foreground text-sm">
-                  {hasMoreListings
-                    ? "No public listings in the records checked so far. Continue checking this portfolio."
-                    : "No public listings at the moment."}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {listings.map((listing) => (
-                  <ListingCard key={listing._id} listing={listing} />
-                ))}
-              </div>
-            )}
-            {hasMoreListings && (
-              <Button
-                className="mt-5"
-                variant="outline"
-                disabled={listingStatus === "LoadingMore"}
-                onClick={() => loadMore(10)}
-              >
-                {listingStatus === "LoadingMore"
-                  ? "Checking…"
-                  : listings.length
-                    ? "Load more public rentals"
-                    : "Check more portfolio records"}
-              </Button>
-            )}
-          </TabsContent>
-
-          {/* Reviews tab */}
-          <TabsContent value="reviews">
-            <PublicReviews landlordId={landlord._id} />
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>
+    </PublicFrame>
   );
 }
 

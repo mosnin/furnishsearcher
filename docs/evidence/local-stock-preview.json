@@ -1,0 +1,91 @@
+{
+  "at": "2026-10-29T22:15:43.498Z",
+  "target": "http://127.0.0.1:3210",
+  "localOnly": true,
+  "authentication": "Existing isolated local SDK fixture identities, not customer authentication",
+  "sourceLicense": "Pexels License permits free website/app use. No endorsement implied.",
+  "sources": [
+    {
+      "id": "1571460",
+      "page": "https://www.pexels.com/photo/1571460/",
+      "imageUrl": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1400",
+      "license": "https://www.pexels.com/license/",
+      "bytes": 174102,
+      "sha256": "877b6a4259de11cc3228a3ca646f364a6da642314983112f34c692ffc0d7971c",
+      "caption": "[QA] Pexels stock photo 1571460; illustrative only. No rental is offered."
+    },
+    {
+      "id": "1643383",
+      "page": "https://www.pexels.com/photo/1643383/",
+      "imageUrl": "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=1400",
+      "license": "https://www.pexels.com/license/",
+      "bytes": 169235,
+      "sha256": "b14d95ad46f8537754a425660ef933469da48db580ababfda3562e00005a98a1",
+      "caption": "[QA] Pexels stock photo 1643383; illustrative only. No rental is offered."
+    },
+    {
+      "id": "271624",
+      "page": "https://www.pexels.com/photo/271624/",
+      "imageUrl": "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=1400",
+      "license": "https://www.pexels.com/license/",
+      "bytes": 107784,
+      "sha256": "381763b282affdf4eb93353cd456df887066586da0eca9ec53335398239315a5",
+      "caption": "[QA] Pexels stock photo 271624; illustrative only. No rental is offered."
+    },
+    {
+      "id": "259962",
+      "page": "https://www.pexels.com/photo/259962/",
+      "imageUrl": "https://images.pexels.com/photos/259962/pexels-photo-259962.jpeg?auto=compress&cs=tinysrgb&w=1400",
+      "license": "https://www.pexels.com/license/",
+      "bytes": 165588,
+      "sha256": "e13c451696a3bf43a0ce011ff264360a22ab0704297c501d0d768651ec904984",
+      "caption": "[QA] Pexels stock photo 259962; illustrative only. No rental is offered."
+    },
+    {
+      "id": "1396122",
+      "page": "https://www.pexels.com/photo/1396122/",
+      "imageUrl": "https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1400",
+      "license": "https://www.pexels.com/license/",
+      "bytes": 192507,
+      "sha256": "b7f8ab898d7e45412981048336e1eb34c2e365eeae5ebee3af9d08cbaa1799ff",
+      "caption": "[QA] Pexels stock photo 1396122; illustrative only. No rental is offered."
+    }
+  ],
+  "changes": [
+    {
+      "id": "k97f2smyfqzx4jderxvykf23498gxjdr",
+      "title": "[QA] Exact Austin apartment",
+      "revision": 2,
+      "nativeOwnerUpdate": true,
+      "nativeStaffRevisionApproval": true,
+      "publicPhotosVerified": 5
+    },
+    {
+      "id": "k976qqsxcmrs93kjzm1g132q4h8gxzx1",
+      "title": "[QA] Flexible Austin apartment",
+      "revision": 82,
+      "nativeOwnerUpdate": true,
+      "nativeStaffRevisionApproval": true,
+      "publicPhotosVerified": 5
+    },
+    {
+      "id": "k971ncw38n4qkp6sge9a1f1e4x8gy5pt",
+      "title": "[QA] Synthetic performance a6a8969a",
+      "revision": 3,
+      "nativeOwnerUpdate": true,
+      "nativeStaffRevisionApproval": true,
+      "publicPhotosVerified": 5
+    },
+    {
+      "id": "k97bpcgq4160t86qtan7t8zr3x8gzvsh",
+      "title": "[QA] Synthetic performance f691f539",
+      "revision": 3,
+      "nativeOwnerUpdate": true,
+      "nativeStaffRevisionApproval": true,
+      "publicPhotosVerified": 5
+    }
+  ],
+  "applied": true,
+  "providerChanges": false,
+  "accountOrIdentityChanges": false
+}

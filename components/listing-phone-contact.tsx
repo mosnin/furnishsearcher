@@ -157,7 +157,7 @@ function PhoneReveal({
     <div className="rounded-xl border border-slate-200 p-3 text-sm">
       {current ? (
         <a
-          className="flex items-center justify-center gap-2 font-semibold text-[#0f2044] underline"
+          className="flex items-center justify-center gap-2 font-semibold text-primary underline"
           href={`tel:${result.phone}`}
         >
           <Phone className="h-4 w-4" />
