@@ -1,0 +1,18 @@
+{
+  "application": "globe",
+  "url": "https://furnishsearcher-9q4xgtrre-mosnins-projects.vercel.app/",
+  "frontendCommit": "cbefb37476e48a92d0a56ec71438bc0897ad5298",
+  "vercelDeployment": "dpl_FPQcfcLjornrMnZR8pmE8xAYzCe7",
+  "vercelState": "READY",
+  "publicAccess": true,
+  "backend": "https://cheerful-ferret-182.convex.cloud",
+  "backendEnvironment": "development",
+  "demoListings": 36,
+  "cities": 10,
+  "nativeMapAreaMatches": 6,
+  "syntheticIdentityAndSubscriptionFixture": true,
+  "realProviderTransaction": false,
+  "authProvider": "Clerk",
+  "convexOAuthMigrationComplete": false,
+  "notes": "Explicitly labeled synthetic properties and stock photos. Civic coordinates are illustrative area anchors, not rental addresses. Existing hosted customer records preserved. Public app does not imply production billing or identity verification."
+}

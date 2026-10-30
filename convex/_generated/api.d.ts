@@ -20,6 +20,7 @@ import type * as clerkContactWebhook from "../clerkContactWebhook.js";
 import type * as contactHttp from "../contactHttp.js";
 import type * as creem from "../creem.js";
 import type * as crons from "../crons.js";
+import type * as demoMigration from "../demoMigration.js";
 import type * as documentFiles from "../documentFiles.js";
 import type * as emailContacts from "../emailContacts.js";
 import type * as emailIngress from "../emailIngress.js";
@@ -161,6 +162,7 @@ declare const fullApi: ApiFromModules<{
   contactHttp: typeof contactHttp;
   creem: typeof creem;
   crons: typeof crons;
+  demoMigration: typeof demoMigration;
   documentFiles: typeof documentFiles;
   emailContacts: typeof emailContacts;
   emailIngress: typeof emailIngress;
