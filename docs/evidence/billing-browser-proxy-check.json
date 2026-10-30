@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-24T23:10:38.616088+00:00",
+  "target": "http://localhost:3015",
+  "syntheticOnly": true,
+  "returnPageWithArbitraryCheckout": {
+    "heading": "Checking payment status",
+    "status": "Sign in to view your private payment status.",
+    "claimsPaymentConfirmed": false
+  },
+  "proxyInvalidSignatureStatus": 401,
+  "proxyOversizedBodyStatus": 413,
+  "realClerkBillingBrowserJourney": "not verified",
+  "realCreemTransaction": false
+}

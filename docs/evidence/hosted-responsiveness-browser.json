@@ -1,0 +1,55 @@
+{
+  "checkedAt": "2026-10-26T01:02:00Z",
+  "sourceCommit": "6dcbc44f5707a3e93fa94da135c7b668841de814",
+  "readyDeployment": "dpl_5xDQR8ULRJHRr7BKW6pAbqnD2pzi",
+  "environment": "hosted development preview with cheerful-ferret-182",
+  "actualReservedOwnerClerkSession": true,
+  "initial": {
+    "percent": 0,
+    "received": 1,
+    "onTime": 0,
+    "grade": "Poor",
+    "noPublicTimePromise": true,
+    "resetOffered": true
+  },
+  "resetDialog": {
+    "namesAllRentalSpaces": true,
+    "explainsOneTimeAndHistoryRetention": true,
+    "initialFocus": "Keep my rates",
+    "keepCanceled": true,
+    "finalResetNotSubmitted": true,
+    "mobileLeft": 0,
+    "mobileRight": 390
+  },
+  "reactiveAfterSeparateNativeReply": {
+    "percent": 100,
+    "received": 1,
+    "onTime": 1,
+    "grade": "Excellent",
+    "typical": "Typically within an hour",
+    "resetOfferRemoved": true
+  },
+  "otherUntouchedRental": "Fresh Start, zero measured conversations, no response-time promise",
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "selectorLeft": 0,
+    "selectorRight": 360
+  },
+  "defaultViewportRestored": true,
+  "portfolioSelectionRestored": true,
+  "nativeReceipt": "hosted-responsiveness-native.json",
+  "fixtureCleanup": "Own private rental and disposable Clerk account deleted; inquiry withdrawn and conversation archived; both messages and withdrawn inquiry read successfully afterward.",
+  "screenshots": [
+    "response-rate-desktop.jpg",
+    "response-rate-mobile.jpg",
+    "response-reset-desktop.jpg",
+    "response-reset-mobile.jpg"
+  ],
+  "limitations": [
+    "Private pending inquiry was an explicitly privileged native historical precondition; public inquiry creation/provider publication is not claimed.",
+    "The two subsequent synthetic participant messages were actual native mutations using real Clerk JWTs, not imported response totals.",
+    "Browser reset submission was not performed and the shared owner reset remains unused.",
+    "Positive hosted public-label rendering, production/provider operations and search-ranking influence remain open."
+  ]
+}

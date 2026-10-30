@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-25T22:39:19.325632+00:00",
+  "browserSourceSha": "cb72243bf87940853dbd9ce81ccff21a9ca904e5",
+  "deployment": "dpl_387iBZm2tip126ZLAS4zQVGhBs5U",
+  "actualSignedInReservedClerkBrowserAccount": true,
+  "privilegedSyntheticHistoricalFavoritesOnly": true,
+  "initialLoaded": 18,
+  "afterLoadMore": 20,
+  "keepSavedPreservesCount": 20,
+  "nativeRemovalReactsToCount": 19,
+  "finalBrowserRemovalSubmitted": false,
+  "unpublishedDetailsRemainHidden": true,
+  "mobileViewportWidth": 390,
+  "mobileDocumentWidth": 390,
+  "mobileCardWidth": 342,
+  "confirmationDialogBounds": [
+    16,
+    374
+  ],
+  "shareDialogBounds": [
+    16,
+    374
+  ],
+  "shareFieldReadOnlyAndFullySelected": true,
+  "copyButtonReportsSuccess": true,
+  "browserClipboardReadReturnedEmpty": true,
+  "clipboardPayloadVerified": false,
+  "nativeAppSharingOrRealRecipientDelivery": false,
+  "publicHostedSaveAcceptance": false,
+  "defaultViewportRestored": true,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false,
+  "ownSyntheticHistoricalFavoritesAndRentalsCleaned": true
+}

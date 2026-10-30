@@ -1,0 +1,31 @@
+{
+  "verifiedAt": "2026-10-25T03:40:18.545Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "listingId": "k9783bpxpsdy3bjcj5q58p5s7s8gzrm8",
+  "publicCensusExampleOnly": true,
+  "externalGeocodingThisRun": false,
+  "priorLiveGeocoderReceipt": "docs/evidence/local-census-geocode.json",
+  "confirmedProviderRecord": true,
+  "provider": "census",
+  "sourceAddress": "US Census public office example, 4600 Silver Hill Rd, Suitland MD 20746",
+  "prerequisites": {
+    "syntheticOnly": true,
+    "identityAndPayment": "Privileged local fixture state; not actual Jumio verification or a Creem transaction",
+    "staffApproval": "Actual authorized local mutation with the expected content revision"
+  },
+  "exactSourceCoordinatesKeptPrivate": true,
+  "publicMapPoint": {
+    "latitude": 38.845,
+    "longitude": -76.925
+  },
+  "actualSpatialIndex": true,
+  "radiusIncludesPublicArea": true,
+  "distantAreaExcludesFixture": true,
+  "unrelatedPrivateLocationReadRejected": true,
+  "publishedAddressMoveRejected": true,
+  "hiddenListingExcluded": true,
+  "fixtureLeftHidden": true,
+  "realCustomerDataChanged": false,
+  "actualClerkBrowserJwt": false
+}

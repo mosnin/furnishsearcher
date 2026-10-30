@@ -1,0 +1,54 @@
+{
+  "checkedAt": "2026-10-26T03:30:46.685Z",
+  "sourceCommit": "c49fc386418a3637a1077a953e4027b481357da0",
+  "initialVersionClarityCommit": "98f6aff0d3ec2954465a2deae1ad7ffe9c71afe5",
+  "readyDeployment": "dpl_DLhL4ZWZzqTwDacmtodG4rxvap7f",
+  "actualOwnerAndTravelerBrowserSignIns": true,
+  "ownerBrowserSessionRestored": true,
+  "privilegedPrivatePendingInquiryPrecondition": true,
+  "browserOwnerUploadedV1SharedV1ThenUploadedPrivateV2": true,
+  "travelerBrowserSawOnlyV1WithoutHistoryOrV2": true,
+  "actualBrowserDownload": {
+    "actualBrowserDownload": true,
+    "exactBytes": true,
+    "sha256": "b4033338cfb4cb61b89b0612163f2cadcc59b339a1362f92adf1e9d2298cd5ef",
+    "bytes": 1759,
+    "ownerHistoryDownloadAfterRevocationMatchesV1": true
+  },
+  "travelerBrowserAcknowledgedV1Only": true,
+  "noSignatureCreated": true,
+  "ownerLatestPrivateAndCurrentlySharedLabelsDistinct": true,
+  "ownerVersionHistoryShowsBothVersionsAndReceiptOnlyOnV1": true,
+  "ownerBrowserRevokedFutureAccess": true,
+  "nativeOldVersionAndPrivateV2TravelerDownloadsDenied": true,
+  "ownerHistoryDownloadAfterRevocationExactBytes": true,
+  "retentionNoticeReplacesUnusableRemoveDraftControl": true,
+  "postCleanupOwnerHistoryAndDownloadRemainVisible": true,
+  "mobile": {
+    "ownerViewport": 390,
+    "ownerDocumentWidth": 390,
+    "travelerViewport": 390,
+    "travelerDocumentWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "syntheticDocumentsContainNoPersonalOrLegalData": true,
+  "realPersonMessagesOrProviderSigning": 0,
+  "qaRentalAndDisposableTravelerRemoved": true,
+  "twoEncryptedVersionsAndReceiptIntentionallyRetained": true,
+  "nativeReceipt": "hosted-document-workspace-native.json",
+  "storageReceipt": "hosted-document-storage.json",
+  "screenshots": [
+    "document-owner-history-shared.jpg",
+    "document-owner-history-retained.jpg",
+    "document-owner-history-mobile.jpg",
+    "document-traveler-ack-desktop.jpg",
+    "document-traveler-ack-mobile.jpg"
+  ],
+  "limitations": [
+    "Development key setup is not production custody or recovery proof",
+    "Imported private inquiry is not public booking/paid/identity acceptance",
+    "No legal-template creation, electronic signature or actual lease agreement",
+    "Only two hosted versions; twelve-version complete paging and recipient-only visibility covered by source tests",
+    "Previously downloaded recipient copies remain outside revocation"
+  ]
+}

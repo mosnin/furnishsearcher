@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-10-26T04:54:08.096873+00:00",
+  "sourceSha": "fecb94b6e103121ec33e3b0fbbe6b19e1971c5ab",
+  "deploymentId": "dpl_AQ9dFkUtcjAEdEX4uWDBxL3TaD9x",
+  "identity": "Existing reserved Clerk development owner; no new fixture or authority imported.",
+  "privatePortfolioAndStandingSpaceRead": true,
+  "nativeReportingDatesAndCheckedTimeVisible": true,
+  "periodsSelected": [
+    7,
+    30,
+    90
+  ],
+  "positiveThreadCardTableAndChartAgree": 1,
+  "positiveThreadDate": "2026-10-26",
+  "positiveRenderedBar": {
+    "count": 1,
+    "desktopWidth": 106,
+    "desktopHeight": 54
+  },
+  "earlierActivityDaysUnavailable": true,
+  "unknownPhoneAndUnmatchedCountsRemainBlank": true,
+  "standingSpaceActivityRemainsUnavailable": true,
+  "samePageNativeCheckedTimeAdvanced": true,
+  "browserDownloads": [
+    {
+      "scope": "all",
+      "days": 7,
+      "kind": "activity",
+      "bytesMatchNative": true,
+      "rows": 7,
+      "firstDate": "2026-10-20",
+      "lastDate": "2026-10-26",
+      "sha256": "eea91640040ff6358b83818145c3bac6352feaf273591614c32d1a88e45f6489"
+    },
+    {
+      "scope": "all",
+      "days": 7,
+      "kind": "eligibility",
+      "bytesMatchNative": true,
+      "rows": 7,
+      "firstDate": "2026-10-20",
+      "lastDate": "2026-10-26",
+      "sha256": "8113eff403b19771003e4bc4291df1b459c36248b666ca557568f1f00d0710a0"
+    },
+    {
+      "scope": "space",
+      "days": 7,
+      "kind": "activity",
+      "bytesMatchNative": true,
+      "rows": 7,
+      "firstDate": "2026-10-20",
+      "lastDate": "2026-10-26",
+      "sha256": "7bbda97017f21deefb69fabd8f704a69a0052761c40fb09df2ce4f7d01b454d0"
+    },
+    {
+      "scope": "space",
+      "days": 7,
+      "kind": "eligibility",
+      "bytesMatchNative": true,
+      "rows": 7,
+      "firstDate": "2026-10-20",
+      "lastDate": "2026-10-26",
+      "sha256": "e281f927a7122750088a70c9cfc6ea9c1679d5ede8738263a6ef9247c838b274"
+    },
+    {
+      "scope": "all",
+      "days": 30,
+      "kind": "activity",
+      "bytesMatchNative": true,
+      "rows": 30,
+      "firstDate": "2026-09-27",
+      "lastDate": "2026-10-26",
+      "sha256": "dabd1d11e15f62163cbc91b53a3628151196d3b84d56185054f4fe6393c31d30"
+    },
+    {
+      "scope": "all",
+      "days": 90,
+      "kind": "activity",
+      "bytesMatchNative": true,
+      "rows": 90,
+      "firstDate": "2026-07-29",
+      "lastDate": "2026-10-26",
+      "sha256": "5cf1ad30e25acba13101f065e4c9203b7065cc4d1bc5288172d35b330167e63c"
+    }
+  ],
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "documentScrollWidth": 390,
+    "mainWidth": 390,
+    "mainScrollWidth": 390,
+    "tableScrollContainerWidth": 356,
+    "tableScrollWidth": 965
+  },
+  "defaultViewportRestored": true,
+  "leftOnSevenDayPortfolioThreadChart": true,
+  "noReportingDataMutationsOrFixtureWrites": true,
+  "screenshots": [
+    "../report-clock-final-desktop.jpg",
+    "../report-clock-chart-mobile.jpg",
+    "../report-clock-thread-mobile.jpg"
+  ],
+  "limits": "Only existing accepted development activity is positive. No public traffic, phone disclosure, unmatched lead or unique visitor acceptance. Browser clock was not overridden and actual UTC midnight was not awaited; those behaviors are tested with native/helper fake clocks. Six downloads were checked, not all twelve expected CSV files."
+}

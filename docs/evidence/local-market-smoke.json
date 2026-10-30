@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-25T18:53:14.846Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "mode": "test",
+  "privilegedOwnerFixture": true,
+  "actualClerkJwt": false,
+  "actualTravelers": false,
+  "anonymousOwnerStatsDenied": true,
+  "ownStatsAccessible": true,
+  "nineSessionCohortSuppressed": true,
+  "tenthSessionAggregateVisible": true,
+  "equivalentSearchDeduplicated": true,
+  "publicReportOmitsSessionReferences": true,
+  "completeSnapshotMatchesPagedPublicInventory": true,
+  "eligibleRentalSpaces": 3,
+  "exactCentAverageMatchesPublicInventory": true,
+  "syntheticSearchProfilesRetainedUntilNormalExpiry": 10,
+  "providerEffects": false
+}

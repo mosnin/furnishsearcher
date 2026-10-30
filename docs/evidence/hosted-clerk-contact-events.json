@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-25T21:03:51.306Z",
+  "deployment": "cheerful-ferret-182",
+  "clerkDevelopmentInstance": true,
+  "syntheticReservedClerkAccountOnly": true,
+  "actualClerkJwtHttpConfirmation": true,
+  "actualClerkPrimaryEmailChange": true,
+  "nativeConfirmationAutomaticallyRevoked": true,
+  "previousJwtReconfirmationRejected": true,
+  "explicitNewPrimaryConfirmationAccepted": true,
+  "restoringOriginalPrimaryRevokesReplacementProof": true,
+  "originalPrimaryAndEmailCountRestored": true,
+  "qaMetadataRemoved": true,
+  "messageEmailPreferenceRestoredOff": true,
+  "actualPhoneChangeOrSmsAcceptance": false,
+  "actualUserDeletionAcceptance": false,
+  "realEmailOrSmsSent": false,
+  "productionChanged": false,
+  "endpointId": "ep_3LCdRY60EdyFV6MbKC54PTtgM2D",
+  "endpointUrl": "https://cheerful-ferret-182.convex.site/webhooks/clerk-contacts",
+  "endpointEventTypes": [
+    "user.created",
+    "user.deleted",
+    "user.updated"
+  ],
+  "actualSvixSuccessfulAttempts": 6,
+  "allObservedAttemptsHttp200": true,
+  "nativeFinalSnapshotMatchesRestoredClerkPrimary": true,
+  "privateSnapshotContainsContactHashesOnly": true
+}

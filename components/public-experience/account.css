@@ -1,0 +1,638 @@
+.w-account-site {
+  font-family:
+    "Instrument Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: #242424;
+  background: #fff;
+  min-height: 100vh;
+}
+.w-account-page {
+  width: min(670px, calc(100% - 40px));
+  margin: 76px auto 80px;
+  font-size: 16px;
+  letter-spacing: -0.25px;
+}
+.w-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 48px;
+}
+.w-account-initial {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: #f0f0f0;
+  border-radius: 50%;
+  font-size: 18px;
+}
+.w-account-identity h1 {
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.w-account-identity p {
+  font-size: 16px;
+  color: #777;
+  line-height: 1.4;
+}
+.w-account-group {
+  margin-top: 44px;
+}
+.w-account-group > h2 {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #999;
+  margin-bottom: 16px;
+}
+.w-account-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.w-account-card {
+  text-align: left;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 14px 12px;
+  min-height: 112px;
+  display: block;
+  background: white;
+  width: 100%;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+.w-account-card:hover {
+  border-color: #cfcfcf;
+  background: #fdfdfd;
+}
+.w-account-card > svg {
+  display: block;
+  width: 23px;
+  height: 23px;
+  color: #999;
+  margin-bottom: 12px;
+  stroke-width: 1;
+}
+.w-account-card h3 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+}
+.w-account-card p {
+  font-size: 16px;
+  color: #777;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.w-account-card--short {
+  min-height: 83px;
+}
+.w-account-card--short > svg {
+  margin-bottom: 12px;
+}
+.w-account-logout,
+.w-personal-footer > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.w-account-logout {
+  margin-top: 18px;
+}
+.w-account-logout:hover,
+.w-personal-footer > button:hover {
+  background: #f7f7f7;
+}
+.w-account-empty {
+  min-height: calc(100dvh - 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px 96px;
+  font-size: 16px;
+  letter-spacing: -0.25px;
+}
+.w-account-empty > h1 {
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -1.1px;
+  line-height: 1.15;
+  max-width: 350px;
+  margin: 0 auto;
+}
+.w-account-empty > p {
+  font-size: 18px;
+  line-height: 1.4;
+  color: #999;
+  max-width: 360px;
+  margin: 20px auto 26px;
+}
+.w-account-empty > .w-black-button {
+  min-width: min(344px, 100%);
+  min-height: 48px;
+  border-radius: 8px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
+  padding: 12px 24px;
+}
+.w-account-secondary-link {
+  color: #777;
+  font-size: 13px;
+  margin-top: 18px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.w-account-loading {
+  width: min(670px, calc(100% - 40px));
+  margin: 90px auto;
+  display: grid;
+  gap: 18px;
+  min-height: 60vh;
+  align-content: start;
+}
+.w-account-loading > div {
+  background: #f4f4f4;
+  height: 86px;
+  border-radius: 10px;
+}
+.w-account-loading > div:first-child {
+  height: 42px;
+  width: 240px;
+  margin-bottom: 28px;
+}
+.w-personal-dialog {
+  font-family:
+    "Instrument Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif !important;
+  width: 440px !important;
+  max-width: calc(100vw - 32px) !important;
+  padding: 28px !important;
+  border-radius: 22px !important;
+  color: #242424;
+  font-size: 16px;
+}
+.w-personal-dialog .ds-dialog-header {
+  background: #fff;
+  border: 0;
+  padding: 28px 28px 24px 0;
+  margin: 0;
+}
+.w-personal-dialog .ds-dialog-header h2 {
+  font-size: 24px;
+  letter-spacing: -0.6px;
+  font-weight: 500;
+}
+.w-personal-dialog .ds-dialog-body {
+  padding: 0;
+}
+.w-personal-dialog form > label {
+  font-size: 14px;
+  display: block;
+  margin-bottom: 8px;
+}
+.w-personal-dialog input {
+  height: 40px;
+  width: 100%;
+  background: #f7f7f7;
+  border: 1px solid #ededed;
+  border-radius: 8px;
+  padding: 8px 12px;
+  outline: none;
+  font: inherit;
+  font-size: 16px;
+}
+.w-personal-dialog input:focus {
+  border-color: #0783ff;
+  box-shadow: 0 0 0 1px #0783ff;
+}
+.w-personal-dialog input[readonly] {
+  background: #fff;
+  color: #999;
+}
+.w-personal-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.w-personal-name input {
+  min-width: 0;
+}
+.w-personal-name > button {
+  background: #242424;
+  color: white;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.w-personal-name > button:disabled {
+  background: #eee;
+  color: #999;
+}
+.w-personal-help {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+.w-personal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 28px;
+}
+.w-personal-error {
+  font-size: 13px;
+  color: #b42c25;
+  margin-top: 12px;
+}
+.w-account-list-page {
+  width: min(1180px, calc(100% - 64px));
+  margin: 56px auto 80px;
+  min-height: 60vh;
+  font-size: 16px;
+}
+.w-account-back {
+  font-size: 14px;
+  color: #1789ee;
+  display: inline-block;
+  margin-bottom: 26px;
+}
+.w-account-list-page > header {
+  margin-bottom: 32px;
+}
+.w-account-list-page h1 {
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+.w-account-list-page > header > p {
+  margin-top: 12px;
+  color: #888;
+  font-size: 17px;
+}
+.w-stay-list {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.w-stay-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+.w-stay-card h2 {
+  font-weight: 500;
+  font-size: 20px;
+  margin: 7px 0;
+}
+.w-stay-card p {
+  font-size: 15px;
+  color: #888;
+  line-height: 1.6;
+}
+.w-stay-status {
+  font-size: 12px;
+  color: #888;
+  text-transform: capitalize;
+}
+.w-stay-status[data-status="accepted"] {
+  color: #187c4b;
+}
+.w-stay-status[data-status="pending"] {
+  color: #956b16;
+}
+.w-account-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f1f1;
+  border: 0;
+  border-radius: 40px;
+  padding: 8px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.w-account-pill:hover {
+  background: #e9e9e9;
+}
+.w-account-pill:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.w-stay-footnote {
+  color: #888;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 28px;
+  max-width: 700px;
+}
+.w-account-continuation {
+  color: #888;
+  font-size: 14px;
+}
+.w-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px 20px;
+  margin-bottom: 30px;
+}
+.w-wishlist-unavailable {
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 260px;
+}
+.w-wishlist-unavailable h2 {
+  font-size: 19px;
+  font-weight: 500;
+}
+.w-wishlist-unavailable p {
+  color: #888;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.w-wishlist-unavailable button {
+  margin-top: auto;
+}
+.w-legal-index,
+.w-legal-document {
+  font-family:
+    "Instrument Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif !important;
+  width: min(700px, calc(100% - 40px));
+  margin: 76px auto 80px;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  color: #242424;
+}
+.w-legal-index > h1,
+.w-legal-document h1 {
+  font-size: 36px !important;
+  font-weight: 500 !important;
+  letter-spacing: -1px !important;
+  line-height: 1.2 !important;
+}
+.w-legal-index > p {
+  font-size: 16px;
+  color: #777;
+  max-width: 470px;
+  line-height: 1.5;
+  margin-top: 12px;
+  margin-bottom: 40px;
+}
+.w-legal-index-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  border-top: 1px solid #e8e8e8;
+  min-height: 80px;
+  padding: 18px 0;
+}
+.w-legal-index-row:last-child {
+  border-bottom: 1px solid #e8e8e8;
+}
+.w-legal-index-row h2 {
+  font-weight: 400;
+  font-size: 16px;
+}
+.w-legal-document {
+  margin-top: 52px;
+}
+.w-legal-document > section:first-child {
+  padding: 0 !important;
+  background: #fff !important;
+}
+.w-legal-document > section:first-child > div {
+  max-width: none;
+  padding: 0 !important;
+}
+.w-legal-document > section:first-child h1 {
+  margin-top: 30px;
+}
+.w-legal-document > section:first-child p {
+  font-size: 13px;
+  color: #999;
+  margin-top: 12px;
+}
+.w-legal-document > section:first-child a {
+  color: #1789ee;
+  font-size: 14px;
+  margin-bottom: 0;
+}
+.w-legal-document > section:nth-child(2) {
+  max-width: none;
+  margin: 0;
+  padding: 48px 0 0 !important;
+}
+.w-legal-document > section:nth-child(2) > p:first-child {
+  border: 0 !important;
+  padding-left: 0 !important;
+  color: #777 !important;
+  font-size: 16px !important;
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
+.w-legal-document h2 {
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.35px;
+  margin-bottom: 14px !important;
+  color: #242424 !important;
+}
+.w-legal-document h3 {
+  font-weight: 500 !important;
+}
+.w-legal-document p,
+.w-legal-document li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #777;
+}
+.w-legal-document a {
+  color: #1689ee;
+}
+.w-legal-document :where([id]) {
+  scroll-margin-top: 104px;
+}
+.w-legal-contents {
+  padding: 24px;
+  background: #f7f7f7;
+  border-radius: 12px;
+  margin-bottom: 42px;
+}
+.w-legal-contents h2 {
+  font-size: 16px !important;
+  margin-bottom: 14px !important;
+}
+.w-legal-contents ol {
+  list-style: decimal;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+.w-legal-contents li {
+  font-size: 14px;
+  color: #1689ee;
+}
+.w-legal-document > section:last-child:not(:nth-child(2)) {
+  display: none;
+}
+@media (max-width: 760px) {
+  .w-account-page {
+    margin-top: 44px;
+    margin-bottom: 56px;
+  }
+  .w-account-identity {
+    margin-bottom: 32px;
+  }
+  .w-account-group {
+    margin-top: 32px;
+  }
+  .w-account-grid {
+    gap: 12px;
+  }
+  .w-account-card {
+    padding: 14px;
+    min-height: 135px;
+  }
+  .w-account-card h3 {
+    font-size: 16px;
+  }
+  .w-account-card p {
+    font-size: 14px;
+  }
+  .w-account-card--short {
+    min-height: 94px;
+  }
+  .w-account-empty {
+    min-height: calc(100dvh - 64px);
+    padding: 64px 24px 80px;
+  }
+  .w-account-empty > h1 {
+    font-size: 32px;
+    max-width: 310px;
+  }
+  .w-account-empty > p {
+    font-size: 16px;
+    max-width: 310px;
+  }
+  .w-account-empty > .w-black-button {
+    min-width: 0;
+    width: 100%;
+    max-width: 344px;
+  }
+  .w-account-list-page {
+    width: calc(100% - 40px);
+    margin-top: 36px;
+  }
+  .w-account-list-page h1 {
+    font-size: 30px;
+  }
+  .w-stay-card {
+    padding: 20px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .w-wishlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 14px;
+  }
+  .w-legal-index,
+  .w-legal-document {
+    margin-top: 44px;
+    margin-bottom: 56px;
+  }
+  .w-legal-index > h1,
+  .w-legal-document h1 {
+    font-size: 32px !important;
+  }
+  .w-legal-index-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px 0;
+  }
+  .w-legal-index-row .w-account-pill {
+    font-size: 12px;
+  }
+  .w-legal-contents {
+    padding: 20px;
+  }
+  .w-legal-document > section:nth-child(2) {
+    padding-top: 32px !important;
+  }
+}
+@media (max-width: 440px) {
+  .w-account-grid {
+    grid-template-columns: 1fr;
+  }
+  .w-account-card {
+    min-height: 112px;
+  }
+  .w-account-card--short {
+    min-height: 83px;
+  }
+  .w-wishlist-grid {
+    grid-template-columns: 1fr;
+  }
+  .w-personal-dialog {
+    padding: 24px !important;
+  }
+  .w-personal-dialog .ds-dialog-header {
+    padding-top: 16px;
+  }
+  .w-personal-dialog .ds-dialog-header h2 {
+    font-size: 23px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .w-account-card {
+    transition: none;
+  }
+}
+
+.ds-portal:has(.w-personal-dialog) .ds-backdrop {
+  background: #0003;
+}
+.w-personal-dialog input:focus-visible {
+  outline: none;
+}

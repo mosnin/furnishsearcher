@@ -1,175 +1,172 @@
+import { findActiveUser } from "./lib/auth";
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
-
+import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
+import { searchFields, searchDeliveryStatus } from "./validators/search";
+import { normalizeSearch, criteriaOnly, SEARCH_KEYS } from "../lib/search";
+const savedDoc = v.object({
+  ...searchFields,
+  _id: v.id("savedSearches"),
+  _creationTime: v.number(),
+  userId: v.id("users"),
+  name: v.string(),
+  emailAlerts: v.optional(v.boolean()),
+  createdAt: v.number(),
+});
+function name(value: string) {
+  const result = value.trim();
+  if (!result || result.length > 100)
+    throw new Error("Use a search name of 1–100 characters.");
+  return result;
+}
+async function owned(ctx: QueryCtx | MutationCtx, id: Id<"savedSearches">) {
+  const user = await requireUser(ctx),
+    search = await ctx.db.get(id);
+  if (!search || (search.userId !== user._id && user.role !== "admin"))
+    throw new Error("Saved search not found.");
+  return search;
+}
 export const save = mutation({
   args: {
+    ...searchFields,
     userId: v.id("users"),
     name: v.string(),
-    location: v.optional(v.string()),
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-    maxPrice: v.optional(v.number()),
-    bedrooms: v.optional(v.number()),
-    propertyType: v.optional(v.string()),
-    petFriendly: v.optional(v.boolean()),
     emailAlerts: v.optional(v.boolean()),
   },
+  returns: v.id("savedSearches"),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller) throw new Error("User not found");
-    if (caller._id !== args.userId) throw new Error("Not authorized");
-
-    return await ctx.db.insert("savedSearches", {
-      userId: args.userId,
-      name: args.name,
-      location: args.location,
-      city: args.city,
-      state: args.state,
-      maxPrice: args.maxPrice,
-      bedrooms: args.bedrooms,
-      propertyType: args.propertyType,
-      petFriendly: args.petFriendly,
+    const user = await requireUser(ctx);
+    if (args.userId !== user._id) throw new Error("Not authorized");
+    return ctx.db.insert("savedSearches", {
+      ...normalizeSearch(criteriaOnly(args)),
+      userId: user._id,
+      name: name(args.name),
       emailAlerts: args.emailAlerts ?? false,
       createdAt: Date.now(),
     });
   },
 });
-
 export const remove = mutation({
   args: { id: v.id("savedSearches") },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error(`Saved search ${args.id} not found`);
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller) throw new Error("User not found");
-    if (caller.role !== "admin" && caller._id !== existing.userId) {
-      throw new Error("Not authorized");
-    }
-
+    await owned(ctx, args.id);
     await ctx.db.delete(args.id);
+    return null;
   },
 });
-
 export const updateSavedSearch = mutation({
   args: {
+    ...searchFields,
     id: v.id("savedSearches"),
     name: v.optional(v.string()),
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-    maxPrice: v.optional(v.number()),
-    bedrooms: v.optional(v.number()),
-    propertyType: v.optional(v.string()),
-    petFriendly: v.optional(v.boolean()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error(`Saved search ${args.id} not found`);
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || (caller.role !== "admin" && caller._id !== existing.userId)) {
-      throw new Error("Not authorized");
-    }
-
-    const { id, ...fields } = args;
-    const updates = Object.fromEntries(
-      Object.entries(fields).filter(([, val]) => val !== undefined)
+    const existing = await owned(ctx, args.id),
+      merged = { ...criteriaOnly(existing), ...criteriaOnly(args) };
+    if (args.propertyType !== undefined && args.propertyTypes === undefined)
+      delete merged.propertyTypes;
+    const filters = normalizeSearch(merged);
+    const patch = Object.fromEntries(
+      SEARCH_KEYS.map((key) => [key, filters[key]]),
     );
-    await ctx.db.patch(args.id, updates);
+    await ctx.db.patch(args.id, {
+      ...patch,
+      ...(args.name !== undefined ? { name: name(args.name) } : {}),
+    });
+    return null;
   },
 });
-
+export const replaceFilters = mutation({
+  args: { id: v.id("savedSearches"), filters: v.object(searchFields) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await owned(ctx, args.id);
+    const filters = normalizeSearch(args.filters);
+    await ctx.db.patch(
+      args.id,
+      Object.fromEntries(SEARCH_KEYS.map((key) => [key, filters[key]])),
+    );
+    return null;
+  },
+});
 export const toggleEmailAlerts = mutation({
   args: { id: v.id("savedSearches"), enabled: v.boolean() },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error(`Saved search ${args.id} not found`);
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || (caller.role !== "admin" && caller._id !== existing.userId)) {
-      throw new Error("Not authorized");
-    }
-
+    await owned(ctx, args.id);
     await ctx.db.patch(args.id, { emailAlerts: args.enabled });
+    return null;
   },
 });
-
+// Overview compatibility: the management screen pages through the full collection.
 export const getByUser = query({
   args: { userId: v.id("users") },
+  returns: v.array(savedDoc),
   handler: async (ctx, args) => {
-    const results = await ctx.db
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const user = await findActiveUser(ctx, identity.subject);
+    if (!user || (user._id !== args.userId && user.role !== "admin")) return [];
+    return ctx.db
       .query("savedSearches")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    return results.sort((a, b) => b.createdAt - a.createdAt);
+      .order("desc")
+      .take(10);
   },
 });
-
-// Internal: returns saved searches with email alerts enabled that match a city/state
-export const getAlertMatchesInternal = internalQuery({
-  args: {
-    city: v.string(),
-    state: v.string(),
-    price: v.number(),
-    bedrooms: v.number(),
-    petFriendly: v.boolean(),
-    propertyType: v.string(),
-  },
+export const mine = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(
+    v.object({
+      ...searchFields,
+      _id: v.id("savedSearches"),
+      _creationTime: v.number(),
+      userId: v.id("users"),
+      name: v.string(),
+      emailAlerts: v.optional(v.boolean()),
+      createdAt: v.number(),
+      latestDelivery: v.optional(
+        v.object({
+          id: v.id("savedSearchDeliveries"),
+          status: searchDeliveryStatus,
+        }),
+      ),
+    }),
+  ),
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("savedSearches").collect();
-    const cityLower = args.city.toLowerCase();
-    const stateLower = args.state.toLowerCase();
-
-    const matches = all.filter((s) => {
-      if (!s.emailAlerts) return false;
-      // Exact city match (case-insensitive) — listing city must equal saved search city
-      if (s.city && cityLower !== s.city.toLowerCase()) return false;
-      if (s.state && s.state.toLowerCase() !== stateLower) return false;
-      if (s.maxPrice !== undefined && args.price > s.maxPrice) return false;
-      if (s.bedrooms !== undefined && args.bedrooms < s.bedrooms) return false;
-      if (s.petFriendly !== undefined && s.petFriendly && !args.petFriendly) return false;
-      if (
-        s.propertyType &&
-        s.propertyType.toLowerCase() !== args.propertyType.toLowerCase()
-      )
-        return false;
-      return true;
-    });
-
-    // Enrich with user email
-    const enriched = await Promise.all(
-      matches.map(async (s) => {
-        const user = await ctx.db.get(s.userId);
-        return user ? { ...s, userEmail: user.email, userName: user.name } : null;
-      })
-    );
-
-    return enriched.filter(Boolean) as Array<
-      typeof matches[number] & { userEmail: string; userName: string }
-    >;
+    const user = await requireUser(ctx);
+    const result = await ctx.db
+      .query("savedSearches")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (search) => {
+          const delivery = await ctx.db
+            .query("savedSearchDeliveries")
+            .withIndex("by_search", (q) => q.eq("searchId", search._id))
+            .order("desc")
+            .first();
+          return {
+            ...search,
+            ...(delivery
+              ? {
+                  latestDelivery: { id: delivery._id, status: delivery.status },
+                }
+              : {}),
+          };
+        }),
+      ),
+    };
   },
 });

@@ -1,0 +1,16 @@
+/* Custom UI OS DNA revision a591b05d58c3a68cccbe9af3d06ebde0b3f496bef5adc624d0dd94cec5a58c1f */
+.furnish-ui {
+  --ui-background: #ffffff;
+  --ui-surface: #ffffff;
+  --ui-elevated: #ffffff;
+  --ui-text: #303030;
+  --ui-muted: #616161;
+  --ui-border: #8a8a8a;
+  --ui-accent: #303030;
+  --ui-accent-text: #ffffff;
+  --ui-focus: #2563eb;
+  --ui-radius-control: 8px;
+  --ui-radius-surface: 8px;
+  --ui-motion-ms: 120ms;
+  --ui-row-height: 40px;
+}

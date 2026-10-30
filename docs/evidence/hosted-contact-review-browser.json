@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-26T00:09:02.910716+00:00",
+  "leadAndMessagesSourceSha": "5f110425a8054f37fa11787b1d6c00678a6777ad",
+  "finalStaffLayoutSourceSha": "a961a115c3911e9ef6754aacd2f9bea67ab10893",
+  "finalStaffDeployment": "dpl_6V3dWHbXLHVNYarmi4NAKaKyBuWu",
+  "actualClerkOwnerAndDisposableNativeQaStaffBrowserSessions": true,
+  "visibleHeldLeadWithDisabledReviewButton": true,
+  "historicalConversationReadableWithoutComposerDuringReview": true,
+  "privateStaffViewNamesReportedAccountAndShowsHoldAudit": true,
+  "staffCaseReactsToNativeReleaseWithRetainedAudit": true,
+  "ownerComposerRestoredAfterRelease": true,
+  "mobileViewportWidth": 390,
+  "leadAndStaffDocumentWidth": 390,
+  "staffStatusAndListingSelectBounds": [
+    45,
+    345
+  ],
+  "staffContactSelectBounds": [
+    58,
+    332
+  ],
+  "staffReviewSaveOrRealMessageSubmittedInBrowser": false,
+  "defaultViewportAndOwnerSessionRestored": true,
+  "ownReviewReleasedAndDisposableStaffTravelerDeleted": true,
+  "requestClosedRentalHiddenConversationArchived": true,
+  "retainedNativeAuditAndHistory": true,
+  "productionChanged": false,
+  "realPersonMessageEmailOrSmsSent": false
+}

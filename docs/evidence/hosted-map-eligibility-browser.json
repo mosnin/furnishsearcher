@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-10-25T21:41:02.438Z",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app/dashboard/landlord/analytics",
+  "sourceCommit": "7cbe014c0dab25f86344fccf56d002821f664f5f",
+  "deploymentId": "dpl_5fq8Dyt12cREnoBiVa7myomPvntj",
+  "ready": true,
+  "syntheticActualClerkBrowserAccount": true,
+  "portfolioAndPropertySelectionAccepted": true,
+  "sevenDaySelectionAccepted": true,
+  "currentPrivateFixtureIneligible": true,
+  "manualCheckPersistedAndDidNotDuplicateDay": true,
+  "manualCheckAt": "2026-10-25T21:38:08.917Z",
+  "sinceCollectionEligibleDays": 0,
+  "observedUtcDays": 1,
+  "unknownUtcDays": 6,
+  "uncollectedActivityCardsShowUnavailable": true,
+  "actualCsv": {
+    "path": "/Users/preston/Downloads/map-eligibility-test-n572ng3271p6f1gpmwtypef71x8gyg37-7-days.csv",
+    "sha256": "9d0306c4a057bbd6ad8bc6109f25de488548ae6aa9f1bc4a85d1810c693b8b06",
+    "dayRows": 7,
+    "columns": 8,
+    "unknownCountFieldsBlank": true,
+    "lastObservedSpaceCount": 1,
+    "lastObservedEligibleCount": 0,
+    "matchesNativeLastCheck": true
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844,
+    "documentWidth": 390,
+    "eligibilityTableWidth": 356,
+    "tableWrapperWidth": 356,
+    "controlsAndFinalObservedRowReachable": true
+  },
+  "defaultViewportRestored": true,
+  "listingOrNotificationPreferencesChanged": false,
+  "recordedEligibilityCheckOnly": true,
+  "nonzeroHostedEligibility": false,
+  "realEmailSmsOrPayment": false,
+  "productionChanged": false,
+  "screenshots": [
+    "../map-eligibility-desktop-verified.jpg",
+    "../map-eligibility-mobile-verified.jpg",
+    "../map-eligibility-mobile-table-verified.jpg"
+  ]
+}

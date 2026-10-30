@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-25T04:41:02.932Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "actualLocalDatabase": true,
+  "startingRateCapturedAndPreserved": true,
+  "ordinaryMessageDoesNotInventInquiry": true,
+  "draftRateHiddenFromCounterparty": true,
+  "newInquiryExplicitlyLinked": true,
+  "agreedDateChangePreservesOriginalRequest": true,
+  "unrelatedContextReadDenied": true,
+  "projectionOmitsPrivateContactAndStreet": true,
+  "fixtureStayCancelled": true,
+  "originalFixturePriceRestored": true,
+  "fixtureListingHidden": true,
+  "fixtureConversationReadAndArchived": true,
+  "privilegedSyntheticIdentities": true,
+  "actualClerkBrowserJwt": false,
+  "actualLeaseOrPayment": false,
+  "actualEmailDelivery": false,
+  "renderedBrowserAcceptance": false
+}

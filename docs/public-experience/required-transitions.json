@@ -1,0 +1,29 @@
+{
+  "basis": "User request October29 2026:24 exact named transition recipes; CLI aliases modal/skeleton-reveal/tooltip/toast retained in provenance.",
+  "sourceSlugs": [
+    "card-resize",
+    "notification-badge",
+    "text-states-swap",
+    "menu-dropdown",
+    "modal",
+    "panel-reveal",
+    "icon-swap",
+    "success-check",
+    "error-state-shake",
+    "skeleton-reveal",
+    "tabs-sliding",
+    "tooltip",
+    "dropdown-menu-morph",
+    "accordion",
+    "toast",
+    "learn-more-hover",
+    "checkbox-check",
+    "toggle",
+    "banner-stacking",
+    "avatar-group-hover",
+    "like-button",
+    "number-pop-in",
+    "texts-reveal",
+    "spinning-counter"
+  ]
+}

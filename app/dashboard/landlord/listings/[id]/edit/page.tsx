@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { PROPERTY_TYPES, AMENITIES } from "@/lib/utils";
+import { PROPERTY_TYPES, OWNER_AMENITIES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,9 +34,19 @@ import {
   Star,
   ImageIcon,
 } from "lucide-react";
-import { PhotoUpload } from "@/components/photo-upload";
+import { ListingPhotoEditor } from "@/components/listing-photo-editor";
+import { photoAssetsFromDrafts, type PhotoDraft } from "@/lib/photos";
+
+import { ListingDetailsEditor } from "@/components/listing-details-editor";
+import {
+  emptyListingDetails,
+  validateListingDetails,
+  type ListingDetails,
+} from "@/lib/listing-details";
 
 interface FormData {
+  unitName: string;
+  details: ListingDetails;
   title: string;
   propertyType: string;
   description: string;
@@ -46,6 +56,7 @@ interface FormData {
   zip: string;
   bedrooms: number;
   bathrooms: number;
+  maxOccupancy: string;
   price: number;
   minStay: number;
   availableFrom: string;
@@ -53,7 +64,7 @@ interface FormData {
   petFriendly: boolean;
   utilitiesIncluded: boolean;
   parkingIncluded: boolean;
-  photos: string[];
+  photos: PhotoDraft[];
 }
 
 const STEPS = [
@@ -64,7 +75,9 @@ const STEPS = [
   { id: 5, label: "Photos", icon: ImageIcon },
 ];
 
-const BATHROOM_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
+const BATHROOM_OPTIONS = [
+  0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8,
+];
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
@@ -79,10 +92,10 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               <div
                 className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-colors ${
                   isCompleted
-                    ? "bg-[#0f2044] border-[#0f2044] text-white"
+                    ? "bg-primary border-primary text-white"
                     : isActive
-                    ? "border-[#0f2044] text-[#0f2044] bg-white"
-                    : "border-slate-200 text-slate-400 bg-white"
+                      ? "border-primary text-primary bg-white"
+                      : "border-slate-200 text-slate-400 bg-white"
                 }`}
               >
                 {isCompleted ? (
@@ -93,7 +106,11 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               </div>
               <span
                 className={`text-xs mt-1 font-medium ${
-                  isActive ? "text-[#0f2044]" : isCompleted ? "text-slate-600" : "text-slate-400"
+                  isActive
+                    ? "text-primary"
+                    : isCompleted
+                      ? "text-slate-600"
+                      : "text-slate-400"
                 }`}
               >
                 {step.label}
@@ -102,7 +119,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             {i < STEPS.length - 1 && (
               <div
                 className={`h-0.5 w-8 mx-1 mt-[-14px] transition-colors ${
-                  currentStep > step.id ? "bg-[#0f2044]" : "bg-slate-200"
+                  currentStep > step.id ? "bg-primary" : "bg-slate-200"
                 }`}
               />
             )}
@@ -122,28 +139,31 @@ export default function EditListingPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const listing = useQuery(
     api.listings.getById,
-    listingId ? { id: listingId as Id<"listings"> } : "skip"
+    listingId ? { id: listingId as Id<"listings"> } : "skip",
   );
 
   const updateMutation = useMutation(api.listings.update);
 
   // Pre-fill form when listing data arrives
   useEffect(() => {
-    if (listing && !form) {
+    if (listing?.canManage && !form) {
       const availableDate = new Date(listing.availableFrom);
-      const yyyy = availableDate.getFullYear();
-      const mm = String(availableDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(availableDate.getDate()).padStart(2, "0");
+      const yyyy = availableDate.getUTCFullYear();
+      const mm = String(availableDate.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(availableDate.getUTCDate()).padStart(2, "0");
 
       setForm({
+        details: listing.details ?? emptyListingDetails(),
+        unitName: listing.unitName ?? "",
         title: listing.title,
         propertyType: listing.propertyType,
         description: listing.description,
@@ -153,6 +173,7 @@ export default function EditListingPage() {
         zip: listing.zip,
         bedrooms: listing.bedrooms,
         bathrooms: listing.bathrooms,
+        maxOccupancy: listing.maxOccupancy ? String(listing.maxOccupancy) : "",
         price: listing.price,
         minStay: listing.minStay,
         availableFrom: `${yyyy}-${mm}-${dd}`,
@@ -160,7 +181,7 @@ export default function EditListingPage() {
         petFriendly: listing.petFriendly,
         utilitiesIncluded: listing.utilitiesIncluded,
         parkingIncluded: listing.parkingIncluded,
-        photos: listing.photos.length > 0 ? listing.photos : [""],
+        photos: listing.photoDrafts ?? [],
       });
     }
   }, [listing, form]);
@@ -184,19 +205,46 @@ export default function EditListingPage() {
   function validateStep(): boolean {
     if (!form) return false;
     if (step === 1) {
-      if (!form.title.trim()) { toast.error("Title is required"); return false; }
-      if (!form.propertyType) { toast.error("Property type is required"); return false; }
-      if (!form.description.trim()) { toast.error("Description is required"); return false; }
+      if (!form.title.trim()) {
+        toast.error("Title is required");
+        return false;
+      }
+      if (!form.propertyType) {
+        toast.error("Property type is required");
+        return false;
+      }
+      if (!form.description.trim()) {
+        toast.error("Description is required");
+        return false;
+      }
     }
     if (step === 2) {
-      if (!form.address.trim()) { toast.error("Address is required"); return false; }
-      if (!form.city.trim()) { toast.error("City is required"); return false; }
-      if (!form.state.trim()) { toast.error("State is required"); return false; }
-      if (!form.zip.trim()) { toast.error("ZIP code is required"); return false; }
+      if (!form.address.trim()) {
+        toast.error("Address is required");
+        return false;
+      }
+      if (!form.city.trim()) {
+        toast.error("City is required");
+        return false;
+      }
+      if (!form.state.trim()) {
+        toast.error("State is required");
+        return false;
+      }
+      if (!form.zip.trim()) {
+        toast.error("ZIP code is required");
+        return false;
+      }
     }
     if (step === 3) {
-      if (!form.price || form.price <= 0) { toast.error("Valid price is required"); return false; }
-      if (!form.availableFrom) { toast.error("Available from date is required"); return false; }
+      if (!form.price || form.price <= 0) {
+        toast.error("Valid price is required");
+        return false;
+      }
+      if (!form.availableFrom) {
+        toast.error("Available from date is required");
+        return false;
+      }
     }
     return true;
   }
@@ -213,9 +261,10 @@ export default function EditListingPage() {
     if (!form) return;
     setSubmitting(true);
     try {
-      const cleanPhotos = form.photos.filter((p) => p.trim() !== "");
+      const photoAssets = photoAssetsFromDrafts(form.photos);
       await updateMutation({
         id: listingId as Id<"listings">,
+        ...(listing?.propertyGroupId ? { unitName: form.unitName } : {}),
         title: form.title.trim(),
         description: form.description.trim(),
         propertyType: form.propertyType,
@@ -223,24 +272,47 @@ export default function EditListingPage() {
         city: form.city.trim(),
         state: form.state.trim(),
         zip: form.zip.trim(),
+        details: validateListingDetails(form.details),
         price: Number(form.price),
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
+        maxOccupancy: form.maxOccupancy ? Number(form.maxOccupancy) : null,
         minStay: Number(form.minStay),
         availableFrom: new Date(form.availableFrom).getTime(),
         amenities: form.amenities,
         petFriendly: form.petFriendly,
         utilitiesIncluded: form.utilitiesIncluded,
         parkingIncluded: form.parkingIncluded,
-        photos: cleanPhotos,
+        photos: [],
+        photoAssets,
       });
       toast.success("Listing updated successfully!");
       router.push("/dashboard/landlord/listings");
     } catch (err) {
-      toast.error("Failed to update listing. Please try again.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Failed to update listing. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (listing === null || (listing !== undefined && !listing.canManage)) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto text-center py-16">
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          Listing unavailable for editing
+        </h2>
+        <p className="text-slate-500 mb-4">
+          This listing is missing or you do not manage it.
+        </p>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/landlord/listings">Back to Listings</Link>
+        </Button>
+      </div>
+    );
   }
 
   // Loading state
@@ -265,18 +337,6 @@ export default function EditListingPage() {
             ))}
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (listing === null) {
-    return (
-      <div className="p-6 max-w-3xl mx-auto text-center py-16">
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Listing not found</h2>
-        <p className="text-slate-500 mb-4">This listing may have been deleted.</p>
-        <Button asChild variant="outline">
-          <Link href="/dashboard/landlord/listings">Back to Listings</Link>
-        </Button>
       </div>
     );
   }
@@ -307,6 +367,17 @@ export default function EditListingPage() {
                 <CardTitle className="text-lg">Basic Information</CardTitle>
               </CardHeader>
               <div className="space-y-2">
+                {listing?.propertyGroupId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="unit-name">Unit name</Label>
+                    <Input
+                      id="unit-name"
+                      value={form.unitName}
+                      maxLength={80}
+                      onChange={(e) => update("unitName", e.target.value)}
+                    />
+                  </div>
+                )}
                 <Label htmlFor="title">Listing Title *</Label>
                 <Input
                   id="title"
@@ -349,10 +420,25 @@ export default function EditListingPage() {
             <div className="space-y-5">
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Location</CardTitle>
+                {(listing?.firstPublishedAt || listing?.propertyGroupId) && (
+                  <p className="text-sm text-slate-600">
+                    A published property’s address is locked. Contact support
+                    for corrections. A different property needs a new listing.
+                  </p>
+                )}
+                <Link
+                  className="underline text-sm"
+                  href={`/dashboard/landlord/listings/${listingId}/location`}
+                >
+                  Confirm or review the map location
+                </Link>
               </CardHeader>
               <div className="space-y-2">
                 <Label htmlFor="address">Street Address *</Label>
                 <Input
+                  disabled={
+                    !!(listing?.firstPublishedAt || listing?.propertyGroupId)
+                  }
                   id="address"
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
@@ -364,6 +450,9 @@ export default function EditListingPage() {
                   <Input
                     id="city"
                     value={form.city}
+                    disabled={
+                      !!(listing?.firstPublishedAt || listing?.propertyGroupId)
+                    }
                     onChange={(e) => update("city", e.target.value)}
                   />
                 </div>
@@ -373,13 +462,18 @@ export default function EditListingPage() {
                     id="state"
                     maxLength={2}
                     value={form.state}
-                    onChange={(e) => update("state", e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      update("state", e.target.value.toUpperCase())
+                    }
                   />
                 </div>
               </div>
               <div className="space-y-2 max-w-xs">
                 <Label htmlFor="zip">ZIP Code *</Label>
                 <Input
+                  disabled={
+                    !!(listing?.firstPublishedAt || listing?.propertyGroupId)
+                  }
                   id="zip"
                   maxLength={10}
                   value={form.zip}
@@ -437,7 +531,9 @@ export default function EditListingPage() {
                 <div className="space-y-2">
                   <Label htmlFor="price">Monthly Price (USD) *</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                      $
+                    </span>
                     <Input
                       id="price"
                       type="number"
@@ -447,6 +543,20 @@ export default function EditListingPage() {
                       onChange={(e) => update("price", Number(e.target.value))}
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxOccupancy">
+                    Maximum occupants (optional)
+                  </Label>
+                  <Input
+                    id="maxOccupancy"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={form.maxOccupancy}
+                    onChange={(e) => update("maxOccupancy", e.target.value)}
+                    placeholder="Not specified"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="minStay">Minimum Stay (months)</Label>
@@ -476,6 +586,10 @@ export default function EditListingPage() {
                   onChange={(e) => update("availableFrom", e.target.value)}
                 />
               </div>
+              <ListingDetailsEditor
+                value={form.details}
+                onChange={(details) => update("details", details)}
+              />
             </div>
           )}
 
@@ -488,40 +602,60 @@ export default function EditListingPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Pet Friendly</p>
-                    <p className="text-xs text-slate-500">Cats and/or dogs allowed</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Pet Friendly
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Cats and/or dogs allowed
+                    </p>
                   </div>
                   <Switch
+                    aria-label="Pet Friendly"
                     checked={form.petFriendly}
                     onCheckedChange={(v) => update("petFriendly", v)}
                   />
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Utilities Included</p>
-                    <p className="text-xs text-slate-500">Electric, gas, water included in rent</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Utilities Included
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Electric, gas, water included in rent
+                    </p>
                   </div>
                   <Switch
+                    aria-label="Utilities Included"
                     checked={form.utilitiesIncluded}
                     onCheckedChange={(v) => update("utilitiesIncluded", v)}
                   />
                 </div>
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Parking Included</p>
-                    <p className="text-xs text-slate-500">Off-street or garage parking available</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Parking Included
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Off-street or garage parking available
+                    </p>
                   </div>
                   <Switch
+                    aria-label="Parking Included"
                     checked={form.parkingIncluded}
                     onCheckedChange={(v) => update("parkingIncluded", v)}
                   />
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-900 mb-3">Amenities</p>
+                <p className="text-sm font-medium text-slate-900 mb-3">
+                  Amenities
+                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {AMENITIES.map((amenity) => (
-                    <label key={amenity} className="flex items-center gap-2.5 cursor-pointer">
+                  {OWNER_AMENITIES.map((amenity) => (
+                    <label
+                      key={amenity}
+                      className="flex items-center gap-2.5 cursor-pointer"
+                    >
                       <Checkbox
                         id={`edit-${amenity}`}
                         checked={form.amenities.includes(amenity)}
@@ -541,29 +675,12 @@ export default function EditListingPage() {
               <CardHeader className="p-0 pb-4">
                 <CardTitle className="text-lg">Photos</CardTitle>
               </CardHeader>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <PhotoUpload
-                    key={index}
-                    variant="listing"
-                    currentUrl={form.photos[index] || undefined}
-                    label={index === 0 ? "Cover photo" : `Photo ${index + 1}`}
-                    onUpload={(url) => {
-                      setForm((prev) => {
-                        if (!prev) return prev;
-                        const photos = [...prev.photos];
-                        // Grow array if needed
-                        while (photos.length <= index) photos.push("");
-                        photos[index] = url;
-                        return { ...prev, photos };
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-slate-400">
-                Up to 10 photos. The first photo will be used as the cover image.
-              </p>
+              <ListingPhotoEditor
+                photos={form.photos}
+                onChange={(photos) => update("photos", photos)}
+                busy={photoBusy}
+                onBusyChange={setPhotoBusy}
+              />
             </div>
           )}
         </CardContent>
@@ -571,7 +688,11 @@ export default function EditListingPage() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between mt-6">
-        <Button variant="outline" onClick={prevStep} disabled={step === 1}>
+        <Button
+          variant="outline"
+          onClick={prevStep}
+          disabled={step === 1 || photoBusy}
+        >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back
         </Button>
@@ -581,7 +702,7 @@ export default function EditListingPage() {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button onClick={handleSubmit} disabled={submitting || photoBusy}>
             {submitting ? "Saving…" : "Save Changes"}
           </Button>
         )}

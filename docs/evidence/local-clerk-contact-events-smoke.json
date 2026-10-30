@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T22:04:26.960Z",
+  "target": "http://127.0.0.1:3210",
+  "nativeSignedHttp": true,
+  "privilegedSyntheticIdentities": true,
+  "providerPayloadSynthetic": true,
+  "badSignatureAndStaleDeliveryDenied": true,
+  "wrongInstanceDenied": true,
+  "unchangedProofPreserved": true,
+  "changedContactConfirmationAndConsentRevoked": true,
+  "duplicateAndOutOfOrderSafe": true,
+  "freshStaleContactClaimsDenied": true,
+  "explicitNewContactConfirmationAccepted": true,
+  "phoneSharingRequiresNewConsent": true,
+  "profileNameAndRoleRetained": true,
+  "actualClerkWebhookDelivery": false,
+  "realEmailOrSmsSent": false
+}

@@ -1,3 +1,4 @@
+import { findActiveUser } from "./lib/auth";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -12,7 +13,7 @@ function deriveCode(userId: string): string {
   let h = hash;
   for (let i = 0; i < 7; i++) {
     code += chars[h % chars.length];
-    h = Math.floor(h / chars.length) || (h * 37 + i + 1);
+    h = Math.floor(h / chars.length) || h * 37 + i + 1;
   }
   return code;
 }
@@ -23,11 +24,9 @@ export const getOrCreateCode = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
-    if (!caller || caller._id !== args.userId) throw new Error("Not authorized");
+    const caller = await findActiveUser(ctx, identity.subject);
+    if (!caller || caller._id !== args.userId)
+      throw new Error("Not authorized");
 
     if (caller.referralCode) return caller.referralCode;
 
@@ -65,7 +64,9 @@ export const applyReferralCode = mutation({
     // Check not already referred
     const alreadyReferred = await ctx.db
       .query("referrals")
-      .withIndex("by_referred_user", (q) => q.eq("referredUserId", args.newUserId))
+      .withIndex("by_referred_user", (q) =>
+        q.eq("referredUserId", args.newUserId),
+      )
       .first();
     if (alreadyReferred) return;
 
@@ -85,15 +86,14 @@ export const markConverted = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller.role !== "admin") throw new Error("Not authorized");
 
     const referral = await ctx.db
       .query("referrals")
-      .withIndex("by_referred_user", (q) => q.eq("referredUserId", args.referredUserId))
+      .withIndex("by_referred_user", (q) =>
+        q.eq("referredUserId", args.referredUserId),
+      )
       .first();
     if (!referral) throw new Error("Referral not found");
     if (referral.status === "converted") return;
@@ -111,10 +111,7 @@ export const getReferralStats = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .unique();
+    const caller = await findActiveUser(ctx, identity.subject);
     if (!caller || caller._id !== args.userId) return null;
 
     const referrals = await ctx.db
@@ -123,7 +120,7 @@ export const getReferralStats = query({
       .collect();
 
     const signedUp = referrals.filter(
-      (r) => r.status === "signed_up" || r.status === "converted"
+      (r) => r.status === "signed_up" || r.status === "converted",
     );
     const converted = referrals.filter((r) => r.status === "converted");
 

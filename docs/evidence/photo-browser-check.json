@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-24T22:41:45Z",
+  "target": "http://localhost:3015",
+  "syntheticOnly": true,
+  "galleryImagesLoadedAtWidth": 1200,
+  "lightboxCaptionNavigationAndClose": true,
+  "temporaryCropPreview": {
+    "original": [
+      1200,
+      800
+    ],
+    "rotated": [
+      800,
+      1200
+    ],
+    "widthPercent": 10,
+    "exported": [
+      80,
+      1200
+    ],
+    "decodedMime": "image/jpeg"
+  },
+  "temporaryRouteRemoved": true,
+  "realClerkOwnerBrowserJourney": "not verified"
+}

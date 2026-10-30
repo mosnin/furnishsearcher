@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-10-26T02:35:07.932Z",
+  "sourceCommit": "58c384bd8ba2a12fa1370001ba37f2fff70b270b",
+  "initialEditorFlowCommit": "571645288e0b05d30d003fca7fd372d7c5067dd6",
+  "readyDeployment": "dpl_3WjxBnZwvz97ExycXb7w1Q8XjdVE",
+  "actualReservedOwnerClerkBrowserSession": true,
+  "browserFlow": [
+    "Saw missing-description task",
+    "Followed exact task link to owned listing editor",
+    "Filled missing description",
+    "Traversed existing five edit steps",
+    "Saved normally and saw success",
+    "Returned to dashboard and saw Await staff review task without missing-description requirement"
+  ],
+  "identityTaskNavigatesToActualPanel": true,
+  "identityDestination": "/dashboard/landlord/listings#owner-verification",
+  "identityProviderNotConfigured": true,
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "nativeReceipt": "hosted-owner-tasks-native.json",
+  "ownPrivateListingCleanedThroughGuardedNativeApi": true,
+  "cloudPaidOrIdentityFixturesGranted": false,
+  "realPersonMessages": 0,
+  "providerRequests": 0,
+  "screenshots": [
+    "owner-tasks-before-desktop.jpg",
+    "owner-tasks-after-desktop.jpg",
+    "owner-tasks-mobile.jpg",
+    "owner-tasks-identity-destination.jpg",
+    "owner-tasks-cleaned-desktop.jpg"
+  ],
+  "limitations": [
+    "Renewal, paid/identity success and final publication transitions use synthetic source tests; no actual provider acceptance",
+    "Large-owner paging proven in source tests and local native traversal; current hosted owner has five QA properties before cleanup"
+  ],
+  "cleanupRemovedTaskReactivelyWithoutReload": true
+}

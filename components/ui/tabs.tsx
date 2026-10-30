@@ -1,54 +1,54 @@
 "use client";
-
 import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { Tabs as Base } from "@base-ui/react/tabs";
 import { cn } from "@/lib/utils";
-
-const Tabs = TabsPrimitive.Root;
-
+function Tabs({
+  onValueChange,
+  ...props
+}: Omit<React.ComponentProps<typeof Base.Root>, "onValueChange"> & {
+  onValueChange?: (value: string) => void;
+}) {
+  return (
+    <Base.Root
+      {...props}
+      onValueChange={(value) => onValueChange?.(String(value))}
+    />
+  );
+}
 const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof Base.List>
+>(({ className, children, ...props }, ref) => (
+  <Base.List
     ref={ref}
-    className={cn(
-      "inline-flex h-10 items-center justify-center rounded-xl bg-muted p-1 text-muted-foreground",
-      className
-    )}
+    className={cn("ds-segmented-list", className)}
     {...props}
-  />
+  >
+    <Base.Indicator className="ds-segmented-indicator" />
+    {children}
+  </Base.List>
 ));
-TabsList.displayName = TabsPrimitive.List.displayName;
-
+TabsList.displayName = "TabsList";
 const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<typeof Base.Tab>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
+  <Base.Tab
     ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-      className
-    )}
+    className={cn("ds-segmented-tab", className)}
     {...props}
   />
 ));
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
-
+TabsTrigger.displayName = "TabsTrigger";
 const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof Base.Panel>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
+  <Base.Panel
     ref={ref}
-    className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className
-    )}
+    className={cn("mt-3 outline-none", className)}
     {...props}
   />
 ));
-TabsContent.displayName = TabsPrimitive.Content.displayName;
-
+TabsContent.displayName = "TabsContent";
 export { Tabs, TabsList, TabsTrigger, TabsContent };

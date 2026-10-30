@@ -5,7 +5,7 @@ export default function MarketInsightsLoading() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero / header skeleton */}
-      <div className="bg-[#0f2044] py-14 px-4">
+      <div className="bg-primary py-14 px-4">
         <div className="max-w-5xl mx-auto space-y-4">
           <Skeleton className="h-9 w-64 bg-white/10 rounded-lg" />
           <Skeleton className="h-5 w-96 bg-white/10 rounded-lg" />

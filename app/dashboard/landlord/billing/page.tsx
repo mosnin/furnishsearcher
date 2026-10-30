@@ -1,23 +1,20 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useAction, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id, Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Star, Receipt, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-type Subscription = Doc<"subscriptions">;
+type Subscription = Doc<"subscriptions"> & { paidAccessGranted: boolean };
 type Payment = Doc<"payments">;
 
 const PLAN_LABELS: Record<string, string> = {
@@ -45,6 +42,10 @@ function StatusBadge({ status }: { status: string }) {
     pending: "bg-amber-100 text-amber-700",
     failed: "bg-red-100 text-red-700",
     refunded: "bg-slate-200 text-slate-600",
+    partially_refunded: "bg-amber-100 text-amber-700",
+    disputed: "bg-red-100 text-red-700",
+    past_due: "bg-red-100 text-red-700",
+    unpaid: "bg-red-100 text-red-700",
   };
   const cls = map[status] ?? "bg-slate-100 text-slate-600";
   return <Badge className={`${cls} capitalize font-medium`}>{status}</Badge>;
@@ -54,20 +55,41 @@ export default function LandlordBillingPage() {
   const { userId: clerkId } = useAuth();
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : "skip",
   ) as { _id: Id<"users">; email: string } | null | undefined;
 
   const subscription = useQuery(
-    api.payments.getActiveSubscription,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
+    api.payments.getSubscription,
+    convexUser?._id ? { userId: convexUser._id } : "skip",
   ) as Subscription | null | undefined;
 
-  const payments = useQuery(
-    api.payments.getPaymentsByUser,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as Payment[] | undefined;
-
-  const loading = convexUser === undefined || payments === undefined;
+  const {
+    results: payments,
+    status: paymentStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.payments.listPayments,
+    convexUser?._id ? { userId: convexUser._id } : "skip",
+    { initialNumItems: 20 },
+  );
+  const portal = useAction(api.creem.createCustomerPortal);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  async function openPortal() {
+    setOpeningPortal(true);
+    try {
+      window.location.assign(await portal({}));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to open billing portal",
+      );
+    } finally {
+      setOpeningPortal(false);
+    }
+  }
+  const loading =
+    convexUser === undefined || paymentStatus === "LoadingFirstPage";
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -97,27 +119,45 @@ export default function LandlordBillingPage() {
                     {PLAN_LABELS[subscription.plan] ?? subscription.plan}
                   </p>
                   <StatusBadge status={subscription.status} />
+                  {!subscription.paidAccessGranted && (
+                    <Badge variant="outline">Paid access not confirmed</Badge>
+                  )}
+                  {subscription.billingHold && (
+                    <Badge variant="outline">Billing review required</Badge>
+                  )}
+                  {subscription.mode === "test" && (
+                    <Badge variant="outline">Test billing</Badge>
+                  )}
                 </div>
                 <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
-                  {subscription.cancelAtPeriodEnd ? "Cancels" : "Renews"} on{" "}
-                  {formatDate(subscription.currentPeriodEnd)}
+                  {subscription.currentPeriodEnd > 0
+                    ? `${subscription.cancelAtPeriodEnd ? "Scheduled to cancel" : "Current period ends"} on ${formatDate(subscription.currentPeriodEnd)}`
+                    : "Awaiting a confirmed payment period"}
                 </p>
               </div>
-              <Button asChild variant="outline">
-                <Link href="/pricing">Change plan</Link>
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  disabled={openingPortal}
+                  onClick={openPortal}
+                >
+                  {openingPortal ? "Opening…" : "Manage billing & invoices"}
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link href="/pricing">View plans</Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <p className="text-slate-900 font-medium">Free plan</p>
                 <p className="text-sm text-slate-500 mt-1">
-                  Upgrade to unlock featured listings, priority placement, and
-                  advanced analytics.
+                  View available plans and their current features.
                 </p>
               </div>
-              <Button asChild className="bg-[#1e3a8a] hover:bg-[#0f2044]">
+              <Button asChild className="bg-primary hover:bg-primary">
                 <Link href="/pricing">View plans</Link>
               </Button>
             </div>
@@ -161,6 +201,7 @@ export default function LandlordBillingPage() {
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {formatDate(p.createdAt)}
+                      {!p.trustedCheckout ? " · Legacy record, unverified" : ""}
                     </p>
                   </div>
                   <div className="text-right flex items-center gap-3">
@@ -172,6 +213,16 @@ export default function LandlordBillingPage() {
                 </li>
               ))}
             </ul>
+          )}
+          {paymentStatus === "CanLoadMore" && (
+            <Button variant="outline" onClick={() => loadMore(20)}>
+              Load more payments
+            </Button>
+          )}
+          {paymentStatus === "LoadingMore" && (
+            <p role="status" className="text-sm text-slate-500">
+              Loading more payments…
+            </p>
           )}
         </CardContent>
       </Card>

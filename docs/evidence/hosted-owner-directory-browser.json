@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-26T05:14:46.759468+00:00",
+  "environment": "cheerful-ferret-182",
+  "sourceSha": "c8651a6eb8f9d00bac1f8add4d1da41dd94dbf22",
+  "readyDeployment": "dpl_7t5caatWMpHX9N914qisb6vWvnsp",
+  "actualReservedOwnerClerkBrowser": true,
+  "combinedAddressCityStateIncompleteFilters": true,
+  "emptyFirstPageExplicitContinuation": true,
+  "olderTargetFoundOnSecondPage": true,
+  "compactPropertyNumberSearch": true,
+  "hiddenUnitOptionCanBeChanged": true,
+  "rootStillVisibleWhenHiddenChildrenExcluded": true,
+  "specificNumericHeadlineReturnsOneMatch": true,
+  "activeFilterDoesNotClaimPrivateRowsLive": true,
+  "exhaustiveEmptyStateDistinctFromIntermediateEmptyPage": true,
+  "clearFiltersResetsInputsAndPaging": true,
+  "loadedAllPortfolioCards": 16,
+  "uniquePortfolioHeadlines": 16,
+  "ownerHomePreviewCards": 5,
+  "ownerHomeMetricsExplicitlyRecentAndLegacy": true,
+  "manageAllOpensDirectory": true,
+  "editorOpensExactTargetAndRetainsSavedHeadline": true,
+  "editorCanceledWithoutChanges": true,
+  "availabilityAndUnitsActionsReachExactFixture": true,
+  "unitSetupRequirementsRemainEnforced": true,
+  "hostedHiddenChildUnitPositiveNotClaimed": true,
+  "mobile": {
+    "width": 390,
+    "documentScrollWidth": 390,
+    "mainWidth": 390,
+    "mainScrollWidth": 390
+  },
+  "tablet": {
+    "width": 768,
+    "documentScrollWidth": 768,
+    "propertyHeadlineWidth": 199.9140625,
+    "layoutCorrectionVisuallyVerified": true
+  },
+  "defaultViewportRestored": true,
+  "browserPermanentDeletionNotPerformed": true,
+  "guardedNativeFixtureCleanup": true,
+  "syntheticCloudPaidOrIdentityGrants": false,
+  "realProviderRequests": 0,
+  "limits": [
+    "Child-unit visibility predicates are isolated native tests; hosted child-unit creation requires real paid and identity prerequisites.",
+    "Public-profile compatibility API remains separate from this bounded private directory.",
+    "Account billing expiry is not invented as per-property expiry.",
+    "Full public/provider/production acceptance and later editable Figma remain open."
+  ],
+  "postCleanupStandingRentalCards": 4,
+  "postCleanupFiltersCleared": true
+}

@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-26T05:24:58.201130+00:00",
+  "environment": "cheerful-ferret-182",
+  "sourceSha": "b4f98b6b79a11bf3a4fd0cc56df45bf2e112d00b",
+  "readyDeployment": "dpl_HrC6ddFNXdG4NQNbLZnPhbEaUGNF",
+  "actualReservedOwnerBrowser": true,
+  "sameBrowserPrivateDirectoryCount": 4,
+  "publicProfileCount": 0,
+  "publicLoadedCountLabel": true,
+  "publicExhaustedEmptyState": true,
+  "privateRentalTitlesNotRenderedOnPublicProfile": true,
+  "reviewsTabEmptyPublishedState": true,
+  "returnedToListingsTab": true,
+  "mobile": {
+    "width": 390,
+    "documentScrollWidth": 390,
+    "headingWidth": 308
+  },
+  "defaultViewportRestored": true,
+  "finalReadySourceReloaded": true,
+  "fixtureWrites": 0,
+  "providerRequests": 0,
+  "syntheticCloudPaidOrIdentityGrants": false,
+  "positiveHostedPublicCardsNotClaimed": true,
+  "publicPaginationPositiveCoveredByIsolatedNativeTests": true,
+  "limits": [
+    "Hosted owner has no public rentals; empty intermediate-page UI and positive public cards are not browser-proven in hosted development.",
+    "Isolated native tests traverse 127 candidates and local native runtime returns four existing synthetic public cards.",
+    "No local browser permission denial was retried or bypassed.",
+    "Full public/provider/production acceptance and subsequent editable Figma remain open."
+  ]
+}

@@ -1,0 +1,14 @@
+flowchart TD
+  REF["User screenshot reference"] -->|visual authority| PUBLIC["Home and search • parent builder"]
+  PUBLIC -->|selected rental and stay dates| PROPERTY["Property and request • property builder"]
+  PUBLIC -->|account session| ACCOUNT["Account and legal • account builder"]
+  MOTION["24 saved motion sources • motion builder"] -->|shared interaction contracts| PUBLIC
+  MOTION -->|shared interaction contracts| PROPERTY
+  MOTION -->|shared interaction contracts| ACCOUNT
+  PROPERTY -->|validated monthly inquiry| DB["Convex • existing auth and rental rules"]
+  ACCOUNT -->|authorized own account data| DB
+  DB -->|pending request| OWNER["Owner approval • existing dashboard"]
+  PUBLIC -->|rendered comparison| REVIEW["Integrated visual and native checks"]
+  PROPERTY -->|request and failure paths| REVIEW
+  ACCOUNT -->|role and persistence evidence| REVIEW
+  OWNER -->|approval remains separate| REVIEW

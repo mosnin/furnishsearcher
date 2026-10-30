@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffListingReview } from "@/components/staff-listing-review";
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
@@ -25,22 +26,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ExternalLink, Trash2, CheckCircle2 } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 
-type StatusFilter = "all" | "active" | "pending" | "inactive";
+type StatusFilter = "all" | "active" | "pending" | "inactive" | "rejected";
 
 function StatusBadge({ status }: { status: string }) {
   const cls =
     status === "active"
       ? "bg-emerald-100 text-emerald-700"
       : status === "pending"
-      ? "bg-amber-100 text-amber-700"
-      : "bg-slate-100 text-slate-600";
+        ? "bg-amber-100 text-amber-700"
+        : "bg-slate-100 text-slate-600";
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-        cls
+        cls,
       )}
     >
       {status}
@@ -53,13 +54,14 @@ export default function AdminListingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Id<"listings"> | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const listings = useQuery(api.listings.getAll) as Doc<"listings">[] | undefined;
+  const listings = useQuery(api.listings.getAll) as
+    | Doc<"listings">[]
+    | undefined;
   const deleteListing = useMutation(api.listings.deleteListing);
-  const publishListing = useMutation(api.listings.publish);
 
   const filtered =
     listings?.filter((l) =>
-      statusFilter === "all" ? true : l.status === statusFilter
+      statusFilter === "all" ? true : l.status === statusFilter,
     ) ?? [];
 
   const statusTabs: { label: string; value: StatusFilter }[] = [
@@ -67,16 +69,8 @@ export default function AdminListingsPage() {
     { label: "Active", value: "active" },
     { label: "Pending", value: "pending" },
     { label: "Inactive", value: "inactive" },
+    { label: "Rejected", value: "rejected" },
   ];
-
-  const handleApprove = async (id: Id<"listings">) => {
-    try {
-      await publishListing({ id });
-      toast.success("Listing approved and set to active");
-    } catch {
-      toast.error("Failed to approve listing");
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -119,7 +113,7 @@ export default function AdminListingsPage() {
                 "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 statusFilter === tab.value
                   ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  : "text-slate-600 hover:text-slate-900",
               )}
             >
               {tab.label}
@@ -147,13 +141,27 @@ export default function AdminListingsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Title</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">City / State</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Price</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Views</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Created</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Actions</TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Title
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  City / State
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Price
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Status
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Views
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Created
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,22 +198,14 @@ export default function AdminListingsPage() {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
-                      {listing.status === "pending" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                          onClick={() => handleApprove(listing._id as Id<"listings">)}
-                          title="Approve listing"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                      <StaffListingReview id={listing._id} />
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => setDeleteTarget(listing._id as Id<"listings">)}
+                        onClick={() =>
+                          setDeleteTarget(listing._id as Id<"listings">)
+                        }
                         title="Delete listing"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -229,8 +229,8 @@ export default function AdminListingsPage() {
             <DialogTitle>Delete Listing</DialogTitle>
           </DialogHeader>
           <p className="text-slate-600 text-sm">
-            Are you sure you want to permanently delete this listing? This cannot be
-            undone.
+            Are you sure you want to permanently delete this listing? This
+            cannot be undone.
           </p>
           <DialogFooter className="gap-2">
             <Button

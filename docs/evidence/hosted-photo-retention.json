@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-25T22:18:19.526Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentJwt": true,
+  "reservedSyntheticAccountOnly": true,
+  "actualHttpUploadsAndExactBytes": true,
+  "privateListingSaveAndHydration": true,
+  "anonymousPrivateListingReadDenied": true,
+  "nativeReferenceMigrationReady": true,
+  "sharedReferenceHasNoExpiry": true,
+  "finalReferenceRemovalStartsSevenDayRecovery": true,
+  "reattachmentClearsExpiry": true,
+  "ownDisposableUnpublishedListingsDeleted": true,
+  "uploadedBytesRetainedDuringRecovery": true,
+  "forcedCloudExpiryOrByteDeletion": false,
+  "realSevenDayElapsedAcceptance": false,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

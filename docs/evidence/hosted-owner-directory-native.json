@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-26T05:08:42.118Z",
+  "environment": "cheerful-ferret-182",
+  "actualReservedOwnerClerkJwt": true,
+  "privateRootListingsCreatedThroughNativeMutation": 12,
+  "filteredPageSizes": [
+    0,
+    1
+  ],
+  "oldestAddressFoundAfterEmptyPage": true,
+  "caseInsensitiveCityState": true,
+  "incompleteStatus": true,
+  "propertyNumberCompactAndNormal": true,
+  "headlineAndNativeIdSearch": true,
+  "completeUniqueNewestFirstTraversal": true,
+  "privateRowsNotClaimedLive": true,
+  "anonymousDenied": true,
+  "hostedUnitCreationNotAttemptedWithoutRealPaidAndIdentityPrerequisites": true,
+  "hiddenChildUnitSemanticsCoveredByIsolatedNativeTests": true,
+  "syntheticCloudPaidOrIdGrants": false,
+  "realProviderRequests": 0,
+  "cleaned": true,
+  "cleanedAt": "2026-10-26T05:13:35.534Z"
+}

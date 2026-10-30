@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-25T22:31:22.941Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "authentication": "Privileged local development identities and explicit synthetic paid/identity/staff publication fixture, not real provider acceptance",
+  "actualPublicSaveAndIdempotentRetry": true,
+  "privatePagedCardProjection": true,
+  "unrelatedAccountDenied": true,
+  "hiddenEntryRetainedWithoutDetails": true,
+  "republishedEntryRestoresCurrentCard": true,
+  "hiddenEntryRemovalAndRetry": true,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

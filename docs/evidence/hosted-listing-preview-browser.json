@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-26T05:40:04.882108+00:00",
+  "environment": "cheerful-ferret-182",
+  "sourceSha": "8eb47e1dc7943580c002b9121f4dcac273b11f9e",
+  "readyDeployment": "dpl_7mqnvVPoERviaLzb8zus4BSPgj8a",
+  "actualReservedOwnerBrowser": true,
+  "standingPrivateRentalOnly": true,
+  "privatePreviewBannerVisible": true,
+  "travelerBookingContactPhoneSaveShareReportAndReviewSubmissionAbsent": true,
+  "privateShareDialogAbsent": true,
+  "exactOwnerEditorOpensWithSavedTitle": true,
+  "editorCancelledUnchanged": true,
+  "publicationLinkOpensFourStandingRentals": true,
+  "mobile": {
+    "width": 390,
+    "documentScrollWidth": 390,
+    "bannerWidth": 358
+  },
+  "defaultViewportRestored": true,
+  "fixtureWrites": 0,
+  "providerRequests": 0,
+  "syntheticCloudPublicationGrants": false,
+  "limits": [
+    "Hosted traveler inquiry/contact sends are not browser-proven because there is no eligible hosted public rental.",
+    "Actual dropped transport acknowledgements, profile-completion recovery and changed-date handoff remain browser-unverified.",
+    "Server retry behavior is proven with native isolated tests and an actual local runtime under synthetic prerequisites.",
+    "No local browser denial was retried or bypassed.",
+    "Full public/provider/production/whole-product acceptance and subsequent editable Figma remain open."
+  ]
+}

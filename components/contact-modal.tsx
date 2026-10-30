@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -13,6 +13,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -40,11 +41,13 @@ export function ContactModal({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const inFlight = useRef(false);
+  const reference = useRef<{ payload: string; id: string } | null>(null);
 
   // Fetch the current user's Convex record using their Clerk ID
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   const sendMessage = useMutation(api.messages.sendMessage);
@@ -57,32 +60,41 @@ export function ContactModal({
     convexUser != null;
 
   const handleSend = async () => {
-    if (!canSend || !convexUser) return;
+    if (!canSend || !convexUser || inFlight.current) return;
+    inFlight.current = true;
     setSending(true);
     setError(null);
     try {
-      await sendMessage({
+      const fields = {
         senderId: convexUser._id,
         receiverId: landlordId,
         listingId,
         content: message.trim(),
-      });
+      };
+      const payload = JSON.stringify(fields);
+      if (reference.current?.payload !== payload)
+        reference.current = { payload, id: crypto.randomUUID() };
+      await sendMessage({ ...fields, clientRequestId: reference.current.id });
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to send message. Please try again.",
+      );
     } finally {
+      inFlight.current = false;
       setSending(false);
     }
   };
 
   const handleClose = () => {
-    // Reset state when closing (give a tiny delay so the animation finishes)
+    if (inFlight.current) return;
     onClose();
-    setTimeout(() => {
-      setMessage("");
-      setSent(false);
-      setError(null);
-    }, 300);
+    setMessage("");
+    setSent(false);
+    setError(null);
+    reference.current = null;
   };
 
   return (
@@ -97,10 +109,13 @@ export function ContactModal({
             <DialogHeader>
               <DialogTitle className="text-xl">Message sent!</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground mt-1">
-                The landlord will reply to your message soon. You can view the conversation in your
-                messages inbox.
+                Your message is saved in your inbox. You can read any replies
+                there.
               </DialogDescription>
             </DialogHeader>
+            <Button asChild>
+              <Link href="/dashboard/messages">Open messages</Link>
+            </Button>
             <Button onClick={handleClose} className="mt-2 w-full sm:w-auto">
               Done
             </Button>
@@ -111,7 +126,8 @@ export function ContactModal({
             <DialogHeader>
               <DialogTitle>Contact {landlordName}</DialogTitle>
               <DialogDescription>
-                Introduce yourself and let the landlord know about your situation.
+                Introduce yourself and let the landlord know about your
+                situation.
               </DialogDescription>
             </DialogHeader>
 
@@ -128,7 +144,9 @@ export function ContactModal({
               <div
                 className={cn(
                   "text-right text-xs",
-                  charsRemaining < 100 ? "text-amber-600" : "text-muted-foreground"
+                  charsRemaining < 100
+                    ? "text-amber-600"
+                    : "text-muted-foreground",
                 )}
               >
                 {charsRemaining} characters remaining
@@ -142,13 +160,18 @@ export function ContactModal({
 
               {convexUser === null && (
                 <p className="text-sm text-amber-700 bg-amber-50 rounded-md px-3 py-2">
-                  Your account is still being set up. Please refresh and try again.
+                  Your account is still being set up. Please refresh and try
+                  again.
                 </p>
               )}
             </div>
 
             <DialogFooter className="mt-2 gap-2 sm:gap-0">
-              <Button variant="outline" onClick={handleClose} disabled={sending}>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={sending}
+              >
                 Cancel
               </Button>
               <Button onClick={handleSend} disabled={!canSend}>

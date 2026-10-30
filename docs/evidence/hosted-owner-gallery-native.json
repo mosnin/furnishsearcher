@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-26T00:24:34.225Z",
+  "deployment": "cheerful-ferret-182",
+  "actualReservedOwnerClerkJwt": true,
+  "browserCreatedPrivateListing": true,
+  "canonicalGalleryOrderAndCaptionsPersisted": true,
+  "priceAndOccupancyPersisted": true,
+  "nativeDatePickerAndStructuredRoomDepositRuleFacilityDataPersisted": true,
+  "rotatedJpegActualDimensions": [
+    800,
+    1200
+  ],
+  "coverPngActualDimensions": [
+    1200,
+    800
+  ],
+  "contradictoryLegacyPetAmenityNoLongerDisplayed": true,
+  "anonymousPrivateListingDenied": true,
+  "publicPaidIdentityAcceptance": false,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false,
+  "ownPrivateFixtureDeleted": true,
+  "unusedImagesRetainNormalRecoveryPeriod": true
+}

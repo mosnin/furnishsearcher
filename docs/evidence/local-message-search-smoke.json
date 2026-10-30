@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-25T03:42:53.848Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "actualConvexTextSearch": true,
+  "originalMessageOutsideNewestPage": true,
+  "caseInsensitivePrefixMatch": true,
+  "boundedMatchWindowContainsTarget": true,
+  "sentAndReceivedMatchesPaged": 55,
+  "unrelatedSearchAndWindowDenied": true,
+  "participantAliasIndexed": true,
+  "visibleNameBackfillCompleted": true,
+  "removedAliasNoLongerMatches": true,
+  "nameUpdatePreservesUnreadTotal": true,
+  "archivedAndBlockedHistorySearchable": true,
+  "blockedSendStillRejected": true,
+  "fixtureConversationReadAndArchived": true,
+  "fixtureListingHidden": true,
+  "privilegedSyntheticIdentities": true,
+  "actualClerkBrowserJwt": false,
+  "actualEmailDelivery": false,
+  "renderedBrowserAcceptance": false
+}

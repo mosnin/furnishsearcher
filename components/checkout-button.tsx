@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -29,10 +29,11 @@ export function SubscriptionCheckoutButton({
   const { userId: clerkId, isSignedIn } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const requestId = useRef<string | null>(null);
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : "skip",
   ) as { _id: Id<"users">; email: string } | null | undefined;
 
   const createCheckout = useAction(api.creem.createSubscriptionCheckout);
@@ -52,6 +53,8 @@ export function SubscriptionCheckoutButton({
       const origin =
         typeof window !== "undefined" ? window.location.origin : "";
       const result = await createCheckout({
+        clientRequestId:
+          requestId.current ?? (requestId.current = crypto.randomUUID()),
         userId: convexUser._id,
         plan,
         customerEmail: convexUser.email,
@@ -62,8 +65,7 @@ export function SubscriptionCheckoutButton({
         window.location.href = result.checkoutUrl;
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Checkout failed";
+      const message = err instanceof Error ? err.message : "Checkout failed";
       toast.error(message);
       setLoading(false);
     }
@@ -75,8 +77,8 @@ export function SubscriptionCheckoutButton({
       disabled={loading}
       variant={variant}
       className={cn(
-        variant === "default" && "bg-[#1e3a8a] hover:bg-[#0f2044]",
-        className
+        variant === "default" && "bg-primary hover:bg-primary",
+        className,
       )}
     >
       {loading ? (
@@ -103,10 +105,11 @@ export function FeatureListingButton({
   const { userId: clerkId, isSignedIn } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const requestId = useRef<string | null>(null);
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : "skip",
   ) as { _id: Id<"users">; email: string } | null | undefined;
 
   const createCheckout = useAction(api.creem.createFeatureListingCheckout);
@@ -125,6 +128,8 @@ export function FeatureListingButton({
       const origin =
         typeof window !== "undefined" ? window.location.origin : "";
       const result = await createCheckout({
+        clientRequestId:
+          requestId.current ?? (requestId.current = crypto.randomUUID()),
         userId: convexUser._id,
         listingId,
         customerEmail: convexUser.email,
@@ -135,8 +140,7 @@ export function FeatureListingButton({
         window.location.href = result.checkoutUrl;
       }
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Checkout failed";
+      const message = err instanceof Error ? err.message : "Checkout failed";
       toast.error(message);
       setLoading(false);
     }
@@ -148,7 +152,7 @@ export function FeatureListingButton({
       disabled={loading}
       className={cn(
         "bg-amber-400 hover:bg-amber-500 text-slate-900 font-semibold",
-        className
+        className,
       )}
     >
       {loading ? (

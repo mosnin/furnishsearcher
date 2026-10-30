@@ -1,177 +1,305 @@
 "use client";
-
-import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useState } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Circle,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { MapListing } from "@/components/map-view";
+import type { MapListing } from "./map-view";
+import { wrapLongitude } from "@/lib/geo";
+import type { Bounds, Point } from "@/lib/geo";
 import { formatPrice } from "@/lib/utils";
-
-// Fix Leaflet default icon issue caused by webpack asset bundling
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
+import {
+  useListingObservation,
+  observationsAllowed,
+} from "./use-listing-observation";
+import { Button } from "./ui/button";
 type Props = {
   listings: MapListing[];
+  observeSearch?: boolean;
   selectedId?: string | null;
   onSelectListing?: (id: string | null) => void;
+  onViewport?: (bounds: Bounds | null) => void;
+  fitKey?: string;
+  bounds?: Bounds;
+  reference?: Point;
 };
-
-/** Creates a DivIcon price pin in navy pill style */
-function createPriceIcon(price: number, selected: boolean): L.DivIcon {
-  const label = formatPrice(price);
-  if (selected) {
-    return L.divIcon({
-      className: "",
-      html: `<div style="
-        background:#1e40af;
-        color:#fff;
-        border:2.5px solid #fff;
-        border-radius:9999px;
-        padding:5px 12px;
-        font-size:13px;
-        font-weight:700;
-        font-family:inherit;
-        white-space:nowrap;
-        box-shadow:0 4px 12px rgba(0,0,0,0.35);
-        transform:scale(1.15);
-        transform-origin:center bottom;
-        cursor:pointer;
-      ">${label}</div>`,
-      iconAnchor: [28, 20],
-      popupAnchor: [0, -24],
-    });
-  }
-  return L.divIcon({
-    className: "",
-    html: `<div style="
-      background:#1e3a8a;
-      color:#fff;
-      border:2px solid #fff;
-      border-radius:9999px;
-      padding:4px 10px;
-      font-size:12px;
-      font-weight:700;
-      font-family:inherit;
-      white-space:nowrap;
-      box-shadow:0 2px 8px rgba(0,0,0,0.25);
-      cursor:pointer;
-    ">${label}</div>`,
-    iconAnchor: [24, 16],
-    popupAnchor: [0, -20],
+function Viewport({
+  listings,
+  onViewport,
+  fitKey,
+  bounds,
+  reference,
+}: {
+  listings: MapListing[];
+  onViewport?: Props["onViewport"];
+  fitKey?: string;
+  bounds?: Bounds;
+  reference?: Point;
+}) {
+  const map = useMap(),
+    fitted = useRef<string | null>(null);
+  useMapEvents({
+    moveend() {
+      const b = map.getBounds();
+      const west = wrapLongitude(b.getWest()),
+        east = wrapLongitude(b.getEast());
+      if (b.getEast() - b.getWest() >= 180) {
+        onViewport?.(null);
+        return;
+      }
+      if (west !== east)
+        onViewport?.({
+          south: Math.max(-85, b.getSouth()),
+          north: Math.min(85, b.getNorth()),
+          west,
+          east,
+        });
+    },
   });
-}
-
-/** Inner component that uses the map context to fit bounds */
-function BoundsFitter({ listings }: { listings: MapListing[] }) {
-  const map = useMap();
-  const fitted = useRef(false);
-
   useEffect(() => {
-    if (listings.length === 0) return;
-    const bounds = L.latLngBounds(listings.map((l) => [l.lat, l.lng]));
-    // Pad so pins aren't right at the edge; only auto-fit on first load
-    if (!fitted.current) {
-      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 });
-      fitted.current = true;
+    const key = fitKey ?? "initial";
+    if (fitted.current === key) return;
+    if (bounds) {
+      map.fitBounds(
+        [
+          [bounds.south, bounds.west],
+          [
+            bounds.north,
+            bounds.east < bounds.west ? bounds.east + 360 : bounds.east,
+          ],
+        ],
+        { animate: false },
+      );
+      fitted.current = key;
+    } else if (listings.length) {
+      map.fitBounds(L.latLngBounds(listings.map((l) => [l.lat, l.lng])), {
+        padding: [45, 45],
+        maxZoom: 13,
+        animate: false,
+      });
+      fitted.current = key;
+    } else if (reference) {
+      map.setView([reference.latitude, reference.longitude], 11, {
+        animate: false,
+      });
+      fitted.current = key;
     }
-  }, [map, listings]);
-
+  }, [map, listings, bounds, reference, fitKey]);
   return null;
 }
-
-export default function LeafletMapInner({
+function MapAppearances({
   listings,
   selectedId,
-  onSelectListing,
-}: Props) {
-  // Determine a sensible default center
-  const defaultCenter: [number, number] =
-    listings.length > 0
-      ? [listings[0].lat, listings[0].lng]
-      : [39.5, -98.35]; // geographic center of the US
-
-  const selected = listings.find((l) => l.id === selectedId) ?? null;
-
+}: {
+  listings: MapListing[];
+  selectedId?: string | null;
+}) {
+  const map = useMap(),
+    record = useListingObservation("impressions"),
+    [revision, setRevision] = useState(0);
+  const inView = useRef(false);
+  useEffect(() => {
+    const refresh = () => setRevision((n) => n + 1);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        inView.current = entries.some(
+          (e) => e.isIntersecting && e.intersectionRatio >= 0.5,
+        );
+        refresh();
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(map.getContainer());
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [map]);
+  useMapEvents({
+    moveend: () => setRevision((n) => n + 1),
+    zoomend: () => setRevision((n) => n + 1),
+  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!inView.current || !observationsAllowed()) return;
+      const rectangle = map.getContainer().getBoundingClientRect();
+      if (
+        rectangle.width <= 0 ||
+        rectangle.height <= 0 ||
+        rectangle.bottom <= 0 ||
+        rectangle.top >= window.innerHeight ||
+        rectangle.right <= 0 ||
+        rectangle.left >= window.innerWidth
+      )
+        return;
+      const counts = new Map<string, number>();
+      for (const l of listings) {
+        const key = `${l.lat},${l.lng}`;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      record(
+        listings
+          .filter(
+            (l) =>
+              (counts.get(`${l.lat},${l.lng}`) === 1 || l.id === selectedId) &&
+              map.getBounds().contains([l.lat, l.lng]),
+          )
+          .map((l) => l.id),
+      );
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [map, listings, selectedId, revision, record]);
+  return null;
+}
+export default function LeafletMapInner(p: Props) {
+  const groups = useMemo(() => {
+    const groups = new Map<string, MapListing[]>();
+    for (const l of p.listings) {
+      const key = `${l.lat},${l.lng}`;
+      groups.set(key, [...(groups.get(key) ?? []), l]);
+    }
+    return [...groups.entries()];
+  }, [p.listings]);
+  const selected = p.listings.find((l) => l.id === p.selectedId),
+    group = selected
+      ? (groups.find(([, rows]) =>
+          rows.some((r) => r.id === selected.id),
+        )?.[1] ?? [])
+      : [];
+  const index = selected ? group.findIndex((l) => l.id === selected.id) : 0;
   return (
     <MapContainer
-      center={defaultCenter}
-      zoom={listings.length > 0 ? 10 : 4}
-      scrollWheelZoom={true}
+      center={[39.5, -98.35]}
+      zoom={4}
+      scrollWheelZoom
       style={{ width: "100%", height: "100%", borderRadius: "0.75rem" }}
       className="z-0"
+      worldCopyJump
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
-
-      <BoundsFitter listings={listings} />
-
-      {listings.map((listing) => {
-        const isSelected = selectedId === listing.id;
-        const icon = createPriceIcon(listing.price, isSelected);
-
+      {p.observeSearch && (
+        <MapAppearances listings={p.listings} selectedId={p.selectedId} />
+      )}
+      <Viewport
+        listings={p.listings}
+        onViewport={p.onViewport}
+        fitKey={p.fitKey}
+        bounds={p.bounds}
+        reference={p.reference}
+      />
+      {p.reference && (
+        <Circle
+          center={[p.reference.latitude, p.reference.longitude]}
+          radius={100}
+          pathOptions={{
+            color: "#b45309",
+            fillColor: "#f59e0b",
+            fillOpacity: 0.4,
+          }}
+        />
+      )}
+      {groups.map(([key, rows]) => {
+        const active = rows.some((r) => r.id === p.selectedId),
+          price = Math.min(...rows.map((r) => r.price));
+        const icon = L.divIcon({
+          className: "",
+          html: `<span style="display:block;background:${active ? "#1e40af" : "#0f2044"};color:white;border:2px solid white;border-radius:999px;padding:5px 10px;font-weight:700;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px #0004">${formatPrice(price)}${rows.length > 1 ? ` +${rows.length - 1}` : ""}</span>`,
+          iconAnchor: [30, 18],
+        });
         return (
           <Marker
-            key={listing.id}
-            position={[listing.lat, listing.lng]}
+            key={key}
+            position={[rows[0].lat, rows[0].lng]}
             icon={icon}
-            zIndexOffset={isSelected ? 1000 : 0}
+            title={`${rows.length} loaded ${rows.length === 1 ? "rental" : "rentals"} in this approximate area`}
             eventHandlers={{
-              click: () => {
-                onSelectListing?.(isSelected ? null : listing.id);
-              },
+              click: () => p.onSelectListing?.(active ? null : rows[0].id),
             }}
-          >
-            {isSelected && selected && (
-              <Popup
-                autoPan
-                closeButton={true}
-                eventHandlers={{ remove: () => onSelectListing?.(null) }}
-              >
-                <div style={{ minWidth: 200, maxWidth: 240, fontFamily: "inherit" }}>
-                  <p style={{ fontWeight: 700, fontSize: 14, margin: "0 0 2px", lineHeight: 1.3 }}>
-                    {selected.title}
-                  </p>
-                  <p style={{ color: "#6b7280", fontSize: 12, margin: "0 0 6px" }}>
-                    {selected.city}, {selected.state}
-                  </p>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ color: "#1e3a8a", fontWeight: 700, fontSize: 15 }}>
-                      {formatPrice(selected.price)}
-                      <span style={{ color: "#9ca3af", fontWeight: 400, fontSize: 11 }}>/mo</span>
-                    </span>
-                    <span style={{ color: "#6b7280", fontSize: 12 }}>
-                      {selected.bedrooms} bd &middot; {selected.bathrooms} ba
-                    </span>
-                  </div>
-                  <a
-                    href={`/listings/${selected.id}`}
-                    style={{
-                      display: "block",
-                      textAlign: "center",
-                      background: "#1e3a8a",
-                      color: "#fff",
-                      padding: "6px 0",
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    View Listing
-                  </a>
-                </div>
-              </Popup>
-            )}
-          </Marker>
+          />
         );
       })}
+      {selected && (
+        <>
+          <Circle
+            center={[selected.lat, selected.lng]}
+            radius={800}
+            pathOptions={{ color: "#1e40af", fillOpacity: 0.08 }}
+          />
+          <Popup
+            position={[selected.lat, selected.lng]}
+            closeButton={false}
+            autoPan
+          >
+            <div className="space-y-2 min-w-52 max-w-64">
+              <button
+                aria-label="Close map listing"
+                className="float-right p-1"
+                onClick={() => p.onSelectListing?.(null)}
+              >
+                ×
+              </button>
+              <p className="font-semibold text-sm">{selected.title}</p>
+              <p className="text-xs text-slate-600">
+                {selected.city}, {selected.state}
+              </p>
+              <p>
+                {formatPrice(selected.price)}/mo · {selected.bedrooms} bd ·{" "}
+                {selected.bathrooms} ba
+              </p>
+              <p className="text-xs text-slate-500">
+                Approximate area. The exact address is private.
+              </p>
+              {group.length > 1 && (
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    aria-label="Previous listing in map group"
+                    onClick={() =>
+                      p.onSelectListing?.(
+                        group[(index - 1 + group.length) % group.length].id,
+                      )
+                    }
+                  >
+                    ←
+                  </Button>
+                  <span className="text-xs">
+                    {index + 1} of {group.length} loaded listings
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    aria-label="Next listing in map group"
+                    onClick={() =>
+                      p.onSelectListing?.(group[(index + 1) % group.length].id)
+                    }
+                  >
+                    →
+                  </Button>
+                </div>
+              )}
+              <a
+                href={selected.href ?? `/listings/${selected.id}`}
+                className="block rounded bg-primary p-2 text-center text-white"
+              >
+                View listing
+              </a>
+            </div>
+          </Popup>
+        </>
+      )}
     </MapContainer>
   );
 }

@@ -6,3 +6,11 @@ node_modules/
 .vercel
 .DS_Store
 dist/
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+/.convex/
+
+# Original hero footage is served from the official Pexels CDN.
+/public/media/globe-hero.mp4

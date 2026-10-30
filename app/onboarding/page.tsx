@@ -6,55 +6,11 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Search, Home, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import wizard from "@/components/onboardingwizard.module.css";
+import Link from "next/link";
 import { toast } from "sonner";
 
 type Role = "tenant" | "landlord";
-
-interface RoleOption {
-  role: Role;
-  icon: React.ElementType;
-  title: string;
-  subtitle: string;
-  description: string;
-  badge: string;
-  badgeColor: string;
-  accentColor: string;
-  hoverBorder: string;
-  selectedBorder: string;
-  selectedBg: string;
-}
-
-const roleOptions: RoleOption[] = [
-  {
-    role: "tenant",
-    icon: Search,
-    title: "I'm Looking for a Rental",
-    subtitle: "Renter",
-    description:
-      "Find furnished monthly rentals from verified landlords. No booking fees.",
-    badge: "300k+ listings",
-    badgeColor: "bg-blue-50 text-blue-700",
-    accentColor: "text-blue-600",
-    hoverBorder: "hover:border-blue-300 hover:shadow-blue-100",
-    selectedBorder: "border-blue-500",
-    selectedBg: "bg-blue-50/40",
-  },
-  {
-    role: "landlord",
-    icon: Home,
-    title: "I'm a Property Owner",
-    subtitle: "Landlord",
-    description:
-      "List your furnished property and connect directly with quality tenants.",
-    badge: "No platform fees",
-    badgeColor: "bg-emerald-50 text-emerald-700",
-    accentColor: "text-emerald-600",
-    hoverBorder: "hover:border-emerald-300 hover:shadow-emerald-100",
-    selectedBorder: "border-emerald-500",
-    selectedBg: "bg-emerald-50/40",
-  },
-];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -97,8 +53,18 @@ export default function OnboardingPage() {
         throw new Error("Failed to create user record.");
       }
 
-      // Update their role if it differs from default
-      if (convexUser.role !== selectedRole) {
+      if (convexUser.accountTypePending !== true) {
+        router.replace(
+          convexUser.role === "admin"
+            ? "/dashboard/admin"
+            : convexUser.role === "landlord"
+              ? "/dashboard/landlord"
+              : "/dashboard/tenant",
+        );
+        return;
+      }
+      // Choose the new account type exactly once.
+      if (convexUser.accountTypePending === true) {
         await updateRole({
           userId: convexUser._id,
           role: selectedRole,
@@ -108,7 +74,10 @@ export default function OnboardingPage() {
       // Apply referral code if provided (silently ignore errors)
       if (referralCode.trim()) {
         try {
-          await applyReferral({ code: referralCode.trim().toUpperCase(), newUserId: convexUser._id });
+          await applyReferral({
+            code: referralCode.trim().toUpperCase(),
+            newUserId: convexUser._id,
+          });
         } catch {
           // Invalid or already-used code — not a fatal error
         }
@@ -124,8 +93,8 @@ export default function OnboardingPage() {
       // Redirect to the appropriate dashboard
       router.push(
         selectedRole === "landlord"
-          ? "/dashboard/landlord"
-          : "/dashboard/tenant"
+          ? "/dashboard/landlord/listings/new"
+          : "/dashboard/tenant",
       );
     } catch (err) {
       console.error("Onboarding error:", err);
@@ -135,176 +104,99 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-[#0f2044]/8 text-[#0f2044] text-xs font-semibold px-3 py-1.5 rounded-full mb-5 tracking-wide uppercase">
-            Step 1 of 1
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-[#0f2044] tracking-tight mb-3">
-            Welcome to FurnishFinder!
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            How will you use the platform? You can always change this later.
-          </p>
-        </div>
-
-        {/* Role cards */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          {roleOptions.map((option) => {
-            const Icon = option.icon;
-            const isSelected = selectedRole === option.role;
-
-            return (
-              <button
-                key={option.role}
-                onClick={() => handleRoleSelect(option.role)}
-                disabled={isLoading}
-                className={cn(
-                  "group relative flex flex-col items-start gap-4 p-6 rounded-xl border-2 text-left",
-                  "transition-all duration-200 cursor-pointer",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "disabled:pointer-events-none disabled:opacity-60",
-                  "shadow-sm hover:shadow-md",
-                  isSelected
-                    ? cn(
-                        option.selectedBorder,
-                        option.selectedBg
-                      )
-                    : cn(
-                        "border-border bg-white",
-                        option.hoverBorder
-                      )
-                )}
-                aria-pressed={isSelected}
-              >
-                {/* Selection indicator */}
-                <div
-                  className={cn(
-                    "absolute top-4 right-4 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                    isSelected
-                      ? cn("border-current", option.accentColor, "bg-current")
-                      : "border-border bg-white"
-                  )}
-                >
-                  {isSelected && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                    </svg>
-                  )}
-                </div>
-
-                {/* Icon */}
-                <div
-                  className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
-                    isSelected
-                      ? cn("bg-current/10", option.accentColor)
-                      : "bg-muted group-hover:bg-muted/80"
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "w-6 h-6 transition-colors",
-                      isSelected ? option.accentColor : "text-muted-foreground"
-                    )}
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-base text-foreground leading-snug">
-                      {option.title}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                    {option.description}
-                  </p>
-                  <span
-                    className={cn(
-                      "inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full",
-                      option.badgeColor
-                    )}
-                  >
-                    {option.badge}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Referral code */}
-        <div className="text-center mb-4">
-          {!showReferral ? (
+    <main className={wizard.shell}>
+      <p className={wizard.eyebrow}>Welcome to globe</p>
+      <h1 className={wizard.heading}>Your next chapter starts here.</h1>
+      <p className={wizard.intro}>
+        How would you like to use globe? Choose the account that fits your
+        plans.
+      </p>
+      <div className={wizard.step}>
+        <div className={wizard.choices}>
+          {(
+            [
+              {
+                role: "tenant",
+                title: "Find a furnished home",
+                description:
+                  "Explore monthly rentals and connect with property owners.",
+                icon: Search,
+              },
+              {
+                role: "landlord",
+                title: "Share your property",
+                description:
+                  "Create your listing and manage monthly stay requests.",
+                icon: Home,
+              },
+            ] as const
+          ).map((option) => (
             <button
-              onClick={() => setShowReferral(true)}
-              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+              key={option.role}
+              className={wizard.choice}
+              aria-pressed={selectedRole === option.role}
+              disabled={isLoading}
+              onClick={() => handleRoleSelect(option.role)}
             >
+              <option.icon strokeWidth={1.5} />
+              <span>
+                <strong>{option.title}</strong>
+                <p>{option.description}</p>
+              </span>
+              <span className={wizard.circle} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        <div className={wizard.referral}>
+          {!showReferral ? (
+            <button onClick={() => setShowReferral(true)}>
               Have a referral code?
             </button>
           ) : (
-            <div className="flex items-center gap-2 max-w-xs mx-auto">
+            <label>
+              Referral code
               <input
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                placeholder="Enter code (e.g. ABC1234)"
                 maxLength={10}
-                className="flex-1 border border-border rounded-lg px-3 py-2 text-sm text-center tracking-widest font-mono uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Enter code"
               />
-              <button
-                onClick={() => { setShowReferral(false); setReferralCode(""); }}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
-                ✕
-              </button>
-            </div>
+            </label>
           )}
         </div>
-
-        {/* Continue button */}
-        <div className="flex justify-center">
-          <button
-            onClick={handleContinue}
-            disabled={!selectedRole || isLoading}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 h-12 px-10 rounded-lg font-semibold text-base",
-              "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none disabled:opacity-50",
-              selectedRole
-                ? "bg-[#0f2044] text-white hover:bg-[#1a3360] shadow-sm hover:shadow-md"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Setting up your account…
-              </>
-            ) : (
-              "Continue"
-            )}
-          </button>
-        </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          By continuing you agree to our{" "}
-          <a href="/terms" className="underline hover:text-foreground transition-colors">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="/privacy" className="underline hover:text-foreground transition-colors">
-            Privacy Policy
-          </a>
-          .
-        </p>
       </div>
-    </div>
+      <div className={wizard.navigation}>
+        <Link href="/">Back to explore</Link>
+        <button
+          className={wizard.continue}
+          onClick={handleContinue}
+          disabled={!selectedRole || isLoading}
+        >
+          {isLoading ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin" />
+              Setting up…
+            </span>
+          ) : (
+            "Continue"
+          )}
+        </button>
+      </div>
+      <p className={wizard.note}>
+        Your account type is chosen once. Property owners create a draft before
+        requesting publication.
+      </p>
+      <p className={wizard.note}>
+        By continuing you agree to our{" "}
+        <Link href="/terms" className="underline">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
+    </main>
   );
 }

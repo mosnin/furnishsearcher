@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T02:17:55.979Z",
+  "environment": "http://127.0.0.1:3210",
+  "authClass": "privileged synthetic local owner identity; not real Clerk authentication",
+  "providerAvailable": false,
+  "nativeOwnerPagedProperties": 20,
+  "pageBound": 20,
+  "anonymousPrivateAddressesDenied": true,
+  "unavailableActionDenied": true,
+  "providerRequestsSent": 0,
+  "fixtureWrites": 0,
+  "limitations": [
+    "No approved Steadily credentials or live provider acceptance",
+    "No RentalGuardian purchase, plan-change or claim integration",
+    "No policy or coverage created"
+  ]
+}

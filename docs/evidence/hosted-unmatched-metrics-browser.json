@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-25T20:30:45.234793+00:00",
+  "sourceSha": "c972e969354dd01ce4dfd2596c709e56293bf9f9",
+  "deploymentId": "dpl_3rF2DEjvcJHPx5iLCrvUuQuDYpSd",
+  "syntheticSignedInBrowser": true,
+  "observed": [
+    "Unmatched card shows unavailable on the fresh cloud account",
+    "Seven-day period and unmatched chart metric select successfully",
+    "Expanded daily table shows seven unavailable unmatched values",
+    "Actual downloaded CSV has explicit unmatched coverage and blank unknown counts",
+    "390px document/main widths match viewport and unmatched card fits",
+    "Horizontal scrolling reaches the unmatched column on mobile",
+    "Default desktop viewport restored"
+  ],
+  "csv": {
+    "checkedAt": "2026-10-25T20:28:39.692176+00:00",
+    "rows": 7,
+    "sha256": "26a6deb3cf32af2e2599a1767c5099bf6933c6b6fb30e3ae8c54b112602bf8ee",
+    "environment": "test",
+    "separateUnmatchedCoverage": true,
+    "unknownUnmatchedCountsBlank": true,
+    "privateContactsOrCallerIdentifiersExported": false
+  },
+  "nonzeroHostedUnmatchedGraph": false,
+  "successfulHostedProposal": false,
+  "realProviderEffects": false,
+  "productionChanged": false,
+  "tests": 305,
+  "testFiles": 30,
+  "wholeProductAccepted": false
+}

@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-25T23:46:28.904Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "authentication": "Privileged local development identities, synthetic signed-phone claims and explicit local paid/identity/staff publication prerequisites; not real Clerk/SMS/provider acceptance",
+  "nativeOwnerDeletionRetryAndForeignDenial": true,
+  "removedLeadDoesNotReturnAfterNativeScan": true,
+  "deletedLeadPhoneOptionsAndReplyDenied": true,
+  "travelerRequestAndMessagesRetained": true,
+  "actualNativeGroupedPublicOptions": true,
+  "offerLinkCarriesRequestedDatesAndHonorsVisibility": true,
+  "oneOwnerLeadForGroupedUnits": true,
+  "selectedExactUnitContactAndForeignDenial": true,
+  "oneBoundFirstResponseAndIdempotentRetry": true,
+  "differentUnitCannotCreateAnotherFirstResponse": true,
+  "privateTravelerMessageHasRequestUnitDatesAndNoBookingNotice": true,
+  "hidingOfferedUnitRevokesFreshPhoneButKeepsResponseHistory": true,
+  "fixturesReturnedHiddenAndRequestClosed": true,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false,
+  "borrowedLocalQaCapacityRestored": true
+}

@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-25T20:13:02.267328+00:00",
+  "sourceSha": "52a9b06953342a3d756402b5903cb9ba78cab99b",
+  "deploymentId": "dpl_4dT27SqpgYrxrkVwTQ76kASDSFRU",
+  "syntheticSignedInBrowser": true,
+  "observed": [
+    "Owner unmatched and email preferences both default off",
+    "Email enable control disabled without current account-email confirmation and links to profile",
+    "Owner controls render at desktop and 390px; document/main widths equal viewport",
+    "Traveler alternative-offer choice defaults off",
+    "Staging alternative choice updates sharing explanation and preserves exact-match-only phone disclosure",
+    "Clearing staged choice restores original exact-match explanation",
+    "Terms checkbox remains unchecked and no housing request is submitted",
+    "Temporary viewport override reset"
+  ],
+  "ownerPreferencesChanged": false,
+  "travelerRequestCreated": false,
+  "realEmailSent": false,
+  "hostedMultiAccountProposalAccepted": false,
+  "unmatchedPerformanceCountImplemented": false,
+  "productionChanged": false,
+  "tests": 301,
+  "testFiles": 30,
+  "wholeProductAccepted": false
+}

@@ -1,35 +1,31 @@
-import { DollarSign, Building2, MessageCircle, Award } from "lucide-react";
+import { CalendarDays, Building2, MessageCircle, Bookmark } from "lucide-react";
 
 const STATS = [
   {
-    icon: DollarSign,
-    title: "$0 Booking Fees",
-    description: "Save thousands vs short-term platforms",
-    highlight: true,
+    icon: CalendarDays,
+    title: "Monthly Stays",
+    description: "Search stays of 30 days or longer",
   },
   {
     icon: Building2,
-    title: "300,000+ Listings",
-    description: "From 240,000+ verified landlords",
-    highlight: false,
+    title: "Property Details",
+    description: "Compare prices, amenities and availability",
   },
   {
     icon: MessageCircle,
-    title: "Direct Contact",
-    description: "Talk to landlords before booking",
-    highlight: false,
+    title: "Direct Messaging",
+    description: "Discuss your stay with the owner",
   },
   {
-    icon: Award,
-    title: "#1 Ranked",
-    description: "Newsweek's Best Online Platform 2025",
-    highlight: false,
+    icon: Bookmark,
+    title: "Saved Searches",
+    description: "Keep the criteria that matter to you",
   },
 ];
 
 export default function StatsBar() {
   return (
-    <section className="bg-[#0f2044] relative overflow-hidden">
+    <section className="bg-primary relative overflow-hidden">
       {/* Subtle background texture */}
       <div
         className="absolute inset-0 opacity-[0.03]"

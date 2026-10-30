@@ -1,0 +1,78 @@
+[
+  {
+    "id": "k97f2smyfqzx4jderxvykf23498gxjdr",
+    "title": "[QA] Exact Austin apartment",
+    "photos": [
+      "http://127.0.0.1:3210/api/storage/42debd34-435e-43bb-be45-b377844fa18c",
+      "http://127.0.0.1:3210/api/storage/f3022826-223c-4123-a0ed-75a92a8037ae"
+    ],
+    "photoAssets": [
+      {
+        "caption": "[QA] Synthetic color panel 1; no property is shown",
+        "storageId": "kg2ekm787m7d3w02g3ctcvsvsx8gw9q1"
+      },
+      {
+        "caption": "[QA] Synthetic color panel 2; no property is shown",
+        "storageId": "kg2bfgy3n6ztthp0y7z9jm194x8gwzx0"
+      }
+    ],
+    "revision": 1
+  },
+  {
+    "id": "k976qqsxcmrs93kjzm1g132q4h8gxzx1",
+    "title": "[QA] Flexible Austin apartment",
+    "photos": [
+      "http://127.0.0.1:3210/api/storage/39321976-781e-4484-a0c4-582ba970eef0",
+      "http://127.0.0.1:3210/api/storage/1d180d5f-c5cc-46a5-9f5e-c8acfe4cb3e9"
+    ],
+    "photoAssets": [
+      {
+        "caption": "[QA] Synthetic color panel 1; no property is shown",
+        "storageId": "kg2ec7q2pdmemn488x5c7rtb5n8gwxbh"
+      },
+      {
+        "caption": "[QA] Synthetic color panel 2; no property is shown",
+        "storageId": "kg25gym4hv7p8yn2mwjy0hj7k58gw11p"
+      }
+    ],
+    "revision": 81
+  },
+  {
+    "id": "k971ncw38n4qkp6sge9a1f1e4x8gy5pt",
+    "title": "[QA] Synthetic performance a6a8969a",
+    "photos": [
+      "http://127.0.0.1:3210/api/storage/1d0e3495-9b96-4052-bee3-96b6342e078e",
+      "http://127.0.0.1:3210/api/storage/392991c2-5634-452c-9631-cac954fff409"
+    ],
+    "photoAssets": [
+      {
+        "caption": "[QA] Synthetic color panel 1; no property is shown",
+        "storageId": "kg29ct8h55kf193d2rywshk6ah8gyfv1"
+      },
+      {
+        "caption": "[QA] Synthetic color panel 2; no property is shown",
+        "storageId": "kg2fxt38paaem17eyk9cbv2zxx8gydc4"
+      }
+    ],
+    "revision": 2
+  },
+  {
+    "id": "k97bpcgq4160t86qtan7t8zr3x8gzvsh",
+    "title": "[QA] Synthetic performance f691f539",
+    "photos": [
+      "http://127.0.0.1:3210/api/storage/ec17eed7-5152-48c2-abfa-6a5c66db045c",
+      "http://127.0.0.1:3210/api/storage/e46edfcc-97bf-423e-8935-5365de2558e8"
+    ],
+    "photoAssets": [
+      {
+        "caption": "[QA] Synthetic color panel 1; no property is shown",
+        "storageId": "kg27hastb76hyg3w68t26c27wn8gygvs"
+      },
+      {
+        "caption": "[QA] Synthetic color panel 2; no property is shown",
+        "storageId": "kg24h9eb8z5ahvbhssed55bn7h8gy489"
+      }
+    ],
+    "revision": 2
+  }
+]

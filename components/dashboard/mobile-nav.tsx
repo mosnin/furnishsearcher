@@ -25,13 +25,15 @@ type NavItem = {
 };
 
 function getNavItems(role: Role): NavItem[] {
-  const savedHref =
-    role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
-
   return [
     {
       label: "Dashboard",
-      href: role === "landlord" ? "/dashboard/landlord" : role === "admin" ? "/dashboard/admin" : "/dashboard/tenant",
+      href:
+        role === "landlord"
+          ? "/dashboard/landlord"
+          : role === "admin"
+            ? "/dashboard/admin"
+            : "/dashboard/tenant",
       icon: LayoutDashboard,
     },
     {
@@ -47,7 +49,7 @@ function getNavItems(role: Role): NavItem[] {
     },
     {
       label: "Saved",
-      href: savedHref,
+      href: "/dashboard/tenant/saved",
       icon: Heart,
     },
     {
@@ -63,24 +65,31 @@ type ConversationSummary = {
   landlordId: Id<"users">;
   tenantRead: boolean;
   landlordRead: boolean;
+  blockedByMe?: boolean;
+  archived?: boolean;
 };
 
 function UnreadBadge() {
   const { userId: clerkId } = useAuth();
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkId ? { clerkId } : "skip"
+    clerkId ? { clerkId } : "skip",
   ) as { _id: Id<"users"> } | null | undefined;
 
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as ConversationSummary[] | undefined;
-
-  const unreadCount =
-    conversations?.filter((c) =>
-      c.tenantId === convexUser?._id ? !c.tenantRead : !c.landlordRead
-    ).length ?? 0;
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser?._id ? {} : "skip",
+  );
+  const unreadCount = inboxSummary?.ready ? inboxSummary.unread : 0;
+  if (inboxSummary && !inboxSummary.ready)
+    return (
+      <span
+        aria-label="Inbox updating"
+        className="absolute -top-1 -right-1 text-xs"
+      >
+        …
+      </span>
+    );
 
   if (unreadCount === 0) return null;
 
@@ -97,42 +106,42 @@ export default function MobileNav({ role }: { role: Role }) {
 
   return (
     <nav
+      aria-label="Mobile navigation"
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
       style={{ boxShadow: "0 -2px 12px rgba(0,0,0,0.08)" }}
     >
       <div className="flex items-stretch h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
-          // Determine active state: exact match for dashboard roots, prefix for others
           const isActive =
-            item.href === pathname ||
-            (item.href !== "/search" &&
-              item.href !== "/" &&
-              pathname.startsWith(item.href));
+            item.label === "Dashboard"
+              ? item.href === pathname
+              : item.href === pathname || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
                 isActive
-                  ? "text-[#1e3a8a]"
-                  : "text-slate-400 hover:text-slate-600"
+                  ? "text-primary"
+                  : "text-slate-400 hover:text-slate-600",
               )}
             >
               <div className="relative">
                 <Icon
                   className={cn(
                     "w-5 h-5 transition-colors",
-                    isActive ? "text-[#1e3a8a]" : "text-slate-400"
+                    isActive ? "text-primary" : "text-slate-400",
                   )}
                 />
                 {item.showBadge && <UnreadBadge />}
               </div>
               <span>{item.label}</span>
               {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-[#1e3a8a]" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-primary" />
               )}
             </Link>
           );

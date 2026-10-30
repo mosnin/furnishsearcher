@@ -36,8 +36,8 @@ function StatCard({
               <p className="text-xs text-slate-400 mt-1">{description}</p>
             )}
           </div>
-          <div className="ml-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#0f2044]/10 shrink-0">
-            <Icon className="h-5 w-5 text-[#0f2044]" />
+          <div className="ml-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+            <Icon className="h-5 w-5 text-primary" />
           </div>
         </div>
       </CardContent>
@@ -46,7 +46,9 @@ function StatCard({
 }
 
 export default function AdminReportsPage() {
-  const listings = useQuery(api.listings.getAll) as Doc<"listings">[] | undefined;
+  const listings = useQuery(api.listings.getAll) as
+    | Doc<"listings">[]
+    | undefined;
   const platformStats = useQuery(api.analytics.getPlatformStats);
   const allUsers = useQuery(api.users.getAll) as Doc<"users">[] | undefined;
 
@@ -67,7 +69,9 @@ export default function AdminReportsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Platform Analytics
+        </h1>
         <p className="text-slate-500 text-sm mt-1">
           Platform-wide metrics and recent activity
         </p>
@@ -84,7 +88,11 @@ export default function AdminReportsPage() {
         />
         <StatCard
           title="Active Listings"
-          value={isLoading ? "—" : (platformStats?.totalListings ?? 0).toLocaleString()}
+          value={
+            isLoading
+              ? "—"
+              : (platformStats?.totalListings ?? 0).toLocaleString()
+          }
           description="Currently visible to renters"
           icon={Building2}
           loading={isLoading}
@@ -162,7 +170,8 @@ export default function AdminReportsPage() {
                       {listing.title}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {listing.city}, {listing.state} &mdash; {formatPrice(listing.price)}/mo
+                      {listing.city}, {listing.state} &mdash;{" "}
+                      {formatPrice(listing.price)}/mo
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">

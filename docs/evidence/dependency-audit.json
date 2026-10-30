@@ -1,0 +1,74 @@
+{
+  "verifiedAt": "2026-10-25T00:37:18.458209+00:00",
+  "beforeAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 3,
+    "high": 11,
+    "critical": 1,
+    "total": 15
+  },
+  "afterAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "versions": {
+    "next": {
+      "before": "16.2.4",
+      "after": "16.4.3"
+    },
+    "@clerk/nextjs": {
+      "before": "6.39.2",
+      "after": "6.39.8"
+    },
+    "postcss": {
+      "before": "8.5.31",
+      "after": "8.5.31"
+    },
+    "tailwindcss": {
+      "before": "3.4.19",
+      "after": "3.4.19"
+    },
+    "postcss-selector-parser": {
+      "before": "6.1.2",
+      "after": "7.1.7"
+    }
+  },
+  "unusedDependenciesRemoved": [
+    "zod",
+    "@hookform/resolvers"
+  ],
+  "tailwindScopedOverride": "postcss-selector-parser@7.1.7",
+  "tailwindMajorMigration": false,
+  "cssCompatibility": {
+    "beforeBytes": 70561,
+    "afterBytes": 70561,
+    "byteIdentical": true,
+    "beforeSha256": "7ee76e84e1fa1d2c76d4a75c4c9fd54e6e2e21dacd30b5ff261d675081e9715b",
+    "afterSha256": "7ee76e84e1fa1d2c76d4a75c4c9fd54e6e2e21dacd30b5ff261d675081e9715b"
+  },
+  "validation": {
+    "testsPassed": 135,
+    "testFilesPassed": 14,
+    "typecheck": true,
+    "nextProductionBuild": true,
+    "searchHttpStatus": 200,
+    "localSmokes": [
+      "search",
+      "photo",
+      "billing",
+      "publication",
+      "review",
+      "geo"
+    ]
+  },
+  "limits": [
+    "npm audit reports known registry advisories, not a complete security assessment",
+    "Local identities and payment/identity fixtures are privileged and synthetic, not real Clerk JWT, Jumio verification or Creem transactions",
+    "Hosted provider, signed-in browser and production acceptance remain open"
+  ]
+}

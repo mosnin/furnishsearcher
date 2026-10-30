@@ -1,0 +1,245 @@
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 44px 24px 90px;
+  color: #202020;
+  background: #fff;
+  min-height: calc(100vh - 80px);
+  font-family: var(--font-instrument-sans), sans-serif;
+}
+.eyebrow {
+  font-size: 12px;
+  color: #858585;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+.heading {
+  font-size: 34px;
+  line-height: 1.12;
+  letter-spacing: -1.15px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.intro {
+  color: #858585;
+  font-size: 17px;
+  line-height: 1.5;
+  max-width: 530px;
+  margin-bottom: 36px;
+}
+.progress {
+  display: flex;
+  gap: 5px;
+  margin: 30px 0 44px;
+}
+.progress span {
+  height: 3px;
+  flex: 1;
+  background: #ededed;
+  border-radius: 4px;
+  transition: background 240ms;
+}
+.progress span[data-active="true"] {
+  background: #222;
+}
+.step {
+  animation: stepIn 280ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  min-height: 260px;
+}
+.surface {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+.surface > div {
+  padding: 0 !important;
+}
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 30px;
+  margin-top: 36px;
+  border-top: 1px solid #eee;
+}
+.navigation button {
+  border-radius: 999px;
+  min-height: 46px;
+  padding-inline: 24px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: start;
+}
+.choices {
+  display: grid;
+  gap: 12px;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  text-align: left;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  padding: 22px;
+  background: #fff;
+  transition:
+    border-color 180ms,
+    background 180ms;
+}
+.choice:hover {
+  background: #fafafa;
+}
+.choice[aria-pressed="true"] {
+  border-color: #222;
+  background: #fafafa;
+}
+.choice svg {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+}
+.choice strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.choice p {
+  font-size: 14px;
+  color: #888;
+  line-height: 1.5;
+}
+.circle {
+  height: 21px;
+  width: 21px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.choice[aria-pressed="true"] .circle {
+  border: 6px solid #222;
+}
+.continue {
+  background: #111;
+  color: white;
+  border: 0;
+  border-radius: 99px;
+  height: 48px;
+  min-width: 160px;
+  padding: 0 25px;
+  font-size: 15px;
+}
+.continue:disabled {
+  background: #eee;
+  color: #aaa;
+}
+.review {
+  display: grid;
+  gap: 0;
+}
+.review > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  border-bottom: 1px solid #eee;
+  padding: 16px 0;
+}
+.review dt {
+  color: #888;
+}
+.review dd {
+  text-align: right;
+  max-width: 65%;
+  overflow-wrap: anywhere;
+}
+.note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #888;
+  margin-top: 24px;
+}
+.referral {
+  margin: 28px 0 0;
+  font-size: 13px;
+  color: #888;
+}
+.referral input {
+  border: 1px solid #ddd;
+  border-radius: 9px;
+  padding: 10px;
+  margin-left: 10px;
+}
+.shell input,
+.shell textarea {
+  border-color: #e5e5e5;
+  background: #fafafa;
+  border-radius: 10px;
+  min-height: 46px;
+}
+.shell label {
+  color: #555;
+}
+.shell h3 {
+  font-weight: 500;
+}
+.shell :focus-visible {
+  outline: 2px solid #999;
+  outline-offset: 3px;
+}
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .shell {
+    padding: 28px 20px 70px;
+  }
+  .heading {
+    font-size: 29px;
+  }
+  .intro {
+    font-size: 16px;
+  }
+  .progress {
+    margin-bottom: 30px;
+  }
+  .choice {
+    padding: 18px;
+  }
+  .review > div {
+    gap: 12px;
+  }
+  .navigation {
+    position: sticky;
+    bottom: 0;
+    background: #fffffff2;
+    backdrop-filter: blur(16px);
+    padding: 18px 0;
+    margin-top: 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    animation: none;
+  }
+  .progress span,
+  .choice {
+    transition: none;
+  }
+}
+
+.heading:focus {
+  outline: none;
+}

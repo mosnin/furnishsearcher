@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-25T20:48:40.323Z",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app/dashboard/landlord/requests",
+  "sourceCommit": "5c71add43300a77e2bc0c39e26109e12c671737d",
+  "deploymentId": "dpl_GPuWCmfGfmevWLc9JcAJ8nqWF38U",
+  "ready": true,
+  "syntheticActualClerkBrowserAccount": true,
+  "desktop": {
+    "accountDefaultOffShown": true,
+    "rentalSpacePickerWorks": true,
+    "spaceInheritsAccountDefaultOff": true,
+    "unconfirmedOnDisabled": true
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844,
+    "documentWidth": 390,
+    "scopeControlWidth": 300,
+    "emailControlWidth": 300,
+    "explanationReachableByScroll": true
+  },
+  "defaultViewportRestored": true,
+  "persistedPreferencesChanged": false,
+  "realRequestCreated": false,
+  "realEmailSent": false,
+  "providerAcceptance": false,
+  "productionChanged": false,
+  "screenshots": [
+    "../lead-email-desktop-verified.jpg",
+    "../lead-email-mobile-verified.jpg"
+  ]
+}

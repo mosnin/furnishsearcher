@@ -1,0 +1,31 @@
+import { v } from "convex/values";
+import { readinessValidator } from "../publication";
+export const ownerUnit = v.object({
+  _id: v.id("listings"),
+  publicId: v.optional(v.string()),
+  title: v.string(),
+  unitName: v.optional(v.string()),
+  propertyGroupId: v.optional(v.id("properties")),
+  parentListingId: v.optional(v.id("listings")),
+  price: v.number(),
+  bedrooms: v.number(),
+  bathrooms: v.number(),
+  photos: v.array(v.string()),
+  city: v.string(),
+  state: v.string(),
+  zip: v.string(),
+  propertyType: v.string(),
+  createdAt: v.number(),
+  views: v.number(),
+  status: v.union(
+    v.literal("active"),
+    v.literal("inactive"),
+    v.literal("pending"),
+    v.literal("rejected"),
+  ),
+  moderationHold: v.optional(v.boolean()),
+  locationConfirmedAt: v.optional(v.number()),
+  featured: v.optional(v.boolean()),
+  featuredUntil: v.optional(v.number()),
+  publication: readinessValidator,
+});

@@ -1,0 +1,162 @@
+import { cronJobs } from "convex/server";
+import { internal } from "./_generated/api";
+const crons = cronJobs();
+crons.interval(
+  "rank existing housing lead options",
+  { minutes: 15 },
+  internal.leadOffers.backfill,
+  {},
+);
+crons.interval(
+  "clean unused listing photos",
+  { hours: 24 },
+  internal.photoRetention.maintenance,
+  {},
+);
+crons.interval(
+  "refresh linked calendars",
+  { minutes: 15 },
+  internal.calendarFeeds.refreshDue,
+  {},
+);
+crons.interval(
+  "backfill search fields",
+  { minutes: 15 },
+  internal.migrations.searchIndexV1,
+  {},
+);
+crons.interval(
+  "refresh pending identity checks",
+  { minutes: 5 },
+  internal.identity.pollPending,
+  {},
+);
+crons.interval(
+  "expire location request metadata",
+  { hours: 24 },
+  internal.geo.cleanupRequests,
+  {},
+);
+crons.interval(
+  "refresh outstanding document signatures",
+  { minutes: 5 },
+  internal.rocketSign.pollDue,
+  {},
+);
+crons.interval(
+  "clean retired profile photo receipts",
+  { hours: 24 },
+  internal.profileImages.cleanupReceipts,
+  {},
+);
+
+crons.interval(
+  "backfill participant inboxes",
+  { minutes: 1 },
+  internal.inbox.backfill,
+  {},
+);
+crons.interval(
+  "retry pending inbox folder work",
+  { minutes: 5 },
+  internal.inbox.retryPending,
+  {},
+);
+
+crons.interval(
+  "backfill participant name search",
+  { minutes: 1 },
+  internal.messageSearch.backfillNames,
+  {},
+);
+crons.interval(
+  "retry participant name updates",
+  { minutes: 5 },
+  internal.messageSearch.retryNames,
+  {},
+);
+crons.interval(
+  "recover inbound email work",
+  { minutes: 5 },
+  internal.inboundEmails.recover,
+  {},
+);
+crons.interval(
+  "remove expired email reply bindings",
+  { hours: 24 },
+  internal.inboundEmails.cleanupBindings,
+  {},
+);
+crons.interval(
+  "refresh eligible market inventory",
+  { hours: 24 },
+  internal.marketSupply.refresh,
+  {},
+);
+crons.interval(
+  "recover market inventory collection",
+  { minutes: 15 },
+  internal.marketSupply.recover,
+  {},
+);
+crons.interval(
+  "clean old market inventory snapshots",
+  { hours: 24 },
+  internal.marketSupply.cleanup,
+  {},
+);
+crons.interval(
+  "expire market activity references",
+  { hours: 24 },
+  internal.marketInsights.cleanup,
+  {},
+);
+crons.interval(
+  "expire AI search rate metadata",
+  { hours: 24 },
+  internal.guidedSearch.cleanup,
+  {},
+);
+crons.interval(
+  "expire listing performance activity",
+  { hours: 24 },
+  internal.listingPerformance.cleanup,
+  {},
+);
+crons.interval(
+  "expire phone contact rate metadata",
+  { hours: 24 },
+  internal.phoneContacts.cleanup,
+  {},
+);
+crons.interval(
+  "recover queued housing lead email",
+  { minutes: 15 },
+  internal.leadNotifications.recover,
+  {},
+);
+crons.interval(
+  "expire map eligibility history",
+  { hours: 24 },
+  internal.mapEligibility.cleanup,
+  {},
+);
+crons.interval(
+  "reconcile removed sign-in accounts",
+  { hours: 24 },
+  internal.accountOffboarding.reconcile,
+  { cursor: null },
+);
+crons.interval(
+  "Refresh response statistics window and resume adoption",
+  { hours: 1 },
+  internal.responsiveness.tick,
+  {},
+);
+crons.interval(
+  "Resume versioned spatial index adoption",
+  { hours: 1 },
+  internal.geo.resumeIndex,
+  {},
+);
+export default crons;

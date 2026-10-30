@@ -1,17 +1,25 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import {
+  useQuery,
+  useMutation,
+  usePaginatedQuery,
+  useConvexAuth,
+  useConvex,
+} from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { MessageSearch } from "@/components/message-search";
+import { ConversationDetails } from "@/components/conversation-details";
+import { ReportDialog } from "@/components/report-dialog";
+import { MessageComposerTools } from "@/components/message-composer-tools";
 import { toast } from "sonner";
 import {
   MessageSquare,
@@ -19,94 +27,56 @@ import {
   ArrowLeft,
   Home,
   Clock,
+  Check,
+  CheckCheck,
 } from "lucide-react";
 
-type Conversation = {
-  _id: string;
-  listingId: Id<"listings">;
-  tenantId: Id<"users">;
-  landlordId: Id<"users">;
-  lastMessage: string;
-  lastMessageAt: number;
-  tenantRead: boolean;
-  landlordRead: boolean;
-  listing: {
-    _id: Id<"listings">;
-    title: string;
-    photos: string[];
-  } | null;
-  otherUser: {
-    _id: Id<"users">;
-    name: string;
-    avatar?: string;
-  } | null;
-};
-
-type Message = {
-  _id: string;
-  conversationId: string;
-  senderId: Id<"users">;
-  receiverId: Id<"users">;
-  listingId: Id<"listings">;
-  content: string;
-  read: boolean;
-  createdAt: number;
-};
-
+type Conversation = FunctionReturnType<typeof api.inbox.list>["page"][number];
+type Folder = "all" | "unread" | "archived" | "blocked";
 function ConversationItem({
   conv,
-  isSelected,
-  currentUserId,
+  selected,
+  userId,
   onClick,
 }: {
   conv: Conversation;
-  isSelected: boolean;
-  currentUserId: Id<"users">;
+  selected: boolean;
+  userId: Id<"users">;
   onClick: () => void;
 }) {
-  const isTenant = conv.tenantId === currentUserId;
-  const isUnread = isTenant ? !conv.tenantRead : !conv.landlordRead;
-  const coverPhoto = conv.listing?.photos?.[0];
-
+  const unread =
+    conv.tenantId === userId ? !conv.tenantRead : !conv.landlordRead;
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left flex items-start gap-3 px-4 py-3 transition-colors border-b border-slate-100 last:border-0",
-        isSelected
-          ? "bg-[#0f2044]/5 border-r-2 border-r-[#0f2044]"
-          : "hover:bg-slate-50"
+        "w-full text-left flex items-start gap-3 px-4 py-3 border-b border-slate-100",
+        selected
+          ? "bg-primary/5 border-r-2 border-r-primary"
+          : "hover:bg-slate-50",
       )}
     >
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        <div className="h-10 w-10 rounded-full bg-[#0f2044]/10 flex items-center justify-center overflow-hidden">
-          {conv.otherUser?.avatar ? (
-            <img
-              src={conv.otherUser.avatar}
-              alt={conv.otherUser.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-sm font-bold text-[#0f2044]">
-              {conv.otherUser?.name?.[0]?.toUpperCase() ?? "?"}
-            </span>
-          )}
-        </div>
-        {isUnread && (
-          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#0f2044] border-2 border-white" />
+      <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+        {conv.otherUser?.avatar ? (
+          <img
+            src={conv.otherUser.avatar}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span>{conv.otherUser?.name[0]?.toUpperCase() ?? "?"}</span>
         )}
       </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-1">
+      <div className="min-w-0 flex-1">
+        <div className="flex justify-between gap-2">
           <span
             className={cn(
               "text-sm truncate",
-              isUnread ? "font-semibold text-slate-900" : "font-medium text-slate-700"
+              unread ? "font-bold" : "font-medium",
             )}
           >
-            {conv.otherUser?.name ?? "Unknown"}
+            {unread && <span aria-label="Unread">● </span>}
+            {conv.otherUser?.name ?? "Deleted account"}
           </span>
           <span className="text-[11px] text-slate-400 shrink-0">
             {new Date(conv.lastMessageAt).toLocaleDateString("en-US", {
@@ -116,359 +86,763 @@ function ConversationItem({
           </span>
         </div>
         <p className="text-xs text-slate-500 truncate mt-0.5">
-          {conv.listing?.title ?? "Listing"}
+          {conv.listing?.title ?? "Unavailable property"}
         </p>
-        <p
-          className={cn(
-            "text-xs truncate mt-0.5",
-            isUnread ? "text-slate-700 font-medium" : "text-slate-400"
-          )}
-        >
+        <p className="text-xs text-slate-500 truncate mt-0.5">
           {conv.lastMessage}
         </p>
       </div>
     </button>
   );
 }
-
 function MessageBubble({
   message,
-  isMine,
+  mine,
 }: {
-  message: Message;
-  isMine: boolean;
+  message: Doc<"messages">;
+  mine: boolean;
 }) {
+  const convex = useConvex(),
+    router = useRouter();
+  const [openingOffer, setOpeningOffer] = useState(false);
+  async function openOffer() {
+    setOpeningOffer(true);
+    try {
+      const offer = await convex.query(api.housingRequests.offerLink, {
+        messageId: message._id,
+      });
+      if (!offer) {
+        toast.error("This offered rental is no longer available to view.");
+        return;
+      }
+      const params = new URLSearchParams({
+        moveIn: new Date(offer.moveIn).toISOString().slice(0, 10),
+        moveOut: new Date(offer.moveOut).toISOString().slice(0, 10),
+      });
+      router.push(`/listings/${offer.listingId}?${params}`);
+    } catch {
+      toast.error("Unable to open this offer. Please try again.");
+    } finally {
+      setOpeningOffer(false);
+    }
+  }
   return (
-    <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
+    <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
-          isMine
-            ? "bg-[#0f2044] text-white rounded-br-sm"
-            : "bg-slate-100 text-slate-900 rounded-bl-sm"
+          "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
+          mine
+            ? "bg-primary text-white rounded-br-sm"
+            : "bg-slate-100 text-slate-900 rounded-bl-sm",
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
-        <p
+        {message.origin === "housing_request" && message.housingRequestId && (
+          <button
+            type="button"
+            disabled={openingOffer}
+            onClick={() => void openOffer()}
+            className="mt-2 text-xs underline underline-offset-2 disabled:opacity-60"
+          >
+            {openingOffer ? "Opening rental…" : "View offered rental"}
+          </button>
+        )}
+        {message.origin === "email" && (
+          <p className="text-xs mt-1 opacity-75">
+            Sent by email
+            {message.emailAttachmentsOmitted
+              ? " · Images and attachments not included"
+              : ""}
+          </p>
+        )}
+        {!mine && <ReportDialog messageId={message._id} />}
+        <div
           className={cn(
-            "text-[11px] mt-1",
-            isMine ? "text-white/60 text-right" : "text-slate-400"
+            "flex items-center gap-2 text-[11px] mt-1",
+            mine ? "text-white/70 justify-end" : "text-slate-500",
           )}
         >
-          {new Date(message.createdAt).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </p>
+          <time dateTime={new Date(message.createdAt).toISOString()}>
+            {new Date(message.createdAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </time>
+          {mine &&
+            (message.origin === "inbox" || message.origin === "email") && (
+              <span
+                className="inline-flex gap-1 items-center"
+                title={
+                  message.read
+                    ? "Recipient opened the conversation"
+                    : "Saved in the recipient's inbox"
+                }
+              >
+                {message.read ? (
+                  <CheckCheck className="h-4 w-4 text-sky-300" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                {message.read ? "Read" : "Sent"}
+              </span>
+            )}
+        </div>
       </div>
     </div>
   );
 }
-
+function BlockedUsers() {
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.messages.blockedUsers,
+    {},
+    { initialNumItems: 20 },
+  );
+  const unblock = useMutation(api.messages.unblockUser);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="border-b p-3 space-y-3">
+      <p className="text-xs text-slate-500">
+        Messaging stays paused until you unblock. Any block set by the other
+        person still applies.
+      </p>
+      {results.map((user) => (
+        <div key={user.userId} className="flex items-center gap-2 text-sm">
+          <span className="flex-1 truncate">{user.name}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={async () => {
+              if (!window.confirm(`Unblock ${user.name}?`)) return;
+              setBusy(true);
+              try {
+                await unblock({ userId: user.userId });
+              } catch {
+                toast.error("Unable to unblock user.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Unblock
+          </Button>
+        </div>
+      ))}
+      {status === "CanLoadMore" && (
+        <Button size="sm" variant="outline" onClick={() => loadMore(20)}>
+          More blocked users
+        </Button>
+      )}
+      {status === "LoadingFirstPage" && <p>Loading…</p>}
+    </div>
+  );
+}
 export default function MessagesPage() {
-  const searchParams = useSearchParams();
   const { userId } = useAuth();
-
+  return <AccountMessages key={userId ?? "signed-out"} />;
+}
+function AccountMessages() {
+  const searchParams = useSearchParams(),
+    { userId } = useAuth(),
+    { isAuthenticated } = useConvexAuth();
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    isAuthenticated && userId ? { clerkId: userId } : "skip",
   );
-
-  const conversations = useQuery(
-    api.messages.getConversations,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
-  ) as Conversation[] | undefined;
-
-  // Selected conversation — can be pre-selected via ?conv=... query param
-  const [selectedConvId, setSelectedConvId] = useState<string | null>(
-    searchParams.get("conv")
+  const [selectedId, setSelectedId] = useState<string | null>(
+    searchParams.get("conv"),
   );
-  const [messageText, setMessageText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [mobileShowThread, setMobileShowThread] = useState(false);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const selectedConv = conversations?.find((c) => c._id === selectedConvId) ?? null;
-
-  // Build conversationId string from selected conversation
-  const convIdString = selectedConv
-    ? [selectedConv.tenantId, selectedConv.landlordId].sort().join("_") +
-      "_" +
-      selectedConv.listingId
-    : null;
-
-  const messages = useQuery(
-    api.messages.getMessages,
-    convIdString ? { conversationId: convIdString } : "skip"
-  ) as Message[] | undefined;
-
-  const sendMessage = useMutation(api.messages.sendMessage);
-  const markRead = useMutation(api.messages.markRead);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Mark conversation as read when selected
-  useEffect(() => {
-    if (!convIdString || !convexUser?._id) return;
-    markRead({ conversationId: convIdString, userId: convexUser._id }).catch(() => {});
-  }, [convIdString, convexUser?._id]);
-
-  // Pre-select first conversation if none selected
-  useEffect(() => {
-    if (!selectedConvId && conversations && conversations.length > 0) {
-      setSelectedConvId(conversations[0]._id);
-    }
-  }, [conversations, selectedConvId]);
-
-  function selectConversation(convId: string) {
-    setSelectedConvId(convId);
-    setMobileShowThread(true);
+  const [searching, setSearching] = useState(false),
+    [focusMessage, setFocusMessage] = useState<Id<"messages"> | null>(null);
+  const [folder, setFolder] = useState<Folder>("all"),
+    [mobileThread, setMobileThread] = useState(!!searchParams.get("conv"));
+  const {
+    results: conversations,
+    status: inboxStatus,
+    loadMore: loadConversations,
+  } = usePaginatedQuery(
+    api.inbox.list,
+    convexUser && isAuthenticated ? { folder } : "skip",
+    { initialNumItems: 20 },
+  );
+  const inboxSummary = useQuery(
+    api.inbox.summary,
+    convexUser && isAuthenticated ? {} : "skip",
+  );
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState<{
+    conversationId: string;
+    content: string;
+    requestId: string;
+  } | null>(null);
+  const [failedSends, setFailedSends] = useState<
+    Record<
+      string,
+      { conversationId: string; content: string; requestId: string }
+    >
+  >({});
+  const failedSend = selectedId ? failedSends[selectedId] : undefined;
+  const [busy, setBusy] = useState(false),
+    [focused, setFocused] = useState(false),
+    [desktop, setDesktop] = useState(false);
+  const selected = useQuery(
+    api.inbox.conversation,
+    isAuthenticated && convexUser && selectedId ? { id: selectedId } : "skip",
+  );
+  const {
+    results: liveNewest,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.messages.listMessages,
+    selected && isAuthenticated && !focusMessage
+      ? { conversationId: selected._id }
+      : "skip",
+    { initialNumItems: 50 },
+  );
+  const matchWindow = useQuery(
+    api.messageSearch.window,
+    selected && isAuthenticated && focusMessage
+      ? { conversationId: selected._id, messageId: focusMessage }
+      : "skip",
+  );
+  const newestFirst = focusMessage ? (matchWindow?.messages ?? []) : liveNewest;
+  const messages = [...newestFirst].reverse(),
+    latestId = newestFirst[0]?._id;
+  const send = useMutation(api.messages.sendMessage),
+    markRead = useMutation(api.messages.markRead),
+    setUnread = useMutation(api.messages.setUnread),
+    archive = useMutation(api.messages.setArchived),
+    block = useMutation(api.messages.setBlocked);
+  const matchRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null),
+    textareaRef = useRef<HTMLTextAreaElement>(null),
+    sendingLock = useRef(false);
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
+  const draft = selectedId ? (drafts[selectedId] ?? "") : "";
+  function updateDraft(value: string) {
+    if (selectedId) setDrafts((prev) => ({ ...prev, [selectedId]: value }));
   }
-
-  async function handleSend() {
-    if (!messageText.trim() || !selectedConv || !convexUser?._id) return;
-    setSending(true);
+  useEffect(() => {
+    const conv = searchParams.get("conv");
+    if (conv) {
+      setSelectedId(conv);
+      setFocusMessage(null);
+      setMobileThread(true);
+    }
+  }, [searchParams]);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const update = () => {
+      setFocused(document.visibilityState === "visible" && document.hasFocus());
+      setDesktop(media.matches);
+    };
+    update();
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    document.addEventListener("visibilitychange", update);
+    media.addEventListener("change", update);
+    return () => {
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+      document.removeEventListener("visibilitychange", update);
+      media.removeEventListener("change", update);
+    };
+  }, []);
+  useEffect(() => {
+    if (
+      latestId &&
+      focused &&
+      !busy &&
+      (desktop || mobileThread) &&
+      selected &&
+      convexUser
+    )
+      markRead({
+        conversationId:
+          [selected.tenantId, selected.landlordId].sort().join("_") +
+          "_" +
+          selected.listingId,
+        userId: convexUser._id,
+        throughMessageId: latestId,
+      }).catch(() => toast.error("Unable to update read status."));
+  }, [
+    latestId,
+    selected?._id,
+    focused,
+    desktop,
+    mobileThread,
+    convexUser?._id,
+    markRead,
+    busy,
+  ]);
+  useEffect(() => {
+    if (focusMessage) matchRef.current?.scrollIntoView({ block: "center" });
+    else endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [latestId, sending, focusMessage]);
+  const filtered = conversations;
+  async function perform(
+    action: () => Promise<unknown>,
+    success: string,
+    clear = false,
+  ) {
+    setBusy(true);
     try {
-      const isTenant = selectedConv.tenantId === convexUser._id;
-      const receiverId = isTenant ? selectedConv.landlordId : selectedConv.tenantId;
-
-      await sendMessage({
-        senderId: convexUser._id,
-        receiverId,
-        listingId: selectedConv.listingId,
-        content: messageText.trim(),
-      });
-      setMessageText("");
-      textareaRef.current?.focus();
-    } catch {
-      toast.error("Failed to send message. Please try again.");
+      await action();
+      toast.success(success);
+      if (clear) {
+        setSelectedId(null);
+        setMobileThread(false);
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Unable to update conversation.",
+      );
     } finally {
-      setSending(false);
+      setBusy(false);
     }
   }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  async function handleSend() {
+    if (
+      !selected ||
+      !convexUser ||
+      !draft.trim() ||
+      draft.trim().length > 2000 ||
+      sendingLock.current ||
+      selected.cannotMessage
+    )
+      return;
+    const conversation = selected,
+      content = draft.trim(),
+      rawDraft = draft;
+    const requestId =
+      failedSend?.conversationId === selected._id &&
+      failedSend.content === content
+        ? failedSend.requestId
+        : crypto.randomUUID();
+    const attempt = { conversationId: selected._id, content, requestId };
+    sendingLock.current = true;
+    setSending(attempt);
+    setFailedSends((prev) => {
+      const next = { ...prev };
+      delete next[conversation._id];
+      return next;
+    });
+    try {
+      await send({
+        senderId: convexUser._id,
+        receiverId:
+          selected.tenantId === convexUser._id
+            ? selected.landlordId
+            : selected.tenantId,
+        listingId: selected.listingId,
+        content,
+        clientRequestId: requestId,
+        origin: "inbox",
+      });
+      setDrafts((prev) =>
+        prev[conversation._id] === rawDraft
+          ? { ...prev, [conversation._id]: "" }
+          : prev,
+      );
+      if (selectedRef.current === conversation._id) {
+        setFocusMessage(null);
+        textareaRef.current?.focus();
+      }
+    } catch (err) {
+      setFailedSends((prev) => ({ ...prev, [conversation._id]: attempt }));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Unable to send. Your draft is saved on this page.",
+      );
+    } finally {
+      setSending(null);
+      sendingLock.current = false;
     }
   }
-
-  const isLoading = convexUser === undefined || conversations === undefined;
-
+  if (isAuthenticated && convexUser === null)
+    return (
+      <div className="p-6">
+        <p>Complete your profile to use messaging.</p>
+        <Link href="/onboarding" className="underline">
+          Set up your account
+        </Link>
+      </div>
+    );
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Conversation list */}
-      <div
+      <aside
         className={cn(
           "w-full md:w-80 border-r border-slate-200 bg-white flex flex-col shrink-0",
-          mobileShowThread ? "hidden md:flex" : "flex"
+          mobileThread ? "hidden md:flex" : "flex",
         )}
       >
-        {/* List header */}
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Messages</h2>
-          {conversations && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
-
-        {/* List body */}
+        <header className="p-4 border-b">
+          <h1 className="text-lg font-semibold text-slate-900">Messages</h1>
+          <div
+            className="flex flex-wrap gap-1 mt-3"
+            aria-label="Message folders"
+          >
+            {(["all", "unread", "archived", "blocked"] as const).map((f) => (
+              <button
+                key={f}
+                aria-pressed={folder === f}
+                className={cn(
+                  "text-xs rounded-md px-2 py-1.5 capitalize",
+                  folder === f
+                    ? "bg-primary text-white"
+                    : "bg-slate-100 text-slate-600",
+                )}
+                onClick={() => {
+                  setFolder(f);
+                  setFocusMessage(null);
+                  setSelectedId(null);
+                  setMobileThread(false);
+                }}
+              >
+                {f === "blocked" ? "Blocked users" : f}
+              </button>
+            ))}
+          </div>
+        </header>
         <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="divide-y divide-slate-100">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex items-start gap-3 p-4">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-40" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
+          {convexUser && isAuthenticated && (
+            <MessageSearch
+              key={convexUser._id}
+              folder={folder}
+              onActiveChange={(active) => {
+                setSearching(active);
+                if (!active) setFocusMessage(null);
+              }}
+              onSelect={(id, messageId) => {
+                setSelectedId(id);
+                setFocusMessage(messageId ?? null);
+                setMobileThread(true);
+              }}
+            />
+          )}
+          {!searching && (
+            <>
+              {folder === "blocked" && isAuthenticated && convexUser && (
+                <BlockedUsers />
+              )}
+              {inboxSummary && !inboxSummary.ready && (
+                <p role="status" className="p-3 text-xs text-slate-500">
+                  Updating inbox history and folder counts…
+                </p>
+              )}
+              {inboxStatus === "LoadingFirstPage" ? (
+                <p className="p-5 text-sm text-slate-500">
+                  Loading conversations…
+                </p>
+              ) : !filtered?.length ? (
+                <div className="p-6 text-center text-sm text-slate-500">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                  {inboxStatus === "CanLoadMore" || !inboxSummary?.ready
+                    ? "No conversations loaded yet. More history may still be available."
+                    : "No conversations in this folder."}
                 </div>
-              ))}
-            </div>
-          ) : conversations && conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full px-6 text-center py-16">
-              <MessageSquare className="h-12 w-12 text-slate-300 mb-4" />
-              <p className="text-sm font-medium text-slate-700 mb-1">No messages yet</p>
-              <p className="text-xs text-slate-400">
-                When you start a conversation about a listing, it'll appear here.
-              </p>
-            </div>
-          ) : (
-            conversations?.map((conv) => (
-              <ConversationItem
-                key={conv._id}
-                conv={conv}
-                isSelected={selectedConvId === conv._id}
-                currentUserId={convexUser!._id}
-                onClick={() => selectConversation(conv._id)}
-              />
-            ))
+              ) : (
+                filtered.map((conv) => (
+                  <ConversationItem
+                    key={conv._id}
+                    conv={conv}
+                    selected={selectedId === conv._id}
+                    userId={convexUser!._id}
+                    onClick={() => {
+                      setSelectedId(conv._id);
+                      setFocusMessage(null);
+                      setMobileThread(true);
+                    }}
+                  />
+                ))
+              )}
+              {inboxStatus === "CanLoadMore" && (
+                <Button
+                  className="m-3"
+                  variant="outline"
+                  onClick={() => loadConversations(20)}
+                >
+                  More conversations
+                </Button>
+              )}
+              {inboxStatus === "LoadingMore" && (
+                <p role="status" className="p-3 text-sm">
+                  Loading more conversations…
+                </p>
+              )}
+            </>
           )}
         </div>
-      </div>
-
-      {/* Message thread */}
-      <div
+      </aside>
+      <section
         className={cn(
-          "flex-1 flex flex-col bg-slate-50 min-w-0",
-          !mobileShowThread ? "hidden md:flex" : "flex"
+          "flex-1 flex-col bg-white min-w-0",
+          mobileThread ? "flex" : "hidden md:flex",
         )}
       >
-        {!selectedConv ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-            <MessageSquare className="h-16 w-16 text-slate-300 mb-4" />
-            <h3 className="text-lg font-medium text-slate-700 mb-2">
-              Select a conversation
-            </h3>
-            <p className="text-sm text-slate-400">
-              Choose a conversation from the list to view your messages.
+        {!selected ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center">
+            <MessageSquare className="h-14 w-14 text-slate-300 mb-4" />
+            <h2 className="font-medium">
+              {selectedId
+                ? selected === undefined
+                  ? "Loading conversation…"
+                  : "Conversation unavailable"
+                : "Select a conversation"}
+            </h2>
+            <p className="text-sm mt-2">
+              Choose a conversation to read and reply.
             </p>
           </div>
         ) : (
           <>
-            {/* Thread header */}
-            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
-              <button
-                className="md:hidden text-slate-500 hover:text-slate-700 mr-1"
-                onClick={() => setMobileShowThread(false)}
-                aria-label="Back to conversations"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-
-              <div className="h-9 w-9 rounded-full bg-[#0f2044]/10 flex items-center justify-center shrink-0 overflow-hidden">
-                {selectedConv.otherUser?.avatar ? (
-                  <img
-                    src={selectedConv.otherUser.avatar}
-                    alt={selectedConv.otherUser.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-bold text-[#0f2044]">
-                    {selectedConv.otherUser?.name?.[0]?.toUpperCase() ?? "?"}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900">
-                  {selectedConv.otherUser?.name ?? "Unknown"}
-                </p>
-                <div className="flex items-center gap-1 text-xs text-slate-500">
-                  <Home className="h-3 w-3" />
-                  <span className="truncate">
-                    {selectedConv.listing?.title ?? "Listing"}
-                  </span>
+            <header className="bg-white border-b p-4 space-y-3">
+              <ConversationDetails
+                key={selected._id}
+                conversationId={selected._id}
+                listingId={selected.listingId}
+              />
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  aria-label="Back to conversations"
+                  onClick={() => setMobileThread(false)}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-semibold truncate">
+                    {selected.otherUser?.name ?? "Deleted account"}
+                  </h2>
+                  <p className="text-xs text-slate-500 flex gap-1 items-center">
+                    <Home className="h-3 w-3" />
+                    {selected.listing?.title ?? "Unavailable property"}
+                  </p>
                 </div>
               </div>
-            </div>
-
-            {/* Messages */}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() =>
+                    perform(
+                      () => setUnread({ conversationId: selected._id }),
+                      "Marked unread",
+                      true,
+                    )
+                  }
+                >
+                  Mark unread
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() =>
+                    perform(
+                      () =>
+                        archive({
+                          conversationId: selected._id,
+                          archived: !selected.archived,
+                        }),
+                      selected.archived
+                        ? "Conversation restored"
+                        : "Conversation archived",
+                      true,
+                    )
+                  }
+                >
+                  {selected.archived ? "Unarchive" : "Archive"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        selected.blockedByMe
+                          ? "Unblock this user? Any block they set still applies."
+                          : "Block this user? Messaging in both directions will stop across all properties.",
+                      )
+                    )
+                      perform(
+                        () =>
+                          block({
+                            conversationId: selected._id,
+                            blocked: !selected.blockedByMe,
+                          }),
+                        selected.blockedByMe
+                          ? "User unblocked"
+                          : "User blocked",
+                        true,
+                      );
+                  }}
+                >
+                  {selected.blockedByMe ? "Unblock user" : "Block user"}
+                </Button>
+              </div>
+            </header>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages === undefined ? (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4].map((i) => (
+              {(
+                focusMessage
+                  ? matchWindow === undefined
+                  : status === "LoadingFirstPage"
+              ) ? (
+                <p>Loading messages…</p>
+              ) : (
+                <>
+                  {focusMessage && (
+                    <div className="rounded-lg border bg-white p-3 text-sm space-y-2">
+                      <p>
+                        {matchWindow
+                          ? "Showing the search match and nearby messages."
+                          : "This saved message is unavailable."}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFocusMessage(null)}
+                      >
+                        View latest messages
+                      </Button>
+                    </div>
+                  )}
+                  {!focusMessage && status === "CanLoadMore" && (
+                    <Button variant="outline" onClick={() => loadMore(50)}>
+                      Load older messages
+                    </Button>
+                  )}
+                  {!focusMessage && status === "LoadingMore" && (
+                    <p>Loading older messages…</p>
+                  )}
+                  {messages.map((message, i) => (
                     <div
-                      key={i}
-                      className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}
+                      key={message._id}
+                      ref={message._id === focusMessage ? matchRef : undefined}
+                      className={
+                        message._id === focusMessage
+                          ? "rounded-lg ring-2 ring-ring/30 p-2"
+                          : undefined
+                      }
+                      aria-label={
+                        message._id === focusMessage
+                          ? "Search match"
+                          : undefined
+                      }
                     >
-                      <Skeleton
-                        className={cn(
-                          "h-12 rounded-2xl",
-                          i % 2 === 0 ? "w-48" : "w-56"
-                        )}
+                      {(i === 0 ||
+                        new Date(message.createdAt).toDateString() !==
+                          new Date(
+                            messages[i - 1].createdAt,
+                          ).toDateString()) && (
+                        <p className="text-center text-xs text-slate-400 py-3">
+                          {formatDate(message.createdAt)}
+                        </p>
+                      )}
+                      <MessageBubble
+                        message={message}
+                        mine={message.senderId === convexUser?._id}
                       />
                     </div>
                   ))}
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                  <MessageSquare className="h-10 w-10 text-slate-300 mb-3" />
-                  <p className="text-sm text-slate-500">No messages yet. Say hello!</p>
-                </div>
-              ) : (
-                <>
-                  {/* Date separator for first message */}
-                  {messages.length > 0 && (
-                    <div className="flex items-center gap-3 py-2">
-                      <div className="flex-1 h-px bg-slate-200" />
-                      <span className="text-xs text-slate-400 shrink-0">
-                        {formatDate(messages[0].createdAt)}
-                      </span>
-                      <div className="flex-1 h-px bg-slate-200" />
-                    </div>
-                  )}
-                  {messages.map((msg, idx) => {
-                    const isMine = msg.senderId === convexUser?._id;
-                    // Show date separator when day changes
-                    const prevMsg = idx > 0 ? messages[idx - 1] : null;
-                    const showDateSep =
-                      prevMsg &&
-                      new Date(msg.createdAt).toDateString() !==
-                        new Date(prevMsg.createdAt).toDateString();
-
-                    return (
-                      <div key={msg._id}>
-                        {showDateSep && (
-                          <div className="flex items-center gap-3 py-2">
-                            <div className="flex-1 h-px bg-slate-200" />
-                            <span className="text-xs text-slate-400 shrink-0">
-                              {formatDate(msg.createdAt)}
-                            </span>
-                            <div className="flex-1 h-px bg-slate-200" />
-                          </div>
-                        )}
-                        <MessageBubble message={msg} isMine={isMine} />
+                  {sending?.conversationId === selected._id &&
+                    !newestFirst.some(
+                      (m) => m.clientRequestId === sending.requestId,
+                    ) && (
+                      <div
+                        className="ml-auto max-w-[85%] rounded-xl bg-primary/80 text-white p-4 text-sm"
+                        role="status"
+                      >
+                        <p className="whitespace-pre-wrap break-words">
+                          {sending.content}
+                        </p>
+                        <p className="flex gap-1 items-center text-xs mt-2">
+                          <Clock className="w-3 h-3" />
+                          Sending…
+                        </p>
                       </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
+                    )}
+                  <div ref={endRef} />
                 </>
               )}
             </div>
-
-            {/* Message input */}
-            <div className="bg-white border-t border-slate-200 p-4">
-              <div className="flex items-end gap-3">
-                <Textarea
-                  ref={textareaRef}
-                  placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={1}
-                  className="flex-1 resize-none min-h-[42px] max-h-32 overflow-y-auto"
-                  style={{
-                    height: "auto",
-                  }}
-                />
-                <Button
-                  onClick={handleSend}
-                  disabled={!messageText.trim() || sending}
-                  size="icon"
-                  className="shrink-0 h-10 w-10"
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1.5">
-                Press Enter to send · Shift+Enter for new line
-              </p>
+            <div className="bg-white border-t p-4">
+              {selected.cannotMessage ? (
+                <p className="text-sm text-slate-600">
+                  {selected.contactRestricted
+                    ? "Contact is disabled while an account review is in progress. Existing messages remain available."
+                    : selected.blockedByMe
+                      ? "You blocked this user. Unblock them to resume messaging."
+                      : "Messaging is currently unavailable between these accounts."}
+                </p>
+              ) : !selected.listing || !selected.otherUser ? (
+                <p className="text-sm text-slate-500">
+                  This conversation is read-only because its property or account
+                  is unavailable.
+                </p>
+              ) : (
+                <>
+                  <MessageComposerTools
+                    draft={draft}
+                    setDraft={updateDraft}
+                    disabled={!!sending}
+                  />
+                  {failedSend?.conversationId === selected._id && (
+                    <p role="alert" className="text-sm text-red-700 mb-2">
+                      Send failed. Your draft is still here; press Send to
+                      retry.
+                    </p>
+                  )}
+                  <div className="flex gap-3 items-end">
+                    <label htmlFor="message-draft" className="sr-only">
+                      Message
+                    </label>
+                    <Textarea
+                      id="message-draft"
+                      ref={textareaRef}
+                      value={draft}
+                      onChange={(e) => updateDraft(e.target.value)}
+                      maxLength={2000}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey &&
+                          !e.nativeEvent.isComposing
+                        ) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                      rows={2}
+                      className="resize-none"
+                      placeholder="Type a message…"
+                    />
+                    <Button
+                      size="icon"
+                      aria-label="Send message"
+                      disabled={!draft.trim() || !!sending}
+                      onClick={handleSend}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {draft.length}/2,000 · Enter to send · Shift+Enter for a new
+                    line
+                  </p>
+                </>
+              )}
             </div>
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

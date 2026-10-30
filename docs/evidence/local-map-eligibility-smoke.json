@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T21:33:14.883Z",
+  "target": "http://127.0.0.1:3210",
+  "privilegedSyntheticIdentityAndPayment": true,
+  "realPublicCensusAddressLookup": true,
+  "realRentalOrOwnershipClaim": false,
+  "nativePublicationCheckEligible": true,
+  "nativeMapAreaSearchContainsSpace": true,
+  "concurrentChecksCountOnce": true,
+  "propertyAndPortfolioRowsAccepted": true,
+  "earlierDaysNotBackfilled": true,
+  "anonymousAndOtherOwnerDenied": true,
+  "hiddenListingNoLongerEligible": true,
+  "recordedPositiveDayRetained": true,
+  "sinceCollectionTotalRetained": true,
+  "completedSyntheticFixtureHidden": true,
+  "realEmailSmsPaymentOrInsurance": false
+}

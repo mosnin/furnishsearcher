@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-25T03:40:30.568Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "syntheticConversationsExercised": 45,
+  "completeMultiPageListing": true,
+  "orderedWithoutDuplicates": true,
+  "directOlderConversationLink": true,
+  "unrelatedReadDenied": true,
+  "archiveAndBlockFolders": true,
+  "blockingPreventsSend": true,
+  "unreadTotalMatchesAllUnreadPages": true,
+  "recentSummaryBounded": true,
+  "fixtureConversationsReadAndArchived": true,
+  "fixtureListingHidden": true,
+  "privilegedSyntheticIdentities": true,
+  "actualClerkBrowserJwt": false,
+  "actualEmailDelivery": false,
+  "renderedBrowserAcceptance": false
+}

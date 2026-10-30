@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-26T02:52:23.974Z",
+  "environment": "http://127.0.0.1:3210",
+  "authClass": "privileged synthetic local owner identity; not actual Clerk authentication",
+  "allNativeInquiryPagesTraversed": true,
+  "pages": 2,
+  "checked": 31,
+  "reserved": 0,
+  "repairRequired": 0,
+  "matchingCalendarRowsChecked": 0,
+  "nonConfirmedStatesDoNotClaimReservation": true,
+  "anonymousStayDenied": true,
+  "fixtureWrites": 0,
+  "providerRequests": 0
+}

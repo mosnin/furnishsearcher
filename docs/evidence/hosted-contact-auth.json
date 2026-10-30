@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-25T05:12:55.396Z",
+  "deployment": "cheerful-ferret-182",
+  "fixture": "synthetic Clerk test-email account; BAPI session; no message sent",
+  "nativeJwtEmailConfirmation": 200,
+  "emailProofConfirmed": true,
+  "wrongAccount": 409,
+  "bodyTimestampRejected": 400,
+  "modifiedSignatureRejected": 401,
+  "revokedTokenRejected": 409,
+  "finalEmailsEnabled": false,
+  "phone": "provider disabled; not accepted",
+  "production": false
+}

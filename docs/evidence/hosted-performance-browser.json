@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-25T19:08:04.661763+00:00",
+  "functionalitySourceSha": "6db2b7b8865926ae4d7fbc8eeb4425a17c47cfc6",
+  "responsiveSourceSha": "f5b03ec162ce8ce582e28ad0d2bd19a60e34572d",
+  "deploymentId": "dpl_5tvMhv3TNhc9VisHMeM6wmZUPjCn",
+  "identity": "existing reserved Clerk development test-email account; browser email-code sign-in using documented test OTP; no verification email sent",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app/dashboard/landlord/analytics",
+  "observed": [
+    "private portfolio report loads after browser sign-in",
+    "property/unit selection and seven-day period selection load the private report",
+    "metric selector works and daily table expands to seven unavailable days",
+    "unknown daily history stays unavailable and is not replaced with fabricated counts",
+    "CSV download completed through the UI and bytes were inspected",
+    "narrow-screen clipping fixed in dashboard/content sizing",
+    "390px viewport and document/main scroll widths all equal 390 with expanded table",
+    "desktop layout rechecked after restoring default viewport"
+  ],
+  "csv": {
+    "dailyRows": 7,
+    "sha256": "8bda465761a6b75fee18fd1b564d362431c975cc6bb54b1a94e18cc4ccebee5f",
+    "mode": "test",
+    "unavailableCountsBlank": true
+  },
+  "syntheticBrowserSignInAccepted": true,
+  "realHumanEmailOrSmsOwnershipAccepted": false,
+  "nonzeroHostedTrafficOrChartAccepted": false,
+  "publicQaRentalCreated": false,
+  "productionChanged": false,
+  "temporaryViewportReset": true,
+  "tests": 284,
+  "testFiles": 29
+}

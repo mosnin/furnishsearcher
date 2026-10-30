@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-10-26T04:29:45.191725+00:00",
+  "requestFormSourceSha": "5e66f2503c80c50365783943a041671c7f974885",
+  "finalSourceSha": "d3a6b0f24ed7be31cee2c3c6a133be63dd7bd647",
+  "finalDeployment": "dpl_E5uhh79ShAHJebbVMecxqx2ypRZ6",
+  "actualReservedOwnerBrowser": true,
+  "nativeBothRequestDirectionsVisible": true,
+  "ownedPropertySelectorPopulatesReference": true,
+  "emailDraftEntryWorks": true,
+  "requestConfirmationUncheckedAndSubmitDisabled": true,
+  "exactIncomingRequestOpensTravelerReviewForm": true,
+  "offPlatformDatesAndStayContextRequired": true,
+  "reviewTitleAndRatingDraftEditWorks": true,
+  "experienceConfirmationUnchecked": true,
+  "draftCancelledWithoutSubmission": true,
+  "mobile": {
+    "documentWidth": 390,
+    "documentScrollWidth": 390,
+    "dialogLeft": 0,
+    "dialogRight": 390,
+    "dialogClientWidth": 388,
+    "dialogScrollWidth": 388
+  },
+  "defaultViewportRestored": true,
+  "finalClosedLinkUnavailable": true,
+  "finalOutgoingRevokedSuppressedAndIncomingDeclined": true,
+  "closedRequestOpenRetryAndWriteActionsAbsent": true,
+  "screenshots": [
+    "../review-email-requests-desktop.jpg",
+    "../review-email-requests-mobile.jpg",
+    "../review-email-form-mobile.jpg",
+    "../review-email-closed-desktop.jpg"
+  ],
+  "limits": "Requests were persisted by separate actual Clerk native calls. Browser selected/filled a request draft and opened/edited/cancelled a review draft without accepting either experience confirmation or submitting. No real mailbox delivery, actual stay or review publication."
+}

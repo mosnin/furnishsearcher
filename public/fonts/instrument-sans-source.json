@@ -1,0 +1,25 @@
+{
+  "source": "Google Fonts Instrument Sans",
+  "faces": [
+    {
+      "weight": "400",
+      "url": "https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSTF-Qf1.ttf",
+      "file": "instrument-sans-400.ttf"
+    },
+    {
+      "weight": "500",
+      "url": "https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npST3-Qf1.ttf",
+      "file": "instrument-sans-500.ttf"
+    },
+    {
+      "weight": "600",
+      "url": "https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSQb_gf1.ttf",
+      "file": "instrument-sans-600.ttf"
+    },
+    {
+      "weight": "700",
+      "url": "https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSQi_gf1.ttf",
+      "file": "instrument-sans-700.ttf"
+    }
+  ]
+}

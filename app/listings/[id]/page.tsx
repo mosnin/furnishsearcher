@@ -1,5 +1,17 @@
 "use client";
 
+import {
+  PropertySectionNav,
+  PropertyDescription,
+  PropertyAmenities,
+} from "@/components/public-experience/property-sections";
+import { usePublicAuth } from "@/components/public-experience/auth-context";
+import { RemoveSavedDialog } from "@/components/remove-saved-dialog";
+import { ShareListingButton } from "@/components/share-listing-button";
+import { ListingResponseTime } from "@/components/response-rate-panel";
+import { ListingPhoneContact } from "@/components/listing-phone-contact";
+import { PropertyUnits } from "@/components/property-units";
+import { ListingDetails } from "@/components/listing-details";
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +26,6 @@ import {
   PawPrint,
   Car,
   Heart,
-  Share2,
   MapPin,
   CheckCircle2,
   Clock,
@@ -39,14 +50,21 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { BookingInquiry } from "@/components/booking-inquiry";
+import { ReportDialog } from "@/components/report-dialog";
 import { ContactModal } from "@/components/contact-modal";
 import { ListingCard, type ListingCardData } from "@/components/listing-card";
 import { StarRating } from "@/components/star-rating";
-import { ReviewCard } from "@/components/review-card";
+import LeafletMap from "@/components/leaflet-map";
+import { PublicReviews } from "@/components/public-reviews";
 import { ReviewForm } from "@/components/review-form";
 import { LandlordBadges } from "@/components/landlord-badges";
 import { AvailabilityCalendar } from "@/components/availability-calendar";
-import { cn, formatPrice, formatDate } from "@/lib/utils";
+import {
+  useListingPageView,
+  useListingObservation,
+} from "@/components/use-listing-observation";
+import { cn, formatPrice, formatStayDate } from "@/lib/utils";
 
 const AMENITY_ICONS: Record<string, React.ElementType> = {
   WiFi: Wifi,
@@ -73,12 +91,20 @@ interface PageProps {
 export default function ListingDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const openAuth = usePublicAuth();
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 
   const [contactOpen, setContactOpen] = useState(false);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saveOptimistic, setSaveOptimistic] = useState<boolean | null>(null);
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  useEffect(() => {
+    setConfirmRemoval(false);
+    setIsSaved(false);
+    setSaveOptimistic(null);
+  }, [id, clerkUser?.id]);
 
   // Fetch listing
   const listing = useQuery(api.listings.getById, { id: id as Id<"listings"> });
@@ -86,7 +112,7 @@ export default function ListingDetailPage({ params }: PageProps) {
   // Fetch current user's Convex record
   const convexUser = useQuery(
     api.users.getByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   // Check if saved
@@ -94,13 +120,14 @@ export default function ListingDetailPage({ params }: PageProps) {
     api.saved.isSaved,
     convexUser && listing
       ? { tenantId: convexUser._id, listingId: listing._id }
-      : "skip"
+      : "skip",
   );
 
   // Mutations
   const saveListing = useMutation(api.saved.save);
   const unsaveListing = useMutation(api.saved.unsave);
-  const incrementViews = useMutation(api.listings.incrementViews);
+  useListingPageView(listing?._id);
+  const recordShare = useListingObservation("shares");
 
   // Featured listings for "Similar" section
   const featuredListings = useQuery(api.listings.getFeatured);
@@ -108,17 +135,15 @@ export default function ListingDetailPage({ params }: PageProps) {
   // Availability blocks for this listing
   const availabilityBlocks = useQuery(
     api.availability.getByListing,
-    listing?._id ? { listingId: listing._id } : "skip"
+    listing?._id ? { listingId: listing._id } : "skip",
   );
 
   // Reviews for this listing
-  const listingReviews = useQuery(
-    api.reviews.getByListing,
-    listing?._id ? { listingId: listing._id } : "skip"
-  );
   const ratingStats = useQuery(
     api.reviews.getAverageRating,
-    listing?.landlordId ? { landlordId: listing.landlordId } : "skip"
+    listing?.landlordId
+      ? { landlordId: listing.landlordId, listingId: listing._id }
+      : "skip",
   );
 
   // Sync saved status
@@ -129,26 +154,26 @@ export default function ListingDetailPage({ params }: PageProps) {
     }
   }, [savedStatus]);
 
-  // Increment view count once on mount
-  useEffect(() => {
-    if (listing?._id) {
-      incrementViews({ id: listing._id }).catch(() => {});
-    }
-    // Only run on initial listing load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listing?._id]);
-
   const displaySaved = saveOptimistic !== null ? saveOptimistic : isSaved;
 
-  const handleSaveToggle = async () => {
+  const changeSaved = async (next: boolean) => {
+    if (saveBusy) return;
     if (!clerkLoaded) return;
     if (!clerkUser) {
-      router.push("/sign-in");
+      openAuth();
+      return;
+    }
+    if (convexUser === null) {
+      router.push("/onboarding");
       return;
     }
     if (!convexUser || !listing) return;
+    if (convexUser.role !== "tenant") {
+      toast.error("Saving rentals requires a traveler account.");
+      return;
+    }
 
-    const next = !displaySaved;
+    setSaveBusy(true);
     setSaveOptimistic(next);
 
     try {
@@ -156,36 +181,43 @@ export default function ListingDetailPage({ params }: PageProps) {
         await saveListing({ tenantId: convexUser._id, listingId: listing._id });
         toast.success("Saved to your list");
       } else {
-        await unsaveListing({ tenantId: convexUser._id, listingId: listing._id });
+        await unsaveListing({
+          tenantId: convexUser._id,
+          listingId: listing._id,
+        });
         toast.success("Removed from saved");
       }
     } catch {
       setSaveOptimistic(null);
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaveBusy(false);
     }
+    setConfirmRemoval(false);
+  };
+  const handleSaveToggle = () => {
+    if (displaySaved) setConfirmRemoval(true);
+    else void changeSaved(true);
   };
 
   const handleContactClick = () => {
     if (!clerkLoaded) return;
     if (!clerkUser) {
-      router.push(`/sign-in?redirect_url=/listings/${id}`);
+      openAuth(`/listings/${id}`);
+      return;
+    }
+    if (convexUser === null) {
+      router.push("/onboarding");
+      return;
+    }
+    if (!convexUser) return;
+    if (convexUser.role !== "tenant") {
+      toast.error(
+        "Contacting owners about a stay requires a traveler account.",
+      );
       return;
     }
     setContactOpen(true);
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: listing?.title ?? "FurnishFinder listing", url });
-      } catch {
-        // User cancelled — that's fine
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard");
-    }
   };
 
   // Loading state
@@ -197,7 +229,9 @@ export default function ListingDetailPage({ params }: PageProps) {
   if (listing === null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-        <h1 className="text-2xl font-bold text-foreground">Listing not found</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Listing not found
+        </h1>
         <p className="text-muted-foreground text-sm">
           This listing may have been removed or is no longer available.
         </p>
@@ -242,347 +276,380 @@ export default function ListingDetailPage({ params }: PageProps) {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
-
-        {/* Breadcrumb */}
-        <nav className="text-[13px] text-slate-500 mb-4 flex items-center gap-1.5 flex-wrap">
-          <Link href="/" className="hover:text-slate-800 transition-colors">Home</Link>
-          <span className="text-slate-300">/</span>
-          <Link href="/search" className="hover:text-slate-800 transition-colors">Rentals</Link>
-          <span className="text-slate-300">/</span>
-          <Link
-            href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`}
-            className="hover:text-slate-800 transition-colors"
-          >
-            {city}, {state}
-          </Link>
-          <span className="text-slate-300">/</span>
-          <span className="text-slate-800 font-medium truncate max-w-[200px]">{title}</span>
-        </nav>
-
-        {/* Photo gallery */}
-        <PhotoGallery photos={photos} title={title} className="mb-8" />
-
-        {/* Two-column layout */}
-        <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* ── Left column (60%) ── */}
-          <div className="flex-1 min-w-0 flex flex-col gap-6">
-
-            {/* Title & location */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-[12px] font-medium capitalize">{propertyType}</span>
-                {petFriendly && <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[12px] font-medium border border-emerald-100">Pet Friendly</span>}
-                {utilitiesIncluded && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[12px] font-medium border border-blue-100">Utilities Included</span>
-                )}
-              </div>
-              <h1 className="text-[26px] sm:text-[30px] font-bold text-slate-900 leading-tight mb-2">
-                {title}
-              </h1>
-              <div className="flex items-center gap-1.5 text-slate-500">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span className="text-[14px]">
-                  {city}, {state}
-                </span>
-              </div>
-            </div>
-
-            {/* Price */}
-            <div>
-              <p className="text-[36px] font-bold text-[#0f2044] leading-none">
-                {formatPrice(price)}
-                <span className="text-[17px] font-normal text-slate-500 ml-1">/month</span>
-              </p>
-            </div>
-
-            <Separator />
-
-            {/* Key details row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <KeyDetail
-                icon={<Bed className="h-5 w-5" />}
-                label="Bedrooms"
-                value={String(bedrooms)}
-              />
-              <KeyDetail
-                icon={<Bath className="h-5 w-5" />}
-                label="Bathrooms"
-                value={String(bathrooms)}
-              />
-              <KeyDetail
-                icon={<Clock className="h-5 w-5" />}
-                label="Min Stay"
-                value={`${minStay} month${minStay === 1 ? "" : "s"}`}
-              />
-              <KeyDetail
-                icon={<Calendar className="h-5 w-5" />}
-                label="Available"
-                value={formatDate(availableFrom)}
-              />
-              {petFriendly && (
-                <KeyDetail
-                  icon={<PawPrint className="h-5 w-5 text-emerald-600" />}
-                  label="Pets"
-                  value="Welcome"
-                  valueClass="text-emerald-600"
-                />
-              )}
-              {parkingIncluded && (
-                <KeyDetail
-                  icon={<Car className="h-5 w-5" />}
-                  label="Parking"
-                  value="Included"
-                />
-              )}
-            </div>
-
-            <Separator />
-
-            {/* About */}
-            <section>
-              <h2 className="text-[17px] font-semibold text-slate-900 mb-3">About this property</h2>
-              <p className="text-slate-600 text-[14px] leading-relaxed whitespace-pre-line">
-                {description}
-              </p>
-            </section>
-
-            {/* Amenities */}
-            {amenities && amenities.length > 0 && (
-              <>
-                <Separator />
-                <section>
-                  <h2 className="text-[17px] font-semibold text-slate-900 mb-3">Amenities</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {amenities.map((amenity: string) => {
-                      const AmenityIcon = AMENITY_ICONS[amenity] ?? CheckCircle2;
-                      return (
-                        <div
-                          key={amenity}
-                          className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-3 py-2.5 text-[13px] text-slate-700 bg-white"
-                        >
-                          <AmenityIcon className="h-4 w-4 text-slate-400 shrink-0" />
-                          <span className="font-medium truncate">{amenity}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              </>
-            )}
-
-            {/* Availability */}
-            <Separator />
-            <section>
-              <h2 className="text-[17px] font-semibold text-slate-900 mb-3">Availability</h2>
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 mb-4">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+    <div className="public-detail w-property">
+      <PropertySectionNav
+        price={price}
+        showRooms={!!listing.details?.rooms.length}
+      />
+      <div className="public-detail-inner">
+        {listing.canManage && (
+          <section role="status" className="w-property-manager-notice">
+            <strong>
+              {listing.isPublic
+                ? "You manage this rental"
+                : "Private listing preview"}
+            </strong>
+            <p>
+              {listing.isPublic
+                ? "This rental is currently public. Traveler controls are shown to traveler accounts."
+                : "Only authorized managers can view this draft. It is not available to travelers."}
+            </p>
+            <Link href={`/dashboard/landlord/listings/${listing._id}/edit`}>
+              Edit listing
+            </Link>
+            <Link href="/dashboard/landlord/listings">
+              Publication requirements
+            </Link>
+          </section>
+        )}
+        <PhotoGallery
+          captions={listing.photoCaptions}
+          photos={photos}
+          title={title}
+        />
+        <div className="w-property-columns">
+          <div className="w-property-main">
+            <header className="w-property-heading">
+              <div className="w-property-title-actions">
                 <div>
-                  <p className="text-[14px] font-medium text-slate-900">
-                    Available from {formatDate(availableFrom)}
+                  <p>
+                    {propertyType} in {city}, {state}
                   </p>
-                  <p className="text-[12px] text-slate-500">
-                    Minimum stay: {minStay} month{minStay === 1 ? "" : "s"}
-                  </p>
+                  <h1>{title}</h1>
+                </div>
+                <div className="w-property-action-buttons">
+                  {listing.isPublic &&
+                    !listing.canManage &&
+                    (!convexUser || convexUser.role === "tenant") && (
+                      <button
+                        aria-label={
+                          displaySaved
+                            ? "Remove from wishlist"
+                            : "Save to wishlist"
+                        }
+                        aria-pressed={displaySaved}
+                        className="w-property-round-action"
+                        disabled={
+                          saveBusy ||
+                          (clerkLoaded &&
+                            !!clerkUser &&
+                            (convexUser === undefined ||
+                              (!!convexUser && savedStatus === undefined)))
+                        }
+                        onClick={handleSaveToggle}
+                      >
+                        <Heart
+                          size={20}
+                          className={cn(displaySaved && "fill-current")}
+                        />
+                      </button>
+                    )}
+                  {listing.isPublic && (
+                    <ShareListingButton
+                      title={title}
+                      onShared={() => recordShare([listing._id])}
+                    />
+                  )}
                 </div>
               </div>
+              <p className="w-property-fact-line">
+                {bedrooms} {bedrooms === 1 ? "bedroom" : "bedrooms"}
+                <span>·</span>
+                {bathrooms} {bathrooms === 1 ? "bathroom" : "bathrooms"}
+                {listing.maxOccupancy !== undefined && (
+                  <>
+                    <span>·</span>
+                    {listing.maxOccupancy} guests maximum
+                  </>
+                )}
+                {ratingStats && ratingStats.count > 0 && (
+                  <>
+                    <span>·</span>
+                    <a href="#reviews">
+                      ★ {ratingStats.average.toFixed(1)} ({ratingStats.count})
+                    </a>
+                  </>
+                )}
+              </p>
+              {listing.unitName && (
+                <p className="w-property-unit">{listing.unitName}</p>
+              )}
+              <div className="w-property-owner">
+                <Avatar className="w-property-owner-avatar">
+                  {landlordAvatar && (
+                    <AvatarImage src={landlordAvatar} alt={landlordName} />
+                  )}
+                  <AvatarFallback>{landlordInitials}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <Link href={`/landlords/${landlordId}`}>
+                    Hosted by {landlordName}
+                  </Link>
+                  <p>Property owner</p>
+                  <ListingResponseTime listingId={listing._id} />
+                  {ratingStats && ratingStats.count > 0 && landlord && (
+                    <LandlordBadges
+                      averageRating={ratingStats.average}
+                      reviewCount={ratingStats.count}
+                      memberSinceMs={landlord.createdAt}
+                    />
+                  )}
+                </div>
+              </div>
+            </header>
+            <section id="about" className="w-property-section">
+              <h2>About the property</h2>
+              <PropertyDescription description={description} />
+            </section>
+            {!!listing.details &&
+              (!!listing.details.rooms.length ||
+                !!listing.details.bathroomDetails?.length) && (
+                <section id="sleep" className="w-property-section">
+                  <h2>
+                    {listing.details.rooms.length
+                      ? "Where you’ll sleep"
+                      : "Bathroom details"}
+                  </h2>
+                  <div className="w-property-room-grid">
+                    {listing.details.rooms.map((room, i) => (
+                      <article key={i}>
+                        <Bed size={26} />
+                        <h3>{room.name}</h3>
+                        <p>{room.beds}</p>
+                      </article>
+                    ))}
+                  </div>
+                  {!!listing.details.bathroomDetails?.length && (
+                    <div className="w-property-bathrooms">
+                      {listing.details.bathroomDetails.map((bath, i) => (
+                        <article key={i}>
+                          <h3>{bath.name}</h3>
+                          <p>{bath.description}</p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+            {listing.propertyGroupId && (
+              <section className="w-property-section">
+                <PropertyUnits
+                  propertyGroupId={listing.propertyGroupId}
+                  currentId={listing._id}
+                />
+              </section>
+            )}
+            <section id="amenities" className="w-property-section">
+              <h2>Amenities</h2>
+              {amenities.length ? (
+                <PropertyAmenities
+                  amenities={amenities}
+                  renderIcon={(name) => {
+                    const Icon = AMENITY_ICONS[name] ?? CheckCircle2;
+                    return <Icon size={22} strokeWidth={1.4} />;
+                  }}
+                />
+              ) : (
+                <p className="w-property-muted">
+                  Ask the owner which amenities are included.
+                </p>
+              )}
+            </section>
+            <section id="availability" className="w-property-section">
+              <h2>Availability</h2>
+              <p className="w-property-muted">
+                {listing.calendarSyncThrough === 0
+                  ? "Waiting for calendar availability confirmation."
+                  : `Available from ${formatStayDate(availableFrom)}.`}{" "}
+                Minimum stay: {Math.max(1, minStay)}{" "}
+                {minStay === 1 ? "month" : "months"}.
+              </p>
               {availabilityBlocks === undefined ? (
-                <Skeleton className="h-64 w-full rounded-xl" />
-              ) : availabilityBlocks.length > 0 ? (
+                <Skeleton className="h-64 w-full" />
+              ) : availabilityBlocks.length > 0 ||
+                listing.calendarSyncThrough !== undefined ? (
                 <AvailabilityCalendar
                   blocks={availabilityBlocks}
+                  availableFrom={availableFrom}
+                  syncThrough={listing.calendarSyncThrough}
                   editable={false}
                 />
               ) : null}
             </section>
+            <section id="reviews" className="w-property-section">
+              <div className="w-property-section-heading">
+                <h2>
+                  {ratingStats && ratingStats.count > 0
+                    ? `★ ${ratingStats.average.toFixed(1)} · ${ratingStats.count} ${ratingStats.count === 1 ? "review" : "reviews"}`
+                    : "Reviews"}
+                </h2>
+                {listing.isPublic &&
+                  !listing.canManage &&
+                  clerkUser &&
+                  convexUser &&
+                  convexUser._id !== listing.landlordId && (
+                    <button
+                      className="w-property-pill"
+                      onClick={() => setReviewFormOpen(true)}
+                    >
+                      Write a review
+                    </button>
+                  )}
+              </div>
+              <PublicReviews listingId={listing._id} />
+              <Link
+                className="w-property-inline-link"
+                href={`/landlords/${landlordId}`}
+              >
+                See all owner reviews
+              </Link>
+            </section>
+            <section id="location" className="w-property-section">
+              <h2>Where you’ll be</h2>
+              <p className="w-property-muted">
+                {city}, {state}
+              </p>
+              {listing.mapLatitude !== undefined &&
+              listing.mapLongitude !== undefined ? (
+                <>
+                  <div className="w-property-map">
+                    <LeafletMap
+                      fitKey={listing._id}
+                      selectedId={listing._id}
+                      listings={[
+                        {
+                          id: listing._id,
+                          title,
+                          price,
+                          lat: listing.mapLatitude,
+                          lng: listing.mapLongitude,
+                          city,
+                          state,
+                          bedrooms,
+                          bathrooms,
+                          photos,
+                        },
+                      ]}
+                    />
+                  </div>
+                  <p className="w-property-map-caption">
+                    Approximate property area. Confirm the exact location and
+                    commute with the owner.
+                  </p>
+                </>
+              ) : (
+                <p className="w-property-muted">
+                  A property area map has not been confirmed. Ask the owner
+                  about the location before committing.
+                </p>
+              )}
+            </section>
+            <section id="rules" className="w-property-section w-property-rules">
+              <h2>Things to know</h2>
+              <ListingDetails
+                details={
+                  listing.details
+                    ? { ...listing.details, rooms: [], bathroomDetails: [] }
+                    : undefined
+                }
+                maxOccupancy={listing.maxOccupancy}
+                petFriendly={petFriendly}
+              />
+            </section>
           </div>
-
-          {/* ── Right column (40%, sticky) ── */}
-          <div className="lg:w-[380px] shrink-0">
-            <div className="sticky top-6">
-              <div className="bg-white rounded-2xl ring-1 ring-black/[0.06] shadow-sm p-6 flex flex-col gap-5">
-
-                  {/* Price summary */}
-                  <div className="text-center pb-4 border-b border-slate-100">
-                    <p className="text-[26px] font-bold text-[#0f2044] leading-none">
-                      {formatPrice(price)}
-                      <span className="text-[15px] font-normal text-slate-500 ml-1">/month</span>
-                    </p>
-                    <p className="text-[12px] text-slate-500 mt-1">
-                      {minStay}+ month minimum stay
-                    </p>
-                  </div>
-
-                  {/* Landlord info */}
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12 shrink-0">
-                      {landlordAvatar && (
-                        <AvatarImage src={landlordAvatar} alt={landlordName} />
-                      )}
-                      <AvatarFallback className="text-[13px] font-semibold bg-slate-100 text-[#0f2044]">
-                        {landlordInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 text-[14px] truncate">{landlordName}</p>
-                      <p className="text-[12px] text-slate-500">Property Owner</p>
-                      {ratingStats && ratingStats.count > 0 && landlord && (
-                        <LandlordBadges
-                          averageRating={ratingStats.average}
-                          reviewCount={ratingStats.count}
-                          memberSinceMs={landlord.createdAt}
-                          className="mt-1"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Contact button */}
-                  <button
-                    onClick={handleContactClick}
-                    className="w-full h-11 bg-[#0f2044] hover:bg-[#1a3360] text-white text-[15px] font-semibold rounded-xl transition-colors shadow-sm"
-                  >
-                    Contact Landlord
-                  </button>
-
-                  {/* Save + Share */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveToggle}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-[14px] font-medium transition-colors",
-                        displaySaved
-                          ? "border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100"
-                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                      )}
-                    >
-                      <Heart
-                        className={cn(
-                          "h-4 w-4",
-                          displaySaved && "fill-rose-500 text-rose-500"
-                        )}
-                      />
-                      {displaySaved ? "Saved" : "Save"}
-                    </button>
-                    <button
-                      onClick={handleShare}
-                      className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-slate-200 text-slate-700 text-[14px] font-medium hover:bg-slate-50 transition-colors"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </button>
-                  </div>
-
-                  {/* Trust indicators */}
-                  <div className="rounded-xl bg-slate-50 px-4 py-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-[12px] text-slate-500">
-                      <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span>No booking fees — contact directly</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[12px] text-slate-500">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <span>Verified listing on FurnishFinder</span>
-                    </div>
-                  </div>
+          <aside
+            className="w-property-aside"
+            aria-label="Request a monthly stay"
+          >
+            <div
+              id="stay-request"
+              className="public-detail-booking w-property-booking"
+            >
+              <div className="w-property-price">
+                <strong>{formatPrice(price)}</strong>
+                <span>per month</span>
+              </div>
+              {listing.isPublic &&
+              !listing.canManage &&
+              (!convexUser || convexUser.role === "tenant") ? (
+                <BookingInquiry
+                  key={`${listing._id}:${convexUser?._id ?? "guest"}`}
+                  listingId={listing._id}
+                  minStay={minStay}
+                  petFriendly={petFriendly}
+                  needsProfile={!!clerkUser && convexUser === null}
+                  maxOccupancy={listing.maxOccupancy}
+                />
+              ) : (
+                <p className="w-property-muted">
+                  {listing.canManage
+                    ? "You manage this rental. Open your dashboard to review traveler requests."
+                    : "Stay requests are available to traveler accounts."}
+                </p>
+              )}
+              <div className="w-property-owner-direct">
+                <Shield size={18} />
+                <span>Contact the property owner directly</span>
               </div>
             </div>
-          </div>
+            {listing.isPublic &&
+              !listing.canManage &&
+              (!convexUser || convexUser.role === "tenant") && (
+                <div className="w-property-contact">
+                  <button
+                    className="w-property-contact-button"
+                    onClick={handleContactClick}
+                    disabled={
+                      !clerkLoaded || (!!clerkUser && convexUser === undefined)
+                    }
+                  >
+                    Contact property owner
+                  </button>
+                  <ListingPhoneContact listingId={listing._id} />
+                </div>
+              )}
+            <div className="w-property-listing-id">
+              Property ID: {listing.publicId ?? listing._id}
+            </div>
+            {listing.isPublic && !listing.canManage && (
+              <ReportDialog listingId={listing._id} />
+            )}
+          </aside>
         </div>
-
-        {/* Similar listings */}
         {similarListings.length > 0 && (
-          <section className="mt-14">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[19px] font-semibold text-slate-900">Similar Listings</h2>
-              <Link href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`} className="text-[14px] text-[#0f2044] font-medium hover:underline">
+          <section className="w-property-similar">
+            <header>
+              <h2>More monthly stays</h2>
+              <Link
+                href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`}
+              >
                 See all in {city}
               </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            </header>
+            <div className="w-property-similar-grid">
               {similarListings.map((l) => (
                 <ListingCard key={l._id} listing={l} />
               ))}
             </div>
           </section>
         )}
-
-        {/* Reviews section */}
-        <section className="mt-14">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-[19px] font-semibold text-slate-900">Reviews</h2>
-              {ratingStats && ratingStats.count > 0 && (
-                <div className="flex items-center gap-2">
-                  <StarRating rating={ratingStats.average} size="sm" />
-                  <span className="text-[13px] text-slate-500">
-                    {ratingStats.count} {ratingStats.count === 1 ? "review" : "reviews"}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {clerkUser && convexUser?.role === "tenant" && (
-                <button
-                  onClick={() => setReviewFormOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  <PenLine className="h-3.5 w-3.5" />
-                  Write a Review
-                </button>
-              )}
-              <Link href={`/landlords/${landlordId}`} className="text-[13px] text-[#0f2044] font-medium hover:underline">
-                See all reviews
-              </Link>
-            </div>
-          </div>
-
-          {listingReviews === undefined ? (
-            <div className="flex flex-col gap-4">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-xl" />
-              ))}
-            </div>
-          ) : listingReviews.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
-              <p className="text-slate-500 text-[14px]">
-                No reviews yet for this listing.
-              </p>
-              {clerkUser && convexUser?.role === "tenant" && (
-                <button
-                  onClick={() => setReviewFormOpen(true)}
-                  className="text-[13px] text-[#0f2044] font-medium hover:underline"
-                >
-                  Be the first to leave a review
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {listingReviews.slice(0, 3).map((review) => (
-                <ReviewCard
-                  key={review._id}
-                  rating={review.rating}
-                  comment={review.comment}
-                  reviewerName={review.reviewerName}
-                  reviewerAvatar={review.reviewerAvatar}
-                  createdAt={review.createdAt}
-                />
-              ))}
-              {listingReviews.length > 3 && (
-                <Link href={`/landlords/${landlordId}`} className="self-center px-5 py-2 rounded-xl border border-slate-200 text-[14px] font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                  See all {listingReviews.length} reviews
-                </Link>
-              )}
-            </div>
-          )}
-        </section>
+        <nav className="w-property-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/">Home</Link>
+          <span>›</span>
+          <Link href="/search">Rentals</Link>
+          <span>›</span>
+          <Link
+            href={`/search?location=${encodeURIComponent(`${city}, ${state}`)}`}
+          >
+            {city}, {state}
+          </Link>
+          <span>›</span>
+          <span>{title}</span>
+        </nav>
       </div>
-
-      {/* Contact modal */}
-      {convexUser && listing && (
+      {convexUser && listing.isPublic && !listing.canManage && (
         <ContactModal
+          key={`${listing._id}:${convexUser._id}`}
           listingId={listing._id}
           landlordId={landlordId}
           landlordName={landlordName}
@@ -590,9 +657,7 @@ export default function ListingDetailPage({ params }: PageProps) {
           onClose={() => setContactOpen(false)}
         />
       )}
-
-      {/* Review form dialog */}
-      {convexUser && listing && (
+      {convexUser && (
         <ReviewForm
           listingId={listing._id}
           landlordId={landlordId}
@@ -602,6 +667,12 @@ export default function ListingDetailPage({ params }: PageProps) {
           onClose={() => setReviewFormOpen(false)}
         />
       )}
+      <RemoveSavedDialog
+        open={confirmRemoval}
+        onOpenChange={setConfirmRemoval}
+        onConfirm={() => void changeSaved(false)}
+        busy={saveBusy}
+      />
     </div>
   );
 }
@@ -620,18 +691,20 @@ function KeyDetail({
   valueClass?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-4 text-center">
+    <div className="public-key-detail flex flex-col items-center gap-1.5 text-center">
       <div className="text-slate-400">{icon}</div>
       <p className="text-[11px] text-slate-500">{label}</p>
-      <p className={cn("text-[13px] font-semibold text-slate-900", valueClass)}>{value}</p>
+      <p className={cn("text-[13px] font-semibold text-slate-900", valueClass)}>
+        {value}
+      </p>
     </div>
   );
 }
 
 function ListingDetailSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6">
+    <div className="public-detail">
+      <div className="public-detail-inner">
         <Skeleton className="h-4 w-64 mb-4" />
         {/* Gallery */}
         <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-xl overflow-hidden mb-8">

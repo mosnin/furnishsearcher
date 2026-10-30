@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-25T23:58:47.764Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkOwnerTravelerAndStaffDevelopmentJwts": true,
+  "explicitNativeStaffAssignmentForNewDisposableDevelopmentAccount": true,
+  "privilegedPrivateHistoricalLeadOnly": true,
+  "nonstaffReviewDenied": true,
+  "nativeReportedAccountBinding": true,
+  "heldLeadRemainsVisibleWithContactDisabled": true,
+  "bothDirectionsNewMessagingDenied": true,
+  "currentPhoneAndMatchingDenied": true,
+  "historyReadableAndStaffNotesPrivate": true,
+  "realPublicPaidIdentityOrSmsAcceptance": false,
+  "realPersonMessageEmailOrSmsSent": false,
+  "productionChanged": false,
+  "reviewReleased": true,
+  "disposableStaffDeletedAndNativeAuthorityRevokedBeforeJwtExpiry": true
+}

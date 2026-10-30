@@ -9,7 +9,7 @@ export function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(price);
 }
 
@@ -21,32 +21,17 @@ export function formatDate(date: number): string {
   }).format(new Date(date));
 }
 
-export const PROPERTY_TYPES = [
-  "Apartment",
-  "House",
-  "Condo",
-  "Studio",
-  "Townhouse",
-  "Room",
-] as const;
+// Rental dates are stored at UTC midnight and must not shift with the viewer's timezone.
+export function formatStayDate(date: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(date));
+}
 
-export const AMENITIES = [
-  "WiFi",
-  "Parking",
-  "Washer/Dryer",
-  "Air Conditioning",
-  "Heating",
-  "Kitchen",
-  "Gym",
-  "Pool",
-  "Pet Friendly",
-  "Dishwasher",
-  "TV",
-  "Balcony",
-  "Utilities Included",
-  "Elevator",
-  "Doorman",
-] as const;
+export { PROPERTY_TYPES, AMENITIES, OWNER_AMENITIES } from "./search-options";
 
 export const BUDGET_OPTIONS = [
   { label: "Under $1,500/mo", value: "1500" },
@@ -55,5 +40,5 @@ export const BUDGET_OPTIONS = [
   { label: "Under $3,000/mo", value: "3000" },
   { label: "Under $4,000/mo", value: "4000" },
   { label: "Under $5,000/mo", value: "5000" },
-  { label: "$5,000+/mo", value: "9999" },
+  { label: "Any budget", value: "any" },
 ] as const;

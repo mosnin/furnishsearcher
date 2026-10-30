@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T05:36:25.746Z",
+  "environment": "http://127.0.0.1:3210",
+  "authClass": "privileged synthetic local owner; not actual Clerk authentication",
+  "readOnly": true,
+  "managedRentalCount": 26,
+  "publicRentalCount": 4,
+  "publicPages": 1,
+  "ownerAndAnonymousResultsIdentical": true,
+  "onlyCurrentlyLiveManagedRowsReturned": true,
+  "explicitCardFieldAllowlist": true,
+  "coverPhotoOnly": true,
+  "publicProfileOmitsEmailAndPhone": true,
+  "syntheticLocalPublicationPrerequisites": true,
+  "syntheticCloudPaidOrIdentityGrants": false,
+  "providerRequests": 0
+}

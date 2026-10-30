@@ -3,7 +3,7 @@ import { XCircle } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Payment Cancelled | FurnishFinder",
+  title: "Payment Cancelled | globe",
   description: "Your payment was not completed.",
 };
 
@@ -14,7 +14,7 @@ export default function BillingCancelPage() {
         <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-5">
           <XCircle className="w-9 h-9 text-red-500" />
         </div>
-        <h1 className="text-2xl font-bold text-[#0f2044]">Payment cancelled</h1>
+        <h1 className="text-2xl font-bold text-primary">Payment cancelled</h1>
         <p className="mt-3 text-slate-600 text-sm leading-relaxed">
           Your payment was not completed and you have not been charged. You can
           try again at any time from your billing dashboard.
@@ -22,7 +22,7 @@ export default function BillingCancelPage() {
         <div className="mt-8 flex flex-col gap-3">
           <Link
             href="/dashboard/landlord/billing"
-            className="w-full bg-[#1e3a8a] hover:bg-[#0f2044] text-white font-semibold px-5 py-3 rounded-lg transition-colors"
+            className="w-full bg-primary hover:bg-primary text-white font-semibold px-5 py-3 rounded-lg transition-colors"
           >
             Return to billing
           </Link>

@@ -1,0 +1,24 @@
+{
+  "publicationPrerequisites": "Privileged synthetic identity/payment fixtures and a local staff review; not real provider verification",
+  "listingDetailsPersistedAndCleared": true,
+  "unrelatedDetailsWriteRejected": true,
+  "invalidFeesRejected": true,
+  "checkedAt": "2026-10-25T03:40:12.849Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "authentication": "Privileged CLI development identities; not a Clerk browser/JWT acceptance test",
+  "syntheticListingIds": [
+    "k976qqsxcmrs93kjzm1g132q4h8gxzx1",
+    "k97f2smyfqzx4jderxvykf23498gxjdr"
+  ],
+  "exactBudgetMatches": 0,
+  "flexibleBudgetMatches": 1,
+  "matchedStay": {
+    "moveIn": "2027-03-06",
+    "moveOut": "2027-04-25"
+  },
+  "propertyId": "FS-100001",
+  "savedSearchId": "md70azf9hbm3ghda0a25kamek98gw1e5",
+  "privateSavedSearchReadRejected": true,
+  "actualEmailSent": false
+}

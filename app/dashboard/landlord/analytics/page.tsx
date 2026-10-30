@@ -1,581 +1,375 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { PageHeader, SelectField } from "@/components/ui-system/primitives";
+import { ResponseRatePanel } from "@/components/response-rate-panel";
+import { MapEligibilityPanel } from "@/components/map-eligibility-panel";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { cn, formatPrice } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { Id } from "@/convex/_generated/dataModel";
+import { formatPrice } from "@/lib/utils";
 import {
-  LineChart,
-  Line,
+  PERFORMANCE_METRICS,
+  metricLabels,
+  emptyPerformance,
+  performanceReportSeries,
+  reportRefreshDelay,
+  performanceCsv,
+  metricRecorded,
+  type PerformanceMetric,
+} from "@/lib/listing-performance";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from "recharts";
-import {
-  Eye,
-  MessageSquare,
-  Heart,
-  Building2,
-  TrendingUp,
-  TrendingDown,
-  Pencil,
-  Plus,
-  BarChart2,
-  Lightbulb,
-  Camera,
-  Clock,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type DateRange = "7" | "30" | "90" | "all";
-
-type ListingPerf = {
-  _id: string;
-  title: string;
-  status: string;
-  price: number;
-  views: number;
-  messages: number;
-  saved: number;
-  createdAt: number;
-};
-
-// ─── Mock time-series generator ───────────────────────────────────────────────
-
-function buildViewsTimeSeries(
-  listings: ListingPerf[],
-  days: number
-): Array<{ date: string; views: number }> {
-  const now = Date.now();
-  const result: Array<{ date: string; views: number }> = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now - i * 86_400_000);
-    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    // Distribute total views across days with some noise
-    const base = listings.reduce((s, l) => s + l.views, 0) / days;
-    const noise = Math.sin(i * 0.7 + listings.length) * base * 0.35;
-    const spike = i % 7 === 0 ? base * 0.4 : 0; // weekly peaks
-    const views = Math.max(0, Math.round(base + noise + spike));
-    result.push({ date: label, views });
-  }
-  return result;
-}
-
-function buildInquiryBarData(listings: ListingPerf[]): Array<{ name: string; messages: number }> {
-  return listings
-    .slice(0, 8)
-    .map((l) => ({
-      name: l.title.length > 18 ? l.title.slice(0, 18) + "…" : l.title,
-      messages: l.messages,
-    }));
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  trend,
-  trendLabel,
-  loading,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  trend?: "up" | "down" | "neutral";
-  trendLabel?: string;
-  loading?: boolean;
-}) {
-  return (
-    <Card className="border border-slate-200">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-slate-500 font-medium">{label}</p>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mt-2" />
-            ) : (
-              <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-            )}
-            {trendLabel && !loading && (
-              <div
-                className={cn(
-                  "flex items-center gap-1 mt-1 text-xs font-medium",
-                  trend === "up" && "text-emerald-600",
-                  trend === "down" && "text-red-500",
-                  trend === "neutral" && "text-slate-400"
-                )}
-              >
-                {trend === "up" && <TrendingUp className="h-3 w-3" />}
-                {trend === "down" && <TrendingDown className="h-3 w-3" />}
-                {trendLabel}
-              </div>
-            )}
-          </div>
-          <div className="h-11 w-11 rounded-full bg-[#1e3a8a]/10 flex items-center justify-center shrink-0 ml-3">
-            <Icon className="h-5 w-5 text-[#1e3a8a]" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    active: "bg-emerald-100 text-emerald-800",
-    inactive: "bg-slate-100 text-slate-600",
-    pending: "bg-amber-100 text-amber-800",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-        map[status] ?? "bg-slate-100 text-slate-600"
-      )}
-    >
-      {status}
-    </span>
-  );
-}
-
-function TipCard({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-}) {
-  return (
-    <Card className="border border-slate-200">
-      <CardContent className="p-6">
-        <div className="flex gap-4">
-          <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-            <Icon className="h-5 w-5 text-[#1e3a8a]" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 text-sm">{title}</h3>
-            <p className="text-sm text-slate-500 mt-1 leading-relaxed">{body}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Custom tooltip for views chart
-interface ViewsTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}
-function ViewsTooltip({ active, payload, label }: ViewsTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="text-slate-500 text-xs">{label}</p>
-      <p className="font-semibold text-slate-900 mt-0.5">
-        {payload[0].value.toLocaleString()} views
-      </p>
-    </div>
-  );
-}
-
-// Custom tooltip for inquiry chart
-interface InquiryTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number; payload: { name: string } }>;
-}
-function InquiryTooltip({ active, payload }: InquiryTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-semibold text-slate-900">{payload[0].payload.name}</p>
-      <p className="text-slate-600 mt-0.5">{payload[0].value} messages</p>
-    </div>
-  );
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
-
 export default function LandlordAnalyticsPage() {
+  const { userId, isLoaded } = useAuth();
+  return !isLoaded ? (
+    <p role="status">Loading account…</p>
+  ) : userId ? (
+    <AccountPerformance key={userId} />
+  ) : (
+    <p>Please sign in to view your listing performance.</p>
+  );
+}
+function AccountPerformance() {
+  const { isAuthenticated } = useConvexAuth();
   const { userId } = useAuth();
-  const [dateRange, setDateRange] = useState<DateRange>("30");
-
-  const convexUser = useQuery(
+  const me = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    isAuthenticated && userId ? { clerkId: userId } : "skip",
   );
-
-  const stats = useQuery(
-    api.analytics.getListingStats,
-    convexUser?._id ? { landlordId: convexUser._id } : "skip"
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.listingPerformance.properties,
+    isAuthenticated && me ? {} : "skip",
+    { initialNumItems: 30 },
   );
-
-  const listingPerf = useQuery(
-    api.analytics.getListingPerformance,
-    convexUser?._id ? { landlordId: convexUser._id } : "skip"
-  ) as ListingPerf[] | undefined;
-
-  const isLoading = convexUser === undefined || stats === undefined || listingPerf === undefined;
-  const hasNoListings = !isLoading && listingPerf?.length === 0;
-
-  const rangeDays = dateRange === "7" ? 7 : dateRange === "90" ? 90 : dateRange === "all" ? 180 : 30;
-
-  const viewsData = useMemo(() => {
-    if (!listingPerf || listingPerf.length === 0) return [];
-    return buildViewsTimeSeries(listingPerf, rangeDays);
-  }, [listingPerf, rangeDays]);
-
-  const inquiryData = useMemo(() => {
-    if (!listingPerf) return [];
-    return buildInquiryBarData(listingPerf);
-  }, [listingPerf]);
-
-  // Subsample X-axis ticks based on range
-  const xAxisTick = useMemo(() => {
-    if (rangeDays <= 14) return undefined; // show all
-    if (rangeDays <= 30) return (value: string, index: number) => (index % 5 === 0 ? value : "");
-    if (rangeDays <= 90) return (value: string, index: number) => (index % 14 === 0 ? value : "");
-    return (value: string, index: number) => (index % 30 === 0 ? value : "");
-  }, [rangeDays]);
-
+  const [selected, setSelected] = useState<Id<"listings"> | null>(null),
+    [days, setDays] = useState(90),
+    [refreshKey, setRefreshKey] = useState(() => crypto.randomUUID()),
+    [metric, setMetric] = useState<PerformanceMetric>("views");
+  const listingId = selected;
+  const report = useQuery(
+    api.listingPerformance.report,
+    isAuthenticated && me
+      ? { ...(listingId ? { listingId } : {}), days, refreshKey }
+      : "skip",
+  );
+  useEffect(() => {
+    const refresh = () => setRefreshKey(crypto.randomUUID());
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    // The native sample supplies both the deadline and current time. This
+    // duration remains valid even if the device clock is ahead or behind.
+    const timer = report
+      ? setTimeout(refresh, reportRefreshDelay(report))
+      : undefined;
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [report?.generatedAt, report?.end]);
+  const rows = report ? performanceReportSeries(report) : [];
+  const totals = rows.reduce((counts, row) => {
+    for (const key of PERFORMANCE_METRICS)
+      if (metricRecorded(row, key)) counts[key] += row[key];
+    return counts;
+  }, emptyPerformance());
+  function download() {
+    if (!report) return;
+    const url = URL.createObjectURL(
+      new Blob([performanceCsv(rows, report.mode)], {
+        type: "text/csv;charset=utf-8",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `listing-performance-${report.mode}-${report.listingId ?? "all"}-${days}-days.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  if (me === undefined) return <p role="status">Loading account…</p>;
+  if (!me) return <p>Complete your account profile first.</p>;
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Track your listing performance and renter engagement
-          </p>
-        </div>
-        <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="Date range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="all">All time</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="space-y-6 min-w-0 w-full">
+      <PageHeader
+        title="Listing performance"
+        description="Recorded daily activity for each rental space. Dates use UTC. Browser observations are not verified unique people."
+      />
+      <div className="flex flex-wrap items-end gap-4">
+        <SelectField
+          label="Property or unit"
+          value={listingId ?? ""}
+          onValueChange={(value) =>
+            setSelected(value ? (value as Id<"listings">) : null)
+          }
+          options={[
+            { value: "", label: "All my rental spaces" },
+            ...results.map((row) => ({
+              value: row.id,
+              label: row.title + (row.unitName ? ` · ${row.unitName}` : ""),
+            })),
+          ]}
+        />
+        {status === "CanLoadMore" && (
+          <Button variant="outline" onClick={() => loadMore(30)}>
+            Load more rental spaces
+          </Button>
+        )}
+        <SelectField
+          label="Reporting period"
+          value={String(days)}
+          onValueChange={(value) => setDays(Number(value))}
+          options={[7, 30, 90].map((n) => ({
+            value: String(n),
+            label: `Last ${n} days`,
+          }))}
+        />
       </div>
-
-      {/* ── No listings CTA ── */}
-      {hasNoListings && (
-        <Card className="border-dashed border-2 border-slate-300">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="h-16 w-16 rounded-full bg-[#1e3a8a]/10 flex items-center justify-center mb-4">
-              <BarChart2 className="h-8 w-8 text-[#1e3a8a]" />
+      {report && (
+        <p className="text-sm text-slate-600">
+          Reporting dates: {new Date(report.start).toISOString().slice(0, 10)}{" "}
+          through {new Date(report.end - 86400000).toISOString().slice(0, 10)}{" "}
+          UTC. Checked{" "}
+          {new Date(report.generatedAt)
+            .toISOString()
+            .replace("T", " ")
+            .slice(0, 19)}{" "}
+          UTC.
+        </p>
+      )}
+      <ResponseRatePanel
+        key={listingId ?? "all"}
+        listingId={listingId}
+        refreshKey={refreshKey}
+      />
+      {status === "LoadingFirstPage" || status === "LoadingMore" ? (
+        <p role="status">Loading rental spaces…</p>
+      ) : results.length === 0 ? (
+        <p>
+          No rental spaces are associated with this account.{" "}
+          <Link className="underline" href="/dashboard/landlord/listings">
+            Manage listings
+          </Link>
+        </p>
+      ) : null}
+      {me && report === undefined ? (
+        <p role="status">Loading private activity…</p>
+      ) : (
+        report && (
+          <>
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <h2 className="font-semibold">
+                {report.title}
+                {report.price !== null
+                  ? ` · ${formatPrice(report.price)}/month`
+                  : ""}
+              </h2>
+              <Button variant="outline" onClick={download}>
+                Download daily CSV
+              </Button>
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              No Analytics Yet
-            </h3>
-            <p className="text-slate-500 max-w-sm mb-6">
-              Create your first listing to start tracking views, messages, and saves from interested renters.
+            <p className="text-sm text-slate-600">
+              {report.startedAt === null
+                ? "No dated activity has been recorded for this owner and rental space. Earlier daily history is unavailable."
+                : `First recorded activity: ${new Date(report.startedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. The first collection day may be partial; earlier days are unavailable.`}{" "}
+              {report.mode === "test"
+                ? "Test-environment activity; production figures are separate."
+                : "Production-environment activity."}
             </p>
-            <Button asChild size="lg">
-              <Link href="/dashboard/landlord/listings/new">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Your First Listing
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Section 1: Stats Row ── */}
-      {!hasNoListings && (
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Views"
-            value={isLoading ? "—" : (stats?.totalViews ?? 0).toLocaleString()}
-            icon={Eye}
-            trend="up"
-            trendLabel="Across all listings"
-            loading={isLoading}
-          />
-          <StatCard
-            label="Messages Received"
-            value={isLoading ? "—" : stats?.totalMessages ?? 0}
-            icon={MessageSquare}
-            trend="neutral"
-            trendLabel="Total inquiries"
-            loading={isLoading}
-          />
-          <StatCard
-            label="Saved by Tenants"
-            value={isLoading ? "—" : stats?.savedCount ?? 0}
-            icon={Heart}
-            trend="up"
-            trendLabel="Tenant saves"
-            loading={isLoading}
-          />
-          <StatCard
-            label="Active Listings"
-            value={isLoading ? "—" : stats?.activeListings ?? 0}
-            icon={Building2}
-            trend="neutral"
-            trendLabel={`of ${stats?.totalListings ?? "—"} total`}
-            loading={isLoading}
-          />
-        </section>
-      )}
-
-      {/* ── Section 2: Views Over Time ── */}
-      {!hasNoListings && (
-        <section>
-          <Card className="border border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Views Over Time
-              </CardTitle>
-              <p className="text-sm text-slate-500">
-                Estimated daily views based on your listing activity
-              </p>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="w-full h-64 rounded-md" />
-              ) : viewsData.length === 0 ? (
-                <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-                  No view data available.
-                </div>
+            <p className="text-sm text-slate-600">
+              {report.phoneStartedAt === null
+                ? "Phone reveal history is unavailable until the first counted reveal."
+                : `Phone reveal collection began ${new Date(report.phoneStartedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Earlier phone history is unavailable and its first day may be partial.`}{" "}
+              Successful number reveals count at most once per signed-in
+              account/rental space/UTC day. Staff and the owner are excluded.
+              This records access to the number, not a completed call or text.
+            </p>
+            <p className="text-sm text-slate-600">
+              {report.unmatchedStartedAt === null
+                ? "Unmatched lead history is unavailable until the first counted partial match."
+                : `Unmatched lead collection began ${new Date(report.unmatchedStartedAt).toISOString().replace("T", " ").slice(0, 19)} UTC. Earlier unmatched history is unavailable and its first day may be partial.`}{" "}
+              Lead counts are request/rental-space pairs; one request can count
+              for multiple spaces and later as matched. They record first
+              qualifying matches, rather than the number of currently open
+              leads.
+            </p>
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {PERFORMANCE_METRICS.map((key) => (
+                <Card key={key}>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-slate-500">
+                      {metricLabels[key]}
+                    </p>
+                    <p className="text-2xl font-semibold mt-2">
+                      {(key === "phoneReveals"
+                        ? report.phoneStartedAt
+                        : key === "unmatchedLeads"
+                          ? report.unmatchedStartedAt
+                          : report.startedAt) === null
+                        ? "Unavailable"
+                        : totals[key].toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <MapEligibilityPanel
+              key={`${listingId ?? "all"}-${days}`}
+              listingId={listingId}
+              days={days}
+              refreshKey={refreshKey}
+            />
+            <section
+              className="rounded-xl border bg-white p-4 space-y-4"
+              aria-label="Daily listing activity"
+            >
+              <SelectField
+                label="Chart activity"
+                value={metric}
+                onValueChange={(value) => setMetric(value as PerformanceMetric)}
+                options={PERFORMANCE_METRICS.map((key) => ({
+                  value: key,
+                  label: metricLabels[key],
+                }))}
+              />
+              {(metric === "phoneReveals"
+                ? report.phoneStartedAt
+                : metric === "unmatchedLeads"
+                  ? report.unmatchedStartedAt
+                  : report.startedAt) === null ? (
+                <p>No dated activity to chart yet.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <LineChart
-                    data={viewsData}
-                    margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
-                      tickFormatter={xAxisTick ? (val: string, idx: number) => (xAxisTick as (v: string, i: number) => string)(val, idx) : undefined}
-                      interval={xAxisTick ? 0 : "preserveStartEnd"}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
-                      allowDecimals={false}
-                      width={36}
-                    />
-                    <Tooltip content={<ViewsTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="views"
-                      stroke="#1e3a8a"
-                      strokeWidth={2.5}
-                      dot={false}
-                      activeDot={{ r: 5, fill: "#1e3a8a" }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={rows.map((row) => ({
+                        ...row,
+                        date: new Date(row.day).toISOString().slice(0, 10),
+                        value: metricRecorded(row, metric) ? row[metric] : null,
+                      }))}
+                    >
+                      <XAxis dataKey="date" minTickGap={40} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar
+                        dataKey="value"
+                        name={metricLabels[metric]}
+                        fill="#1e3a8a"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </section>
-      )}
-
-      {/* ── Section 3: Listing Performance Table ── */}
-      {!hasNoListings && (
-        <section>
-          <Card className="border border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Listing Performance
-              </CardTitle>
-              <p className="text-sm text-slate-500">Sorted by views, highest first</p>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="space-y-0 divide-y divide-slate-100">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-center gap-4 p-4">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-5 w-16 ml-auto" />
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-8 w-16" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
+              <details>
+                <summary className="cursor-pointer font-medium">
+                  Daily data table
+                </summary>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
+                    <caption className="text-left py-3">
+                      Unavailable days have no reconstructed daily values. A
+                      recorded zero means no accepted events, not confirmed
+                      absence of traffic.
+                    </caption>
                     <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50">
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Listing
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Status
-                        </th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Price
-                        </th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Views
-                        </th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Msgs
-                        </th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Saved
-                        </th>
-                        <th className="px-4 py-3" />
+                      <tr>
+                        <th className="text-left">UTC date</th>
+                        {PERFORMANCE_METRICS.map((key) => (
+                          <th className="text-left p-2" key={key}>
+                            {metricLabels[key]}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {(listingPerf ?? []).slice(0, 10).map((l) => (
-                        <tr key={l._id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="font-medium text-slate-900 line-clamp-1 max-w-[200px] block">
-                              {l.title}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={l.status} />
-                          </td>
-                          <td className="px-4 py-3 text-right text-slate-700">
-                            {formatPrice(l.price)}<span className="text-slate-400 text-xs">/mo</span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-slate-900">
-                            {l.views.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-right text-slate-700">
-                            {l.messages}
-                          </td>
-                          <td className="px-4 py-3 text-right text-slate-700">
-                            {l.saved}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Button asChild variant="outline" size="sm">
-                              <Link href={`/dashboard/landlord/listings/${l._id}/edit`}>
-                                <Pencil className="h-3.5 w-3.5 mr-1" />
-                                Edit
-                              </Link>
-                            </Button>
-                          </td>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.day} className="border-t">
+                          <th
+                            scope="row"
+                            className="text-left py-2 font-normal"
+                          >
+                            {new Date(row.day).toISOString().slice(0, 10)}
+                          </th>
+                          {PERFORMANCE_METRICS.map((key) => (
+                            <td className="p-2" key={key}>
+                              {metricRecorded(row, key)
+                                ? row[key].toLocaleString()
+                                : "Unavailable"}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {(listingPerf?.length ?? 0) === 0 && (
-                    <div className="py-12 text-center text-slate-400 text-sm">
-                      No listings to show.
-                    </div>
-                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      )}
-
-      {/* ── Section 4: Inquiry Trends ── */}
-      {!hasNoListings && (
-        <section>
-          <Card className="border border-slate-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Inquiry Trends
-              </CardTitle>
-              <p className="text-sm text-slate-500">
-                Messages received per listing
+              </details>
+            </section>
+            <div className="text-xs text-slate-600 space-y-2">
+              <p>
+                Search appearances count visible cards or individual map pins,
+                with a one-second visibility delay. Grouped map spaces count
+                only when individually shown. Views count a visible property
+                page after one second. Appearances, views and completed
+                share/copy actions are capped at one per listing/account or page
+                reference per UTC day. Browser observations respect Do Not Track
+                and Global Privacy Control and exclude the signed-in owner and
+                staff; anonymous references can reset and are not proof of
+                unique visitors.
               </p>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="w-full h-52 rounded-md" />
-              ) : inquiryData.length === 0 ? (
-                <div className="flex items-center justify-center h-52 text-slate-400 text-sm">
-                  No inquiry data yet.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart
-                    data={inquiryData}
-                    margin={{ top: 5, right: 20, left: 0, bottom: 30 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
-                      angle={-30}
-                      textAnchor="end"
-                      interval={0}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
-                      width={32}
-                    />
-                    <Tooltip content={<InquiryTooltip />} />
-                    <Bar
-                      dataKey="messages"
-                      fill="#1e3a8a"
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={36}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </section>
+              <p>
+                Saves added/removed, accepted booking requests, new
+                traveler-created threads and first stored housing-request
+                matches come from their native transactions. Saves are actions
+                during this period, not current favorites. Shares measure the
+                completed browser action, not delivery to another person.
+                Requests and threads can overlap; they are separate activity
+                counts.
+              </p>
+              <p>
+                Legacy stored view counter:{" "}
+                {report.legacyViews === null
+                  ? "select a rental space"
+                  : report.legacyViews.toLocaleString()}
+                . It predates the current checks and has no recoverable daily
+                history. It is excluded from this chart. Current unmatched
+                criteria are available on the Tenant Requests page. Recorded map
+                eligibility checks are shown separately above; missing checks
+                cannot establish continuous eligibility. Current reviews remain
+                available on the listing.{" "}
+                {report.status
+                  ? `Status “${report.status}” does not by itself prove current publication eligibility.`
+                  : "Portfolio totals count activity attributed to this account when it owned the rental spaces. Per-space reports use the current owner."}
+              </p>
+            </div>
+            {report.listingId && (
+              <Link
+                className="inline-block underline text-sm"
+                href={`/dashboard/landlord/listings/${report.listingId}/edit`}
+              >
+                Manage this rental space
+              </Link>
+            )}
+          </>
+        )
       )}
-
-      {/* ── Section 5: Tips to Improve Performance ── */}
-      <section>
-        <div className="mb-5">
-          <h2 className="text-lg font-semibold text-slate-900">Tips to Improve Performance</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Actionable steps to get more views and inquiries
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <TipCard
-            icon={Camera}
-            title="Add High-Quality Photos"
-            body="Listings with 5+ professional-looking photos receive up to 3x more views. Use natural lighting and photograph every room, including the kitchen and bathroom."
-          />
-          <TipCard
-            icon={Clock}
-            title="Respond Within 1 Hour"
-            body="Renters often send inquiries to multiple landlords simultaneously. Responding quickly — especially within the first hour — significantly increases your conversion rate."
-          />
-          <TipCard
-            icon={Lightbulb}
-            title="Keep Your Price Competitive"
-            body="Check the Market Insights page to see average rents in your city. Listings priced within 10% of the local average receive substantially more inquiries."
-          />
-        </div>
-      </section>
-
+      <Link
+        className="inline-block text-sm underline text-primary"
+        href="/market-insights"
+      >
+        Explore market supply and recorded demand
+      </Link>
     </div>
   );
 }

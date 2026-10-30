@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-25T05:36:05.722988+00:00",
+  "sourceSha": "873a1d421d6f772ab2b85b77172bdc69fcc20da6",
+  "deploymentId": "dpl_3fKX8Ne1F2nMkwNgocR9DWNbKcgM",
+  "preview": "https://furnishsearcher-git-codex-furnished-fin-ea05ef-mosnins-projects.vercel.app/search/guided",
+  "observed": [
+    "guided page loads inherited Austin/TX, $2500 maximum and one-bedroom criteria",
+    "AI unavailable state is visible and interpretation submission disabled",
+    "editing monthly maximum to $2200 and selecting WiFi updates derived summary",
+    "Search with these filters opens native /search with city/state/price/bedroom/amenity query fields",
+    "native search renders applied-filter chips and zero matches on empty cloud inventory",
+    "Refine preferences returns to guided editor with $2200 and WiFi retained"
+  ],
+  "modelInferenceAccepted": false,
+  "humanAuthenticationAccepted": false,
+  "mobileAccepted": false,
+  "productionChanged": false,
+  "tests": 272,
+  "testFiles": 28
+}

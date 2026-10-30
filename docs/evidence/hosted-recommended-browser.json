@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-10-26T01:59:06.345551+00:00",
+  "sourceCommit": "9b765716b2468f5d23bb052fc1db6da9f0118c07",
+  "readyDeployment": "dpl_FkNaYtJDytPpLcB87YxYW2YFtEKA",
+  "environment": "hosted development preview with cheerful-ferret-182",
+  "actualReservedOwnerClerkSession": true,
+  "recommendedOptionSelectedAndEnabled": true,
+  "rankingExplanationVisible": true,
+  "privateDevelopmentHasNoFabricatedPublicRentals": true,
+  "browserSavedSearch": {
+    "sort": "recommended",
+    "city": "Austin",
+    "state": "TX",
+    "maxPrice": 2100,
+    "emailAlerts": false
+  },
+  "savedManagementShowsAlertsOff": true,
+  "runSearchLinkRestoresRecommendedAndAllCriteria": true,
+  "priceAscendingSelectorPreservesOtherCriteria": true,
+  "recommendedSelectionRestored": true,
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "sortLeft": 235,
+    "sortRight": 374
+  },
+  "defaultViewportRestored": true,
+  "ownSavedSearchDeletedThroughGuardedNativeApi": true,
+  "screenshots": [
+    "recommended-saved-desktop.jpg",
+    "recommended-search-desktop.jpg",
+    "recommended-search-mobile.jpg"
+  ],
+  "nativeReceipt": "hosted-recommended-native.json",
+  "limitations": [
+    "Positive hosted public placement and public-label rendering are unverified; current development rentals remain private.",
+    "List/map reordering and explicit spatial price/newest order are proved by the separate local native synthetic-public workflow, with explicit local prerequisites.",
+    "No real email/SMS, cloud paid/identity grant, production/customer change or Figma artifact."
+  ]
+}

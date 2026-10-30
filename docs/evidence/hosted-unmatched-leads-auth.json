@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-25T20:08:44.189Z",
+  "deployment": "cheerful-ferret-182",
+  "actualClerkDevelopmentJwt": true,
+  "syntheticAccount": true,
+  "defaultMatchedOnly": true,
+  "leadEmailDefaultOff": true,
+  "privateEmptyInboxAccepted": true,
+  "anonymousPreferenceAndInboxDenied": true,
+  "travelerRequestCreated": false,
+  "ownerPreferencesChanged": false,
+  "realEmailSent": false,
+  "successfulHostedProposal": false,
+  "productionChanged": false
+}

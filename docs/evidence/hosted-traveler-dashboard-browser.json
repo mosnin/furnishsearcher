@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-10-26T07:04:57.434685+00:00",
+  "environment": "cheerful-ferret-182",
+  "travelerWorkflowSource": "092f8dde1a65b2e42f2a2952e589b928dd73ea17",
+  "travelerWorkflowReadyDeployment": "dpl_6aPDQkBYSL28N2BPwbYQA9YLFSHM",
+  "finalSource": "0d75062445e2e3564a885f96e5648a64dd78719f",
+  "finalReadyDeployment": "dpl_HPjbPveHADKLSXQommSK2P4xGTSf",
+  "actualReservedTravelerBrowserLogin": true,
+  "initialOptionalIntroductionAndSavedSearchTasksVisible": true,
+  "savedSearchLinkReopenedExactCityStateBudgetDatesFlexibilityAndAmenity": true,
+  "profileAnchorAndAccessibleIntroductionFieldWork": true,
+  "normalBrowserProfileSaveSucceeded": true,
+  "introductionTaskRemovedAfterSaveAndReload": true,
+  "actualHostedAcceptedStayRecords": 0,
+  "exhaustedEmptyStayScopeAndLoadedMetricsVisible": true,
+  "noNewMatchingRentalClaim": true,
+  "mobile": {
+    "width": 390,
+    "documentScrollWidth": 390,
+    "mainWidth": 390,
+    "mainScrollWidth": 390
+  },
+  "defaultViewportRestored": true,
+  "onlyOwnSavedSearchAndDisposableClerkTravelerCleaned": true,
+  "standingOwnerBrowserRestored": true,
+  "standingOwnerPrivateRentalCountPreserved": 4,
+  "finalWindowArgumentContractVerifiedInRestoredOwnersTravelerContext": true,
+  "signInUnsupportedTotalsRemovedAndCitiesDirectoryLabelsObserved": true,
+  "cloudPublicBookingPaidOrIdentityGrants": false,
+  "externalRentalServiceOrRealMailSmsCalls": 0,
+  "limits": [
+    "Hosted accepted-stay cards and nonzero unread-reply task were not browser-proven: this disposable traveler has no stays or conversations.",
+    "Native tests and an actual isolated local current/upcoming confirmation workflow provide separate positive evidence.",
+    "An actual browser midnight wait, device-clock skew and mixed-day page reset are not claimed; UTC cursor/clock behavior has native tests.",
+    "The final cursor-range addition was checked after cleanup using the restored owner in its own traveler context; the earlier traveler profile/search workflow source is identified separately.",
+    "Signup copy has source/build checks; sign-in and city-directory copy were observed in the browser.",
+    "Full public/provider/production/whole-product acceptance and subsequent editable Figma remain open."
+  ]
+}

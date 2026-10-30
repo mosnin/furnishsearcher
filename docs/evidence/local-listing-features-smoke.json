@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-26T00:20:44.571Z",
+  "target": "http://127.0.0.1:3210",
+  "hosted": false,
+  "privilegedLocalQaIdentities": true,
+  "nativeCreateAndPartialUpdateConsistency": true,
+  "foreignWriteAndAnonymousReadDenied": true,
+  "ownPrivateFixtureDeleted": true,
+  "noPublicationOrPaidIdentityFixtures": true,
+  "productionChanged": false,
+  "realEmailOrSmsSent": false
+}

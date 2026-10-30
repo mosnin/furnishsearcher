@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-26T06:33:45.096Z",
+  "environment": "cheerful-ferret-182",
+  "actualReservedTravelerClerkJwt": true,
+  "normalNativeProfileAndSavedSearchCreation": true,
+  "browserProfileSavePersisted": true,
+  "optionalIntroductionTaskResolved": true,
+  "savedCriteriaHrefPreserved": true,
+  "actualAcceptedStayRecords": 0,
+  "exhaustedEmptyStays": true,
+  "anonymousAccountAndStaysDenied": true,
+  "syntheticCloudBookingOrPaidIdentityGrants": false,
+  "realProviderMessages": 0,
+  "cleaned": true,
+  "savedSearchRemoved": true,
+  "onlyOwnDisposableClerkTravelerDeleted": true
+}

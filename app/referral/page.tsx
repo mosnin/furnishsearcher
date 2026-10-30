@@ -29,12 +29,12 @@ export default function ReferralPage() {
 
   const convexUser = useQuery(
     api.users.getByClerkId,
-    userId ? { clerkId: userId } : "skip"
+    userId ? { clerkId: userId } : "skip",
   );
 
   const stats = useQuery(
     api.referrals.getReferralStats,
-    convexUser?._id ? { userId: convexUser._id } : "skip"
+    convexUser?._id ? { userId: convexUser._id } : "skip",
   );
 
   const getOrCreateCode = useMutation(api.referrals.getOrCreateCode);
@@ -65,7 +65,7 @@ export default function ReferralPage() {
     if (!referralLink) return;
     if (navigator.share) {
       await navigator.share({
-        title: "Join FurnishFinder",
+        title: "Join globe",
         text: "Find furnished rentals or list your property — no fees!",
         url: referralLink,
       });
@@ -79,18 +79,19 @@ export default function ReferralPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-[#0f2044] text-white py-20 px-4">
+      <section className="bg-primary text-white py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-amber-400/20 text-amber-300 text-sm font-semibold px-4 py-2 rounded-full mb-6">
             <Gift className="h-4 w-4" />
             Referral Program
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-4">
-            Invite friends. <span className="text-amber-400">Earn rewards.</span>
+            Invite friends.{" "}
+            <span className="text-amber-400">Earn rewards.</span>
           </h1>
           <p className="text-lg text-blue-100 max-w-xl mx-auto">
-            Share FurnishFinder with landlords and renters. Every successful referral
-            earns you a month of Pro features — free.
+            Share globe with landlords and renters. Every successful
+            referral earns you a month of Pro features — free.
           </p>
         </div>
       </section>
@@ -128,7 +129,7 @@ export default function ReferralPage() {
                   key={item.step}
                   className="flex flex-col items-center text-center gap-3"
                 >
-                  <div className="h-14 w-14 rounded-full bg-[#0f2044] text-white flex items-center justify-center shadow">
+                  <div className="h-14 w-14 rounded-full bg-primary text-white flex items-center justify-center shadow">
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="font-semibold text-slate-900">{item.title}</h3>
@@ -146,7 +147,7 @@ export default function ReferralPage() {
           {!isSignedIn ? (
             <Card className="text-center">
               <CardContent className="p-10">
-                <Gift className="h-12 w-12 text-[#0f2044]/40 mx-auto mb-4" />
+                <Gift className="h-12 w-12 text-primary/40 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-slate-900 mb-2">
                   Sign in to get your referral link
                 </h3>
@@ -170,10 +171,12 @@ export default function ReferralPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Card>
                     <CardContent className="p-5 text-center">
-                      <p className="text-3xl font-extrabold text-[#0f2044]">
+                      <p className="text-3xl font-extrabold text-primary">
                         {stats.totalReferrals}
                       </p>
-                      <p className="text-sm text-slate-500 mt-1">Friends Referred</p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Friends Referred
+                      </p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -191,7 +194,7 @@ export default function ReferralPage() {
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <Gift className="h-5 w-5 text-[#0f2044]" />
+                    <Gift className="h-5 w-5 text-primary" />
                     Your Referral Link
                   </h3>
 
@@ -254,32 +257,34 @@ export default function ReferralPage() {
                       Recent Referrals
                     </h3>
                     <div className="space-y-2">
-                      {stats.referrals.slice(0, 5).map((r: Doc<"referrals">) => (
-                        <div
-                          key={r._id}
-                          className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-                        >
-                          <span className="text-sm text-slate-600">
-                            {new Date(r.createdAt).toLocaleDateString()}
-                          </span>
-                          <Badge
-                            variant={
-                              r.status === "converted"
-                                ? "success"
-                                : r.status === "signed_up"
-                                ? "secondary"
-                                : "outline"
-                            }
-                            className="capitalize text-xs"
+                      {stats.referrals
+                        .slice(0, 5)
+                        .map((r: Doc<"referrals">) => (
+                          <div
+                            key={r._id}
+                            className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
                           >
-                            {r.status === "code_created"
-                              ? "Pending"
-                              : r.status === "signed_up"
-                              ? "Signed Up"
-                              : "Converted"}
-                          </Badge>
-                        </div>
-                      ))}
+                            <span className="text-sm text-slate-600">
+                              {new Date(r.createdAt).toLocaleDateString()}
+                            </span>
+                            <Badge
+                              variant={
+                                r.status === "converted"
+                                  ? "success"
+                                  : r.status === "signed_up"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                              className="capitalize text-xs"
+                            >
+                              {r.status === "code_created"
+                                ? "Pending"
+                                : r.status === "signed_up"
+                                  ? "Signed Up"
+                                  : "Converted"}
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -295,16 +300,18 @@ export default function ReferralPage() {
           <h3 className="font-semibold text-slate-900 mb-3">Program Terms</h3>
           <ul className="text-sm text-slate-500 space-y-1 text-left max-w-md mx-auto">
             <li className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-[#0f2044]" />
-              Rewards apply when the referred user completes a paid subscription.
+              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              Rewards apply when the referred user completes a paid
+              subscription.
             </li>
             <li className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-[#0f2044]" />
+              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
               You cannot refer yourself or use your own code.
             </li>
             <li className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-[#0f2044]" />
-              FurnishFinder reserves the right to modify or end this program at any time.
+              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              globe reserves the right to modify or end this program at
+              any time.
             </li>
           </ul>
         </div>

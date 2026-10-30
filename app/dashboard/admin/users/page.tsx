@@ -1,161 +1,248 @@
 "use client";
-
-import { useState } from "react";
-import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
-import { cn, formatDate } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import type { FunctionReturnType } from "convex/server";
+import type { AccountRole } from "@/lib/dashboard-access";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ExternalLink } from "lucide-react";
-
-type RoleFilter = "all" | "tenant" | "landlord" | "admin";
-
-function RoleBadge({ role }: { role: string }) {
-  const cls =
-    role === "admin"
-      ? "bg-purple-100 text-purple-700"
-      : role === "landlord"
-      ? "bg-blue-100 text-blue-700"
-      : "bg-slate-100 text-slate-600";
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-        cls
-      )}
-    >
-      {role}
-    </span>
+  PageHeader,
+  Panel,
+  Input,
+  SelectField,
+  Button,
+  Modal,
+  Status,
+  Empty,
+} from "@/components/ui-system/primitives";
+import { formatDate } from "@/lib/utils";
+type Account = FunctionReturnType<
+  typeof api.adminAccounts.list
+>["page"][number];
+const roles = [
+  { value: "tenant", label: "Traveler" },
+  { value: "landlord", label: "Property owner" },
+  { value: "admin", label: "Platform admin" },
+];
+export default function AdminUsers() {
+  const { userId } = useAuth();
+  const caller = useQuery(
+    api.users.getByClerkId,
+    userId ? { clerkId: userId } : "skip",
   );
-}
-
-export default function AdminUsersPage() {
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
-
-  const users = useQuery(api.users.getAll) as Doc<"users">[] | undefined;
-
-  const filtered =
-    users?.filter((u) =>
-      roleFilter === "all" ? true : u.role === roleFilter
-    ) ?? [];
-
-  const roleTabs: { label: string; value: RoleFilter }[] = [
-    { label: "All", value: "all" },
-    { label: "Tenant", value: "tenant" },
-    { label: "Landlord", value: "landlord" },
-    { label: "Admin", value: "admin" },
-  ];
-
-  const isLoading = users === undefined;
-
+  const [draft, setDraft] = useState({ role: "all", search: "" }),
+    [filter, setFilter] = useState(draft);
+  const { results, status, loadMore } = usePaginatedQuery(
+    api.adminAccounts.list,
+    caller?.role === "admin"
+      ? { role: filter.role as AccountRole | "all", search: filter.search }
+      : "skip",
+    { initialNumItems: 20 },
+  );
+  const update = useMutation(api.adminAccounts.update);
+  const [selected, setSelected] = useState<Account | null>(null),
+    [name, setName] = useState(""),
+    [role, setRole] = useState<AccountRole>("tenant"),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const focus = useRef<HTMLElement | null>(null);
+  const more = status === "CanLoadMore" || status === "LoadingMore";
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">All Users</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Browse and manage every user on the platform
-        </p>
-      </div>
-
-      {/* Role filter tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit flex-wrap">
-        {roleTabs.map((tab) => {
-          const count =
-            tab.value === "all"
-              ? users?.length
-              : users?.filter((u) => u.role === tab.value).length;
-          return (
-            <button
-              key={tab.value}
-              onClick={() => setRoleFilter(tab.value)}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                roleFilter === tab.value
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              )}
+    <div className="ds-page">
+      <PageHeader
+        title="User accounts"
+        description="Manage traveler, property owner and platform admin accounts."
+      />
+      <Panel>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setFilter({ ...draft });
+          }}
+        >
+          <div className="ds-filter-bar">
+            <label className="ds-field">
+              Find an account
+              <Input
+                value={draft.search}
+                maxLength={120}
+                placeholder="Name or email"
+                onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+              />
+            </label>
+            <SelectField
+              label="Account type"
+              value={draft.role}
+              onValueChange={(role) => setDraft({ ...draft, role })}
+              options={[{ value: "all", label: "All account types" }, ...roles]}
+            />
+          </div>
+          <div className="ds-filter-actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDraft({ role: "all", search: "" });
+                setFilter({ role: "all", search: "" });
+              }}
             >
-              {tab.label}
-              {count !== undefined && (
-                <span className="ml-1.5 text-xs text-slate-400">({count})</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Table */}
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
-          <p className="text-slate-500 text-sm">No users found</p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Name</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Email</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Role</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Joined</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((user) => (
-                <TableRow key={user._id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-medium text-slate-900">
-                    {user.displayName ?? user.name}
-                  </TableCell>
-                  <TableCell className="text-slate-600 text-sm">
-                    {user.email}
-                  </TableCell>
-                  <TableCell>
-                    <RoleBadge role={user.role} />
-                  </TableCell>
-                  <TableCell className="text-slate-500 text-sm">
-                    {formatDate(user.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {user.role === "landlord" ? (
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-500 hover:text-slate-700"
-                        title="View landlord profile"
-                      >
-                        <Link href={`/landlords/${user._id}`}>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <span className="text-slate-300 text-xs">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
+              Clear filters
+            </Button>
+            <Button type="submit">Apply filters</Button>
+          </div>
+        </form>
+        <div
+          className="ds-table-wrap"
+          tabIndex={0}
+          role="region"
+          aria-label="User accounts"
+        >
+          <table className="ds-table">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((account) => (
+                <tr key={account.id}>
+                  <td>
+                    <strong>{account.name}</strong>
+                    <small>{account.email}</small>
+                  </td>
+                  <td>{roles.find((r) => r.value === account.role)?.label}</td>
+                  <td>
+                    <Status>
+                      {account.offboarded ? "Offboarded" : "Active"}
+                    </Status>
+                  </td>
+                  <td>{formatDate(account.createdAt)}</td>
+                  <td>
+                    <Button
+                      variant="secondary"
+                      disabled={account.offboarded}
+                      onClick={(e) => {
+                        focus.current = e.currentTarget;
+                        setSelected(account);
+                        setName(account.name);
+                        setRole(account.role);
+                        setError("");
+                      }}
+                      aria-label={`Edit account ${account.name}`}
+                    >
+                      Edit account
+                    </Button>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
-      )}
+        {status === "LoadingFirstPage" ? (
+          <Empty title="Loading accounts…" />
+        ) : (
+          !results.length && (
+            <Empty
+              title={
+                more ? "No matches in these records" : "No matching accounts"
+              }
+            >
+              Adjust the filters or continue to the next page.
+            </Empty>
+          )
+        )}
+        <footer className="ds-directory-foot">
+          <span role="status">
+            {results.length} accounts loaded.{" "}
+            {more ? "More records remain to search." : "All records searched."}
+          </span>
+          {more && (
+            <Button
+              variant="secondary"
+              disabled={status === "LoadingMore"}
+              onClick={() => loadMore(20)}
+            >
+              {status === "LoadingMore" ? "Loading…" : "Search more accounts"}
+            </Button>
+          )}
+        </footer>
+      </Panel>
+      <Modal
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open && !busy) setSelected(null);
+        }}
+        title="Edit account"
+        description={selected?.email}
+        finalFocus={focus}
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!selected || busy) return;
+            setBusy(true);
+            setError("");
+            try {
+              await update({ userId: selected.id, name, role });
+              setSelected(null);
+            } catch (e) {
+              setError(
+                e instanceof Error
+                  ? e.message
+                  : "Could not update this account.",
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <div className="ds-dialog-body ds-workshop-form">
+            <label className="ds-field">
+              Display name
+              <Input
+                required
+                maxLength={120}
+                value={name}
+                disabled={busy}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+            <SelectField
+              label="Account type"
+              value={role}
+              onValueChange={(value) => setRole(value as AccountRole)}
+              options={
+                selected?.id === caller?._id
+                  ? roles.filter((r) => r.value === "admin")
+                  : roles
+              }
+            />
+            {selected?.id === caller?._id && (
+              <p className="ds-caption">
+                Another platform admin must change your admin account type.
+              </p>
+            )}
+            {error && <p role="alert">{error}</p>}
+          </div>
+          <footer className="ds-dialog-footer">
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => setSelected(null)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Saving…" : "Save account"}
+            </Button>
+          </footer>
+        </form>
+      </Modal>
     </div>
   );
 }
